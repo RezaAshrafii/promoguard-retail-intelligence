@@ -2,13 +2,14 @@
 
 Before making changes, read these files completely:
 
-1. `IMPLEMENTATION_AGENT_PROMPT.md`
-2. `ROADMAP.md`
-3. `README.md`
-4. `docs/problem-brief.md`
-5. `docs/evaluation-protocol.md`
-6. `docs/limitations.md`
-7. `docs/decisions/0001-initial-scope.md`
+1. `PARK_SUBMISSION_AGENT_HANDOFF.md` while the Park submission sprint is active
+2. `IMPLEMENTATION_AGENT_PROMPT.md`
+3. `ROADMAP.md`
+4. `README.md`
+5. `docs/problem-brief.md`
+6. `docs/evaluation-protocol.md`
+7. `docs/limitations.md`
+8. `docs/decisions/0001-initial-scope.md`
 
 `ROADMAP.md` is the source of truth for phase state. Work on the single `ACTIVE` phase unless the launch prompt explicitly selects continuous mode. Preserve the evidence policy: public benchmark data must never be presented as measured business impact.
 

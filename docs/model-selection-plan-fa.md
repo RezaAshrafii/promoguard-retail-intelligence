@@ -6,21 +6,23 @@
 
 ## تصمیم فوری
 
-فاز فعال فعلی **Phase 6 — Real-Experiment Causal Benchmarking** است. برای طراحی estimator،
-splitها و guardrailهای causal استفاده کن:
+فاز فعال فعلی **Release Gate 5.1 — Foundation Correctness و آماده‌سازی ارسال پارک** است و Phase 6
+تا عبور کامل این gate متوقف می‌ماند. برای coverage accounting، AuditPolicy، امنیت مرزها و audit
+نهایی ادعاها استفاده کن:
 
 ```powershell
 .\start-agent.ps1 -Model gpt-5.6-sol -Reasoning xhigh -RunMode phase
 ```
 
-برای بازبینی نهایی estimand، overlap، placebo، leakage و زبان abstention یک اجرای جداگانه با Sol
-مناسب است:
+برای بازبینی نهایی thresholdها، leakage، سازگاری artifact و زبان abstention یک اجرای جداگانه با
+Sol مناسب است:
 
 ```powershell
 .\start-agent.ps1 -Model gpt-5.6-sol -Reasoning max -RunMode phase
 ```
 
-اجرای review جایگزین شاهد، تست و بررسی انسانی نیست؛ فقط برای consistency audit نهایی استفاده می‌شود.
+برای نگارش فارسی بسته، roadmap و ویدیو از `gpt-5.6-terra` با `high` استفاده شود. اجرای review
+جایگزین شاهد، تست و بررسی انسانی نیست؛ فقط برای consistency audit نهایی استفاده می‌شود.
 
 ## ماتریس پیشنهادی فازها
 
