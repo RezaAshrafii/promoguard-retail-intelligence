@@ -51,6 +51,21 @@ promoguard validate --input data/processed/breakfast-at-the-frat
 The ingest command creates `transactions.csv`, lookup tables, `weekly_panel.csv`,
 `quality_report.json`, and `provenance.json`. It never invents cost or inventory fields.
 
+## Run the forecasting baseline
+
+After ingesting the public workbook, run the time-aware baseline evaluation:
+
+```powershell
+promoguard forecast-evaluate `
+  --input data/processed/breakfast-at-the-frat `
+  --output reports/phase-02
+```
+
+This writes a compact JSON summary, a fold-level comparison table, and SKU/store segment
+metrics. The evaluation uses six expanding windows, a 52-week seasonal-naive model, and a
+recursive one-week naive reference. Promotion rows are excluded from lag history and scoring is
+paired on rows where both models have a valid prediction.
+
 ## Start the implementation agent
 
 The repository includes a durable agent prompt and an active, phase-gated roadmap. The safe default implements only the current phase, validates it, updates the roadmap, and stops before the next phase:
@@ -87,8 +102,8 @@ decisions, commands, tests, limitations, and interview preparation for the compl
 ## Current status
 
 - [x] Real-data contract, ingestion, validation, provenance, and canonical weekly panel
-- [ ] Seasonal-naive baseline
-- [ ] Time-aware backtest
+- [x] Seasonal-naive baseline and recursive naive reference
+- [x] Time-aware backtest with WAPE, MASE, bias, and interval coverage
 - [ ] Real-experiment causal benchmark
 - [ ] Cannibalization diagnostics
 - [ ] Uncertainty and abstention policy

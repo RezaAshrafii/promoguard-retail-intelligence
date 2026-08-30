@@ -43,8 +43,8 @@ The first submission implements the center path with a documented public retail 
 |---|---|---:|---|
 | 0 | Repository scaffold and evidence policy | complete | DONE |
 | 1 | Real-data acquisition, contracts, and validation slice | 2026-08-30 | DONE |
-| 2 | Forecasting baseline and rolling-origin evaluation | 2026-08-31 | ACTIVE |
-| 3 | Honest promotion-audit MVP | 2026-09-01 | PENDING |
+| 2 | Forecasting baseline and rolling-origin evaluation | 2026-08-31 | DONE |
+| 3 | Honest promotion-audit MVP | 2026-09-01 | ACTIVE |
 | 4 | End-to-end API/dashboard demo | 2026-09-02 | PENDING |
 | 5 | Park submission evidence package | 2026-09-03/04 | PENDING |
 | 6 | Real-experiment causal benchmarking | 2026-09-05 to 09-14 | PENDING |
@@ -127,7 +127,7 @@ Completion evidence:
 - Remaining limitations: no cost, margin, inventory, stockout, or causal identification fields;
   public data does not establish Iranian business impact.
 
-## Phase 2 — ACTIVE — Forecasting baseline and evaluation
+## Phase 2 — DONE — Forecasting baseline and evaluation
 
 Plain-language goal: estimate what normal sales would have looked like without a promotion, and prove the estimate is better than a naive reference on past time windows.
 
@@ -139,6 +139,25 @@ Deliverables and gate:
 - Tests for leakage and temporal ordering.
 - A compact JSON evaluation artifact and one readable plot/table.
 - Gate: pipeline runs from the documented public dataset, metrics are reproducible, and any claimed improvement includes uncertainty across folds.
+
+Completion evidence:
+
+- Date/time: 2026-08-30.
+- Delivered: seasonal-naive and recursive naive baselines, expanding rolling-origin splits,
+  paired eligibility filtering, WAPE/MASE/bias metrics, training-only 90% intervals, segment
+  metrics by UPC and store, CLI execution, tests, and machine-readable artifacts.
+- Command: `python -m promoguard.cli forecast-evaluate --input data/processed/breakfast-at-the-frat --output reports/phase-02`.
+- Artifacts: `reports/phase-02/forecast-evaluation.json`,
+  `reports/phase-02/forecast-evaluation.csv`, and
+  `reports/phase-02/forecast-segment-metrics.csv`.
+- Six folds were evaluated with 104-week minimum history, four-week horizon, and eight-week
+  step. The paired comparison scored 41,516 non-promotion rows.
+- Seasonal-naive overall: WAPE 0.40046, MASE 1.20059, bias -0.01822, interval coverage 0.88108.
+- Recursive naive overall: WAPE 0.34828, MASE 1.09469, bias 0.03114. Seasonal-naive WAPE
+  improvement versus reference was -0.05218, so no model improvement is claimed.
+- Tests cover temporal ordering and future-value invariance. Ruff, 23 tests, compileall, CLI
+  health, and real-data evaluation passed.
+- Learning guide: `learning/02-forecasting-baseline/README.fa.md`.
 
 ## Phase 3 — PENDING — Honest promotion-audit MVP
 

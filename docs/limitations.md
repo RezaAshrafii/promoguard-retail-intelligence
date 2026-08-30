@@ -1,6 +1,8 @@
 # Current limitations
 
-- Phase 1 contains no trained forecasting or causal model.
+- Phase 2 contains measured baselines, not a production-trained demand model.
+- On the current public panel, the seasonal-naive baseline is weaker than the recursive one-week
+  reference on the paired backtest; it must not be presented as a model improvement.
 - No real company data or customer outcome is included.
 - Observational promotion data cannot by itself prove causality.
 - Public datasets may not represent Iranian retail behavior, pricing, inflation, or distribution.

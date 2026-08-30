@@ -1,0 +1,192 @@
+{
+  "dataset": "dunnhumby-breakfast-at-the-frat",
+  "evaluation_target": "non-promotion rows only",
+  "training_history": "promotion rows excluded from lag lookups",
+  "eligibility": {
+    "non_promotion_rows_in_test_windows": 58131,
+    "paired_rows_scored_for_both_models": 41516,
+    "rows_excluded_from_paired_comparison": 16615
+  },
+  "configuration": {
+    "seasonal_period_weeks": 52,
+    "min_train_weeks": 104,
+    "horizon_weeks": 4,
+    "step_weeks": 8,
+    "max_folds": 6,
+    "folds_evaluated": 6
+  },
+  "splits": [
+    {
+      "fold": 1,
+      "train_end": "2011-01-05T00:00:00",
+      "test_start": "2011-01-12T00:00:00",
+      "test_end": "2011-02-02T00:00:00",
+      "train_weeks": 104,
+      "test_weeks": 4
+    },
+    {
+      "fold": 2,
+      "train_end": "2011-03-02T00:00:00",
+      "test_start": "2011-03-09T00:00:00",
+      "test_end": "2011-03-30T00:00:00",
+      "train_weeks": 112,
+      "test_weeks": 4
+    },
+    {
+      "fold": 3,
+      "train_end": "2011-04-27T00:00:00",
+      "test_start": "2011-05-04T00:00:00",
+      "test_end": "2011-05-25T00:00:00",
+      "train_weeks": 120,
+      "test_weeks": 4
+    },
+    {
+      "fold": 4,
+      "train_end": "2011-06-22T00:00:00",
+      "test_start": "2011-06-29T00:00:00",
+      "test_end": "2011-07-20T00:00:00",
+      "train_weeks": 128,
+      "test_weeks": 4
+    },
+    {
+      "fold": 5,
+      "train_end": "2011-08-17T00:00:00",
+      "test_start": "2011-08-24T00:00:00",
+      "test_end": "2011-09-14T00:00:00",
+      "train_weeks": 136,
+      "test_weeks": 4
+    },
+    {
+      "fold": 6,
+      "train_end": "2011-10-12T00:00:00",
+      "test_start": "2011-10-19T00:00:00",
+      "test_end": "2011-11-09T00:00:00",
+      "train_weeks": 144,
+      "test_weeks": 4
+    }
+  ],
+  "models": {
+    "seasonal_naive_52": {
+      "folds": [
+        {
+          "fold": 1,
+          "n": 6935,
+          "wape": 0.34697598244841515,
+          "mase": 1.1712371785100657,
+          "bias": -0.030182236745540644,
+          "interval_coverage": 0.8793078586878155
+        },
+        {
+          "fold": 2,
+          "n": 7569,
+          "wape": 0.4065149726306751,
+          "mase": 1.204029741958542,
+          "bias": -0.15210547028728846,
+          "interval_coverage": 0.8756771039767473
+        },
+        {
+          "fold": 3,
+          "n": 6623,
+          "wape": 0.3860630420985826,
+          "mase": 1.1708898819729416,
+          "bias": 0.0013623862915168182,
+          "interval_coverage": 0.8891740902914087
+        },
+        {
+          "fold": 4,
+          "n": 7017,
+          "wape": 0.40907015412714415,
+          "mase": 1.2560269841055154,
+          "bias": -0.006151301336228063,
+          "interval_coverage": 0.8764429243266353
+        },
+        {
+          "fold": 5,
+          "n": 5980,
+          "wape": 0.42193873624259215,
+          "mase": 1.2320222225860975,
+          "bias": -0.023685830831986453,
+          "interval_coverage": 0.8807692307692307
+        },
+        {
+          "fold": 6,
+          "n": 7392,
+          "wape": 0.44317625957932494,
+          "mase": 1.2146134799897772,
+          "bias": 0.10288602641447905,
+          "interval_coverage": 0.8856872294372294
+        }
+      ],
+      "overall": {
+        "n": 41516,
+        "wape": 0.4004598187687816,
+        "mase": 1.2005928445457346,
+        "bias": -0.018221695849889176,
+        "interval_coverage": 0.8810819924848251
+      }
+    },
+    "naive_1": {
+      "folds": [
+        {
+          "fold": 1,
+          "n": 6935,
+          "wape": 0.34180011896760837,
+          "mase": 1.1799354848206292,
+          "bias": 0.03985414880221249,
+          "interval_coverage": null
+        },
+        {
+          "fold": 2,
+          "n": 7569,
+          "wape": 0.4108350327358592,
+          "mase": 1.1652342322945881,
+          "bias": -0.03723480376372938,
+          "interval_coverage": null
+        },
+        {
+          "fold": 3,
+          "n": 6623,
+          "wape": 0.3070869473238841,
+          "mase": 1.0020227098039554,
+          "bias": -0.012896128622805161,
+          "interval_coverage": null
+        },
+        {
+          "fold": 4,
+          "n": 7017,
+          "wape": 0.34373196178267124,
+          "mase": 1.0971252360233608,
+          "bias": 0.026311028404538524,
+          "interval_coverage": null
+        },
+        {
+          "fold": 5,
+          "n": 5980,
+          "wape": 0.34568613869006387,
+          "mase": 1.0910219935720835,
+          "bias": 0.0531632417455553,
+          "interval_coverage": null
+        },
+        {
+          "fold": 6,
+          "n": 7392,
+          "wape": 0.3438683261771473,
+          "mase": 1.01792275878907,
+          "bias": 0.12166422088156965,
+          "interval_coverage": null
+        }
+      ],
+      "overall": {
+        "n": 41516,
+        "wape": 0.3482837249959048,
+        "mase": 1.0946883636658642,
+        "bias": 0.031142139374953793,
+        "interval_coverage": null
+      }
+    }
+  },
+  "comparison": {
+    "wape_improvement_of_seasonal_vs_naive": -0.0521760937728768,
+    "interpretation": "positive means seasonal-naive has lower WAPE; this is forecast evidence, not causal promotion impact."
+  }
+}
