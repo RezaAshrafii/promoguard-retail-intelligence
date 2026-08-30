@@ -11,7 +11,7 @@ from promoguard.insights.promotion_audit import ContributionAssumption
 
 
 class DatasetPathRequest(BaseModel):
-    """Reference a local processed directory or canonical panel CSV."""
+    """Reference a path under the server's configured local-demo data root."""
 
     input_path: str = Field(min_length=1)
 

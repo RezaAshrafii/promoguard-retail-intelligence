@@ -85,10 +85,11 @@ is observational, with uncertainty and warnings; it is not a causal-effect claim
 
 ## Run the end-to-end application
 
-Start the typed API and open its generated schema at `http://127.0.0.1:8000/docs`:
+Start the local-demo API bound to loopback and open its generated schema at
+`http://127.0.0.1:8000/docs`:
 
 ```powershell
-uvicorn apps.api.main:app --reload
+uvicorn apps.api.main:app --reload --host 127.0.0.1
 ```
 
 In a second terminal, start the Persian dashboard:
@@ -106,6 +107,8 @@ python -m demo.phase4_smoke
 ```
 
 API contracts and example requests are documented in `docs/api-dashboard.md`.
+The filesystem-path endpoints accept only paths below the configured repository `data/` root. This
+API is not designed for direct Internet exposure.
 
 ## Start the implementation agent
 

@@ -1,6 +1,7 @@
 """Thin FastAPI adapter for deterministic PromoGuard domain services."""
 
 from io import BytesIO
+from pathlib import Path
 from typing import Annotated
 
 import pandas as pd
@@ -24,22 +25,40 @@ from promoguard.insights.promotion_audit import (
 
 MAX_UPLOAD_BYTES = 120 * 1024 * 1024
 MAX_PANEL_ROWS = 1_000_000
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+LOCAL_DATA_ROOT = (REPOSITORY_ROOT / "data").resolve()
 
 app = FastAPI(
     title="PromoGuard API",
     version=__version__,
-    description="Auditable retail-promotion screening; outputs are observational, not causal.",
+    description=(
+        "Local demonstration API for auditable retail-promotion screening; "
+        "outputs are observational, not causal. Do not expose directly to the Internet."
+    ),
 )
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "promoguard-api", "version": __version__}
+    return {
+        "status": "ok",
+        "service": "promoguard-api",
+        "version": __version__,
+        "deployment_scope": "local_demo_only",
+    }
 
 
 def _load_valid_panel(input_path: str) -> pd.DataFrame:
+    resolved_input = Path(input_path).resolve()
     try:
-        panel = load_weekly_panel(input_path)
+        resolved_input.relative_to(LOCAL_DATA_ROOT)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Local input must remain under the configured data root: {LOCAL_DATA_ROOT}",
+        ) from error
+    try:
+        panel = load_weekly_panel(resolved_input)
     except FileNotFoundError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except ValueError as error:

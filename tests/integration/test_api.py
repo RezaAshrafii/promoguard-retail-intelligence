@@ -40,6 +40,11 @@ def client() -> TestClient:
     return TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def isolate_local_data_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(api_module, "LOCAL_DATA_ROOT", tmp_path.resolve())
+
+
 def test_validate_list_and_audit_realistic_panel(client: TestClient, panel_path: Path) -> None:
     validation = client.post("/v1/panels/validate", json={"input_path": str(panel_path)})
     assert validation.status_code == 200
@@ -85,6 +90,18 @@ def test_missing_local_panel_returns_not_found(client: TestClient, tmp_path: Pat
         "/v1/panels/validate", json={"input_path": str(tmp_path / "missing.csv")}
     )
     assert response.status_code == 404
+
+
+def test_local_path_outside_configured_data_root_is_forbidden(
+    client: TestClient, tmp_path: Path
+) -> None:
+    outside_path = tmp_path.parent / "outside-root-panel.csv"
+    realistic_panel().to_csv(outside_path, index=False)
+
+    response = client.post("/v1/panels/validate", json={"input_path": str(outside_path)})
+
+    assert response.status_code == 403
+    assert "configured data root" in response.json()["detail"]
 
 
 def test_api_blocks_blank_canonical_grain_identifier(

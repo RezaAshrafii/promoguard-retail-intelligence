@@ -4,7 +4,8 @@
   "health": {
     "status": "ok",
     "service": "promoguard-api",
-    "version": "0.1.0"
+    "version": "0.1.0",
+    "deployment_scope": "local_demo_only"
   },
   "quality": {
     "valid": true,

@@ -18,10 +18,13 @@ and processed data are intentionally excluded from Git.
 ## HTTP API
 
 ```powershell
-uvicorn apps.api.main:app --reload
+uvicorn apps.api.main:app --reload --host 127.0.0.1
 ```
 
 OpenAPI UI: `http://127.0.0.1:8000/docs`
+
+This is a local demonstration API, not a public Internet service. Filesystem-path requests are
+resolved and restricted to the configured local `data/` root; paths outside it return `403`.
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -66,6 +69,7 @@ Example optional sensitivity fragment:
 Boundary behavior:
 
 - missing local path: `404`;
+- resolved path outside the configured local data root: `403`;
 - malformed local CSV: `400`;
 - invalid canonical panel: `422` before analysis;
 - empty upload: `400`;
@@ -75,6 +79,9 @@ Boundary behavior:
 The 120 MiB and one-million-row limits are application safety limits, not statistical claims.
 Canonical reports expose `missing_store_id_rows` and `missing_upc_rows`; null, empty, or
 whitespace-only identifiers are fatal before event detection or forecasting.
+
+A future public deployment must replace caller-supplied filesystem paths with authenticated upload
+or server-owned dataset IDs and add authorization, rate limiting, safe storage, and audit logging.
 
 ## Streamlit dashboard
 
