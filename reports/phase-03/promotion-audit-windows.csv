@@ -1,0 +1,4 @@
+window,requested_weeks,observed_weeks,total_units,mean_units,promotion_weeks
+pre,4,4,120.0,30.0,0
+during,5,5,128.0,25.6,5
+post,4,4,87.0,21.75,0

@@ -23,3 +23,21 @@
 - The seasonal interval is a non-parametric 90th percentile absolute seasonal residual interval
   computed from training history only. Coverage is the fraction of held-out actuals inside it.
 - A lower WAPE is forecast evidence only. It is not evidence that a promotion caused lift or profit.
+
+## Promotion-audit protocol
+
+- Consecutive promoted weeks for one store and UPC form one episode. A gap longer than seven days
+  starts a new episode.
+- The audit baseline is recursive one-week persistence initialized from the last non-promotion
+  observation before the event. During-event or post-event outcomes never enter the baseline.
+- The audit interval uses the 90th percentile absolute one-week residual from consecutive
+  non-promotion history before the event. It is a screening interval, not a causal confidence
+  interval.
+- Pre and post windows are four weeks by default. A post-to-pre ratio below 0.8 triggers a blocking
+  forward-buy warning; a recent-pre to older-history ratio outside 0.5–1.5 triggers severe shift.
+- Missing unit margin blocks a profit decision. A supplied margin creates a labeled scenario only;
+  it does not convert public-data estimates into measured profit.
+- Missing inventory emits `STOCKOUT_UNOBSERVABLE`; observed zero inventory emits a blocking
+  `STOCKOUT_RISK` warning.
+- `approve` means only “support a controlled pilot under the supplied scenario.” Blocking warnings
+  or intervals crossing zero return `experiment`. The output never identifies causal effect.

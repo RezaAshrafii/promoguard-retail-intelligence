@@ -44,8 +44,8 @@ The first submission implements the center path with a documented public retail 
 | 0 | Repository scaffold and evidence policy | complete | DONE |
 | 1 | Real-data acquisition, contracts, and validation slice | 2026-08-30 | DONE |
 | 2 | Forecasting baseline and rolling-origin evaluation | 2026-08-31 | DONE |
-| 3 | Honest promotion-audit MVP | 2026-09-01 | ACTIVE |
-| 4 | End-to-end API/dashboard demo | 2026-09-02 | PENDING |
+| 3 | Honest promotion-audit MVP | 2026-09-01 | DONE |
+| 4 | End-to-end API/dashboard demo | 2026-09-02 | ACTIVE |
 | 5 | Park submission evidence package | 2026-09-03/04 | PENDING |
 | 6 | Real-experiment causal benchmarking | 2026-09-05 to 09-14 | PENDING |
 | 7 | Cannibalization, forward-buy, uncertainty, abstention | 2026-09-15 to 09-24 | PENDING |
@@ -159,7 +159,7 @@ Completion evidence:
   health, and real-data evaluation passed.
 - Learning guide: `learning/02-forecasting-baseline/README.fa.md`.
 
-## Phase 3 — ACTIVE — Honest promotion-audit MVP
+## Phase 3 — DONE — Honest promotion-audit MVP
 
 Plain-language goal: compare observed promotion-period sales with the validated no-promotion baseline, while labeling the result as an audit estimate rather than a causal claim.
 
@@ -171,7 +171,28 @@ Deliverables and gate:
 - Typed result with estimate, interval, assumptions, evidence references, and `approve/reject/experiment` decision.
 - Gate: documented observational cases trigger expected signs and warnings; output never says “caused” without a defensible identification design.
 
-## Phase 4 — PENDING — End-to-end API and dashboard demo
+Completion evidence:
+
+- Date/time: 2026-08-30.
+- Model/reasoning review: `gpt-5.6-sol` with `xhigh` was selected for the statistical and claim-language risk of this phase.
+- Delivered: deterministic promotion-episode detection, pre-event-only recursive baseline,
+  incremental-unit interval, optional margin scenario, pre/during/post summaries, shift/stockout/
+  short-history/forward-buy diagnostics, typed evidence payload, and `approve/reject/experiment`
+  screening logic.
+- Real-data selection rule: earliest episode with at least 52 non-promotion history rows and a
+  complete four-week post window; no outcome-based event cherry-picking.
+- Selected audit: store 23345, UPC 2840004768, 2010-01-13 through 2010-02-10. Observed units 128;
+  baseline 185 [115, 255]; observational incremental estimate -57 [-127, 13].
+- Decision: `experiment`. Blocking evidence: source cost is unavailable and post/pre ratio 0.725
+  triggers forward-buy risk. Inventory is unavailable, so stockout status is unknown.
+- Artifacts: `reports/phase-03/promotion-audit.json` and
+  `reports/phase-03/promotion-audit-windows.csv`.
+- Validation: Ruff passed; 33 tests passed; compileall, health CLI, and real-data promotion-audit
+  command passed. Tests cover positive/negative signs, margin scenario, short history, severe shift,
+  forward-buy, missing inventory, future-value invariance, and unsupported causal wording.
+- Learning guide: `learning/03-promotion-audit/README.fa.md`.
+
+## Phase 4 — ACTIVE — End-to-end API and dashboard demo
 
 Plain-language goal: let a reviewer run one command, load demo CSVs, select a promotion, and understand the result without reading the code.
 

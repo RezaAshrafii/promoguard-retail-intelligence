@@ -1,0 +1,82 @@
+{
+  "audit_id": "23345-2840004768-2010-01-13",
+  "dataset": "dunnhumby-breakfast-at-the-frat",
+  "store_id": "23345",
+  "upc": "2840004768",
+  "start_date": "2010-01-13",
+  "end_date": "2010-02-10",
+  "duration_weeks": 5,
+  "baseline_model": "recursive-naive-1 using non-promotion pre-event history",
+  "history_weeks": 52,
+  "observed_units": 128.0,
+  "baseline_units": {
+    "point": 185.0,
+    "lower": 115.0,
+    "upper": 255.0
+  },
+  "incremental_units": {
+    "point": -57.0,
+    "lower": -127.0,
+    "upper": 13.0
+  },
+  "margin_scenario": null,
+  "pre_window": {
+    "requested_weeks": 4,
+    "observed_weeks": 4,
+    "total_units": 120.0,
+    "mean_units": 30.0,
+    "promotion_weeks": 0
+  },
+  "during_window": {
+    "requested_weeks": 5,
+    "observed_weeks": 5,
+    "total_units": 128.0,
+    "mean_units": 25.6,
+    "promotion_weeks": 5
+  },
+  "post_window": {
+    "requested_weeks": 4,
+    "observed_weeks": 4,
+    "total_units": 87.0,
+    "mean_units": 21.75,
+    "promotion_weeks": 0
+  },
+  "pre_to_reference_ratio": 1.348314606741573,
+  "post_to_pre_ratio": 0.725,
+  "decision": "experiment",
+  "decision_scope": "screening recommendation for a controlled pilot; not a rollout instruction",
+  "decision_rationale": "Blocking diagnostics require a better controlled experiment.",
+  "warnings": [
+    {
+      "code": "OBSERVATIONAL_ONLY",
+      "severity": "warning",
+      "message": "The estimate is an observational audit and does not identify a treatment effect."
+    },
+    {
+      "code": "MISSING_COST",
+      "severity": "blocking",
+      "message": "Unit margin is unavailable, so profit is not calculated."
+    },
+    {
+      "code": "STOCKOUT_UNOBSERVABLE",
+      "severity": "warning",
+      "message": "The source has no inventory field, so stockout-censored demand cannot be diagnosed."
+    },
+    {
+      "code": "FORWARD_BUY_RISK",
+      "severity": "blocking",
+      "message": "Post-promotion demand is more than 20% below the pre-promotion average."
+    }
+  ],
+  "assumptions": [
+    "The last observed non-promotion units are a usable short-horizon baseline.",
+    "The 90th percentile of pre-event one-week residuals is a useful audit interval.",
+    "No unobserved distribution or assortment change invalidates the comparison."
+  ],
+  "evidence_refs": [
+    "docs/data-acquisition.md",
+    "reports/phase-02/forecast-evaluation.json",
+    "docs/evaluation-protocol.md"
+  ],
+  "claim_language": "observational incremental-units estimate; causal effect not identified"
+}

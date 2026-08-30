@@ -66,6 +66,21 @@ metrics. The evaluation uses six expanding windows, a 52-week seasonal-naive mod
 recursive one-week naive reference. Promotion rows are excluded from lag history and scoring is
 paired on rows where both models have a valid prediction.
 
+## Run an honest promotion audit
+
+Run the deterministic audit on the earliest event meeting the documented 52-week history and
+complete post-window rule:
+
+```powershell
+promoguard promotion-audit `
+  --input data/processed/breakfast-at-the-frat `
+  --output reports/phase-03
+```
+
+You may instead provide `--store-id`, `--upc`, and `--start-date` together. Add `--unit-margin`
+only when it is a real, approved business input; otherwise profit remains unavailable. The output
+is an observational screening estimate with uncertainty and warnings, not a causal-effect claim.
+
 ## Start the implementation agent
 
 The repository includes a durable agent prompt and an active, phase-gated roadmap. The safe default implements only the current phase, validates it, updates the roadmap, and stops before the next phase:
@@ -106,6 +121,7 @@ The model and reasoning policy for future phase execution is documented in
 - [x] Real-data contract, ingestion, validation, provenance, and canonical weekly panel
 - [x] Seasonal-naive baseline and recursive naive reference
 - [x] Time-aware backtest with WAPE, MASE, bias, and interval coverage
+- [x] Typed observational promotion audit with pre/during/post diagnostics
 - [ ] Real-experiment causal benchmark
 - [ ] Cannibalization diagnostics
 - [ ] Uncertainty and abstention policy
