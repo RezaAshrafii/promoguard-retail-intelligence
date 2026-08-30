@@ -7,7 +7,7 @@ from enum import StrEnum
 from typing import Any, Literal
 
 import pandas as pd
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from promoguard.data.grain import normalize_required_identifiers
 
@@ -29,6 +29,34 @@ class WarningSeverity(StrEnum):
     INFO = "info"
     WARNING = "warning"
     BLOCKING = "blocking"
+
+
+class AuditPolicy(BaseModel):
+    """Versioned screening thresholds; these are not learned causal decision rules."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    policy_id: Literal["promoguard-observational-screening"] = (
+        "promoguard-observational-screening"
+    )
+    version: Literal["1.0.0"] = "1.0.0"
+    representative_min_history_weeks: int = Field(default=52, ge=1, le=260)
+    audit_min_history_weeks: int = Field(default=26, ge=1, le=260)
+    pre_window_weeks: int = Field(default=4, ge=1, le=52)
+    post_window_weeks: int = Field(default=4, ge=1, le=52)
+    reference_window_weeks: int = Field(default=12, ge=1, le=104)
+    severe_shift_lower_ratio: float = Field(default=0.5, gt=0, allow_inf_nan=False)
+    severe_shift_upper_ratio: float = Field(default=1.5, gt=0, allow_inf_nan=False)
+    forward_buy_ratio_threshold: float = Field(default=0.8, gt=0, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def validate_shift_bounds(self) -> AuditPolicy:
+        if self.severe_shift_lower_ratio >= self.severe_shift_upper_ratio:
+            raise ValueError("severe shift lower ratio must be below the upper ratio")
+        return self
+
+
+DEFAULT_AUDIT_POLICY = AuditPolicy()
 
 
 class AuditWarning(BaseModel):
@@ -99,6 +127,7 @@ class PromotionAuditResult(BaseModel):
     start_date: date
     end_date: date
     duration_weeks: int
+    policy: AuditPolicy
     baseline_model: str
     history_weeks: int
     observed_units: float
@@ -171,8 +200,7 @@ def detect_promotion_episodes(panel: pd.DataFrame) -> pd.DataFrame:
 def select_representative_event(
     panel: pd.DataFrame,
     *,
-    min_history_weeks: int = 52,
-    post_window_weeks: int = 4,
+    policy: AuditPolicy = DEFAULT_AUDIT_POLICY,
 ) -> dict[str, Any]:
     """Select the earliest event meeting predeclared history and post-window rules."""
     prepared = prepare_audit_panel(panel)
@@ -186,12 +214,15 @@ def select_representative_event(
         history = group[
             (group["week_end_date"] < event.start_date) & group["promotion_flag"].eq(0)
         ]
-        post_end = event.end_date + pd.Timedelta(weeks=post_window_weeks)
+        post_end = event.end_date + pd.Timedelta(weeks=policy.post_window_weeks)
         post = group[
             (group["week_end_date"] > event.end_date)
             & (group["week_end_date"] <= post_end)
         ]
-        if len(history) >= min_history_weeks and post["week_end_date"].nunique() >= post_window_weeks:
+        if (
+            len(history) >= policy.representative_min_history_weeks
+            and post["week_end_date"].nunique() >= policy.post_window_weeks
+        ):
             return event._asdict()
     raise ValueError("No promotion episode has the required history and complete post window.")
 
@@ -261,9 +292,7 @@ def audit_promotion_event(
     upc: str,
     start_date: str | date | pd.Timestamp,
     contribution_assumption: ContributionAssumption | None = None,
-    pre_window_weeks: int = 4,
-    post_window_weeks: int = 4,
-    min_history_weeks: int = 26,
+    policy: AuditPolicy = DEFAULT_AUDIT_POLICY,
 ) -> PromotionAuditResult:
     """Audit one promotion episode with pre-event-only baseline and explicit limitations."""
     prepared = prepare_audit_panel(panel)
@@ -289,8 +318,8 @@ def audit_promotion_event(
     if history.empty:
         raise ValueError("The selected episode has no non-promotion history for a baseline.")
 
-    pre_start = event_start - pd.Timedelta(weeks=pre_window_weeks)
-    post_end = event_end + pd.Timedelta(weeks=post_window_weeks)
+    pre_start = event_start - pd.Timedelta(weeks=policy.pre_window_weeks)
+    post_end = event_end + pd.Timedelta(weeks=policy.post_window_weeks)
     pre = group[
         (group["week_end_date"] >= pre_start) & (group["week_end_date"] < event_start)
     ]
@@ -313,12 +342,13 @@ def audit_promotion_event(
             "The estimate is an observational audit and does not identify a treatment effect.",
         )
     ]
-    if len(history) < min_history_weeks:
+    if len(history) < policy.audit_min_history_weeks:
         warnings.append(
             _warning(
                 "SHORT_HISTORY",
                 WarningSeverity.BLOCKING,
-                f"Only {len(history)} non-promotion history rows are available; {min_history_weeks} are required.",
+                f"Only {len(history)} non-promotion history rows are available; "
+                f"policy {policy.version} requires {policy.audit_min_history_weeks}.",
             )
         )
     warnings.append(
@@ -344,7 +374,7 @@ def audit_promotion_event(
                 "Inventory reached zero during the promotion window.",
             )
         )
-    if pre["week_end_date"].nunique() < pre_window_weeks:
+    if pre["week_end_date"].nunique() < policy.pre_window_weeks:
         warnings.append(
             _warning(
                 "INCOMPLETE_PRE_WINDOW",
@@ -352,7 +382,7 @@ def audit_promotion_event(
                 "The requested pre-promotion window is incomplete.",
             )
         )
-    if post["week_end_date"].nunique() < post_window_weeks:
+    if post["week_end_date"].nunique() < policy.post_window_weeks:
         warnings.append(
             _warning(
                 "INCOMPLETE_POST_WINDOW",
@@ -369,17 +399,24 @@ def audit_promotion_event(
             )
         )
 
-    reference = history[history["week_end_date"] < pre_start].tail(12)
+    reference = history[history["week_end_date"] < pre_start].tail(
+        policy.reference_window_weeks
+    )
     pre_non_promotion = pre[pre["promotion_flag"].eq(0)]
     pre_ratio = None
     if not reference.empty and not pre_non_promotion.empty and reference["units"].mean() > 0:
         pre_ratio = float(pre_non_promotion["units"].mean() / reference["units"].mean())
-        if pre_ratio < 0.5 or pre_ratio > 1.5:
+        if (
+            pre_ratio < policy.severe_shift_lower_ratio
+            or pre_ratio > policy.severe_shift_upper_ratio
+        ):
             warnings.append(
                 _warning(
                     "SEVERE_SHIFT",
                     WarningSeverity.BLOCKING,
-                    "Recent pre-promotion demand differs by more than 50% from earlier history.",
+                    "Recent pre-promotion demand is outside the policy range "
+                    f"[{policy.severe_shift_lower_ratio:.2f}, "
+                    f"{policy.severe_shift_upper_ratio:.2f}].",
                 )
             )
 
@@ -391,12 +428,13 @@ def audit_promotion_event(
         and pre_non_promotion["units"].mean() > 0
     ):
         post_ratio = float(post_non_promotion["units"].mean() / pre_non_promotion["units"].mean())
-        if post_ratio < 0.8:
+        if post_ratio < policy.forward_buy_ratio_threshold:
             warnings.append(
                 _warning(
                     "FORWARD_BUY_RISK",
                     WarningSeverity.BLOCKING,
-                    "Post-promotion demand is more than 20% below the pre-promotion average.",
+                    "Post-promotion demand is below the policy ratio threshold "
+                    f"{policy.forward_buy_ratio_threshold:.2f}.",
                 )
             )
 
@@ -423,15 +461,16 @@ def audit_promotion_event(
         start_date=event_start.date(),
         end_date=event_end.date(),
         duration_weeks=duration_weeks,
+        policy=policy,
         baseline_model="recursive-naive-1 using non-promotion pre-event history",
         history_weeks=len(history),
         observed_units=observed_units,
         baseline_units=baseline,
         estimated_units_difference_vs_baseline=units_difference,
         contribution_sensitivity=contribution_sensitivity,
-        pre_window=_window_summary(pre, pre_window_weeks),
+        pre_window=_window_summary(pre, policy.pre_window_weeks),
         during_window=_window_summary(during, duration_weeks),
-        post_window=_window_summary(post, post_window_weeks),
+        post_window=_window_summary(post, policy.post_window_weeks),
         pre_to_reference_ratio=pre_ratio,
         post_to_pre_ratio=post_ratio,
         recommendation=recommendation,

@@ -1,0 +1,12 @@
+{
+  "policy_id": "promoguard-observational-screening",
+  "version": "1.0.0",
+  "representative_min_history_weeks": 52,
+  "audit_min_history_weeks": 26,
+  "pre_window_weeks": 4,
+  "post_window_weeks": 4,
+  "reference_window_weeks": 12,
+  "severe_shift_lower_ratio": 0.5,
+  "severe_shift_upper_ratio": 1.5,
+  "forward_buy_ratio_threshold": 0.8
+}

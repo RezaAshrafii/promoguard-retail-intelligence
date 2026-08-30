@@ -11,6 +11,7 @@ import pandas as pd
 from promoguard.data.dunnhumby import build_panel, load_dataset, validate_transactions
 from promoguard.forecasting.evaluation import evaluate_backtest
 from promoguard.insights.promotion_audit import (
+    AuditPolicy,
     ContributionAssumption,
     audit_promotion_event,
     select_representative_event,
@@ -33,6 +34,7 @@ def main() -> None:
     parser.add_argument("--assumed-contribution-per-incremental-unit", type=float)
     parser.add_argument("--contribution-currency")
     parser.add_argument("--contribution-assumption-source")
+    parser.add_argument("--audit-policy", type=Path)
     args = parser.parse_args()
     if args.command == "health":
         print("PromoGuard scaffold is healthy")
@@ -120,6 +122,11 @@ def main() -> None:
             if all(value is not None for value in contribution_values)
             else None
         )
+        policy = (
+            AuditPolicy.model_validate_json(args.audit_policy.read_text(encoding="utf-8"))
+            if args.audit_policy is not None
+            else AuditPolicy()
+        )
         panel = pd.read_csv(panel_path, parse_dates=["week_end_date"])
         selection = (
             {
@@ -128,7 +135,7 @@ def main() -> None:
                 "start_date": args.start_date,
             }
             if all(supplied_keys)
-            else select_representative_event(panel)
+            else select_representative_event(panel, policy=policy)
         )
         result = audit_promotion_event(
             panel,
@@ -136,6 +143,7 @@ def main() -> None:
             upc=str(selection["upc"]),
             start_date=selection["start_date"],
             contribution_assumption=contribution_assumption,
+            policy=policy,
         )
         payload = result.model_dump(mode="json")
         args.output.mkdir(parents=True, exist_ok=True)

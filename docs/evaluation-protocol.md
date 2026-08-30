@@ -35,8 +35,10 @@
 - The audit interval uses the 90th percentile absolute one-week residual from consecutive
   non-promotion history before the event. It is a screening interval, not a causal confidence
   interval.
-- Pre and post windows are four weeks by default. A post-to-pre ratio below 0.8 triggers a blocking
-  forward-buy warning; a recent-pre to older-history ratio outside 0.5–1.5 triggers severe shift.
+- Screening thresholds are emitted as typed `AuditPolicy` metadata. Policy v1.0.0 uses four-week
+  pre/post windows, a post-to-pre ratio below 0.8 for a blocking forward-buy warning, and a
+  recent-pre to older-history ratio outside 0.5–1.5 for severe shift. These are conservative
+  screening rules, not learned causal or financial decision thresholds.
 - Full promotion economics remain unavailable. An optional contribution assumption must include an
   amount per incremental unit, ISO currency, and source. Its sensitivity output never changes the
   screening recommendation and is not promotion profit or gross-margin impact.

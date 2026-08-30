@@ -5,6 +5,7 @@ import json
 import pandas as pd
 
 from promoguard.insights.promotion_audit import (
+    AuditPolicy,
     AuditRecommendation,
     ContributionAssumption,
     audit_promotion_event,
@@ -45,6 +46,7 @@ def run_audit(
     panel: pd.DataFrame,
     *,
     contribution: ContributionAssumption | None = None,
+    policy: AuditPolicy | None = None,
 ):
     return audit_promotion_event(
         panel,
@@ -52,7 +54,7 @@ def run_audit(
         upc="10",
         start_date="2024-03-31",
         contribution_assumption=contribution,
-        min_history_weeks=8,
+        policy=policy or AuditPolicy(audit_min_history_weeks=8),
     )
 
 
@@ -74,6 +76,7 @@ def test_positive_interval_is_only_a_candidate_for_controlled_test() -> None:
     assert sensitivity.status == "sensitivity_only"
     assert result.recommendation == AuditRecommendation.CANDIDATE_FOR_CONTROLLED_TEST
     assert "never a rollout or financial approval" in result.recommendation_scope
+    assert result.policy.version == "1.0.0"
 
 
 def test_negative_interval_deprioritizes_but_does_not_claim_rejection() -> None:
@@ -112,6 +115,33 @@ def test_forward_buy_warning_is_emitted() -> None:
     assert result.recommendation == AuditRecommendation.NEEDS_MORE_EVIDENCE
 
 
+def test_custom_policy_changes_forward_buy_warning_without_changing_observations() -> None:
+    panel = audit_fixture(post_units=5)
+    default_result = run_audit(panel)
+    relaxed_result = run_audit(
+        panel,
+        policy=AuditPolicy(
+            audit_min_history_weeks=8,
+            forward_buy_ratio_threshold=0.4,
+        ),
+    )
+
+    assert default_result.observed_units == relaxed_result.observed_units
+    assert default_result.baseline_units == relaxed_result.baseline_units
+    assert any(warning.code == "FORWARD_BUY_RISK" for warning in default_result.warnings)
+    assert all(warning.code != "FORWARD_BUY_RISK" for warning in relaxed_result.warnings)
+    assert relaxed_result.recommendation == AuditRecommendation.CANDIDATE_FOR_CONTROLLED_TEST
+
+
+def test_audit_policy_rejects_inverted_shift_bounds() -> None:
+    try:
+        AuditPolicy(severe_shift_lower_ratio=2.0, severe_shift_upper_ratio=1.0)
+    except ValueError as error:
+        assert "lower ratio" in str(error)
+    else:
+        raise AssertionError("Inverted policy bounds must be rejected.")
+
+
 def test_short_history_is_blocking() -> None:
     result = audit_promotion_event(
         audit_fixture(),
@@ -119,7 +149,7 @@ def test_short_history_is_blocking() -> None:
         upc="10",
         start_date="2024-03-31",
         contribution_assumption=contribution_assumption(),
-        min_history_weeks=20,
+        policy=AuditPolicy(audit_min_history_weeks=20),
     )
     assert any(warning.code == "SHORT_HISTORY" for warning in result.warnings)
     assert result.recommendation == AuditRecommendation.NEEDS_MORE_EVIDENCE
