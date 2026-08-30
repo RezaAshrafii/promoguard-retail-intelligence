@@ -11,14 +11,14 @@
 نهایی ادعاها استفاده کن:
 
 ```powershell
-.\start-agent.ps1 -Model gpt-5.6-sol -Reasoning xhigh -RunMode phase
+.\scripts\start-agent.ps1 -Model gpt-5.6-sol -Reasoning xhigh -RunMode phase
 ```
 
 برای بازبینی نهایی thresholdها، leakage، سازگاری artifact و زبان abstention یک اجرای جداگانه با
 Sol مناسب است:
 
 ```powershell
-.\start-agent.ps1 -Model gpt-5.6-sol -Reasoning max -RunMode phase
+.\scripts\start-agent.ps1 -Model gpt-5.6-sol -Reasoning max -RunMode phase
 ```
 
 برای نگارش فارسی بسته، roadmap و ویدیو از `gpt-5.6-terra` با `high` استفاده شود. اجرای review

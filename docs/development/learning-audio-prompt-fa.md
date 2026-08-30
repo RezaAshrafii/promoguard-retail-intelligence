@@ -40,7 +40,7 @@
 - `README.md`
 - `ROADMAP.md`
 - `DATA_SOURCES.md`
-- `IMPLEMENTATION_AGENT_PROMPT.md`
+- `docs/development/implementation-agent-prompt.md`
 - `docs/problem-brief.md`
 - `docs/evaluation-protocol.md`
 - `docs/limitations.md`

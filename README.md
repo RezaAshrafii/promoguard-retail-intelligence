@@ -1,173 +1,134 @@
 # PromoGuard Retail Intelligence
 
-Evidence-aware promotion auditing for FMCG and retail experiment prioritization.
+Evidence-aware retail promotion auditing: real-data validation, time-aware forecast comparison,
+observational diagnostics, FastAPI contracts, and a Persian Streamlit review flow.
 
-> Did observed promotion-period sales differ from a forecast baseline, and is the hypothesis worth
-> a controlled test?
+> Did sales during a promotion differ from a transparent forecast baseline enough to justify a
+> controlled test—or should the system abstain?
 
-This repository is an initial research and product scaffold. It does not claim causal validity on observational data until the required diagnostics and experiments pass.
+PromoGuard does **not** claim causal lift, promotion profit, Iranian customer impact, or production
+readiness from public observational data.
 
-## Planned flow
+## What works today
 
-```text
-public workbook/CSV -> data contracts -> canonical weekly panel -> baseline forecast
-       -> observational audit + diagnostics -> uncertainty/shift checks
-       -> controlled-test/deprioritize/more-evidence recommendation -> verified JSON -> dashboard
+- ingests and validates the official dunnhumby Breakfast at the Frat workbook;
+- creates a canonical weekly store/SKU panel with provenance and quality evidence;
+- compares seasonal-naive and recursive-naive forecasts across six expanding time folds;
+- discloses paired model coverage and every excluded-row reason;
+- audits one promotion using pre/during/post windows, uncertainty, warnings, and a versioned policy;
+- serves typed local FastAPI endpoints and a Persian Streamlit dashboard;
+- preserves an explicit abstention result when the evidence is insufficient.
+
+Planned causal benchmarking, cannibalization analysis, constrained optimization, monitoring, and an
+optional evidence-grounded LLM explanation layer are listed in [ROADMAP.md](ROADMAP.md); they are
+not current capabilities.
+
+## Evidence snapshot
+
+| Evidence | Current real-data result | Meaning |
+|---|---:|---|
+| Paired forecast rows | 41,516 / 58,131 (71.42%) | both baselines had valid predictions |
+| Seasonal-naive WAPE | 0.4005 | weaker than the simple reference on paired rows |
+| Recursive-naive WAPE | 0.3483 | retained as the transparent short-horizon baseline |
+| Representative audit | -57 units, interval [-127, 13] | observed minus baseline; not causal lift |
+| Audit recommendation | `needs_more_evidence` | blocking forward-buy warning; do not roll out |
+
+The test count and final command evidence are generated in the Release Gate 5.1 quality report;
+they are not guessed in this page.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Official retail workbook] --> B[Validated canonical panel]
+    B --> C[Time-aware forecast evaluation]
+    B --> D[Deterministic promotion audit]
+    C --> D
+    D --> E[Typed result + policy + warnings]
+    E --> F[Local FastAPI]
+    E --> G[Persian Streamlit demo]
 ```
 
-## Repository map
+All analytical calculations live under `src/promoguard`. The API and dashboard are adapters that
+validate input and render typed domain results.
 
-- `apps/api`: FastAPI entry point
-- `apps/dashboard`: Streamlit prototype entry point
-- `src/promoguard`: domain modules
-- `warehouse`: migrations and dbt placeholder
-- `tests`: unit, integration, statistical, and golden-output tests
-- `docs`: problem brief, evaluation protocol, model card, and decisions
+## Reviewer demo
 
-## First run
+The repository does not redistribute the source dataset and does not substitute synthetic business
+data. After placing and ingesting the official workbook as described below, the local reviewer flow
+is three commands:
 
 ```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev,dashboard]"
 python -m promoguard.cli health
-uvicorn apps.api.main:app --reload
-streamlit run apps/dashboard/app.py
+streamlit run apps/dashboard/app.py -- --demo
 ```
 
-## Ingest the real public dataset
+The dedicated Demo Mode uses the real processed panel, hides local path details, and guides the
+reviewer through data quality, event selection, and the bounded recommendation.
 
-Download **Breakfast at the Frat** from the official dunnhumby Source Files page and extract
-the workbook under `data/raw/breakfast-at-the-frat/`. Raw and processed data are intentionally
-ignored by Git.
+## Full real-data run
+
+Download **Breakfast at the Frat** from the official dunnhumby Source Files page and extract it
+under `data/raw/breakfast-at-the-frat/`. Raw and processed files are intentionally ignored by Git.
 
 ```powershell
-promoguard ingest `
-  --input data/raw/breakfast-at-the-frat `
-  --output data/processed/breakfast-at-the-frat
-
+promoguard ingest --input data/raw/breakfast-at-the-frat --output data/processed/breakfast-at-the-frat
 promoguard validate --input data/processed/breakfast-at-the-frat
+promoguard forecast-evaluate --input data/processed/breakfast-at-the-frat --output reports/phase-02
+promoguard promotion-audit --input data/processed/breakfast-at-the-frat --output reports/phase-03
+python -m demo.phase4_smoke
 ```
 
-The ingest command creates `transactions.csv`, lookup tables, `weekly_panel.csv`,
-`quality_report.json`, and `provenance.json`. It never invents cost or inventory fields.
+The audit can also receive `--store-id`, `--upc`, and `--start-date` together. Optional contribution
+sensitivity requires an approved per-unit amount, ISO currency, and assumption source. It cannot
+change the screening recommendation and is not promotion profit or gross-margin impact.
 
-## Run the forecasting baseline
+## Scientific boundaries
 
-After ingesting the public workbook, run the time-aware baseline evaluation:
+- Time-aware forecast accuracy is predictive evidence, not treatment-effect evidence.
+- Observed minus forecast is an observational difference, not a causal counterfactual.
+- The source has no inventory field, so stockout-censored demand cannot be diagnosed.
+- Full promotion economics are unavailable; missing values are never invented.
+- Public international data proves reproducible engineering, not Iranian product-market fit.
 
-```powershell
-promoguard forecast-evaluate `
-  --input data/processed/breakfast-at-the-frat `
-  --output reports/phase-02
-```
+See [docs/limitations.md](docs/limitations.md),
+[docs/evaluation-protocol.md](docs/evaluation-protocol.md), and
+[docs/model-card.md](docs/model-card.md) for the full contracts.
 
-This writes a compact JSON summary, a fold-level comparison table, and SKU/store segment
-metrics. The evaluation uses six expanding windows, a 52-week seasonal-naive model, and a
-recursive one-week naive reference. Promotion rows are excluded from lag history and scoring is
-paired on rows where both models have a valid prediction.
+## API and tests
 
-## Run an honest promotion audit
-
-Run the deterministic audit on the earliest event meeting the documented 52-week history and
-complete post-window rule:
-
-```powershell
-promoguard promotion-audit `
-  --input data/processed/breakfast-at-the-frat `
-  --output reports/phase-03
-```
-
-You may instead provide `--store-id`, `--upc`, and `--start-date` together. An optional contribution
-sensitivity requires an approved amount, ISO currency, and assumption source. It never changes the
-screening recommendation and is not promotion profit or gross-margin impact. The units difference
-is observational, with uncertainty and warnings; it is not a causal-effect claim.
-
-## Run the end-to-end application
-
-Start the local-demo API bound to loopback and open its generated schema at
-`http://127.0.0.1:8000/docs`:
+Run the local-only API at `http://127.0.0.1:8000/docs`:
 
 ```powershell
 uvicorn apps.api.main:app --reload --host 127.0.0.1
 ```
 
-In a second terminal, start the Persian dashboard:
+Run the current unit and integration suites:
 
 ```powershell
-streamlit run apps/dashboard/app.py
+python -m ruff check .
+python -m pytest -q
+python -m compileall -q src apps demo
 ```
 
-The dashboard can load the real processed panel or validate an uploaded canonical CSV. It blocks
-analysis when required columns, dates, units, grain, promotion flags, row count, or file size fail
-the application contract. Run the reproducible real-data HTTP demo with:
+Filesystem-path endpoints are confined to the repository `data/` root. The API is not designed for
+direct Internet exposure. Contracts and examples are in
+[docs/api-dashboard.md](docs/api-dashboard.md).
 
-```powershell
-python -m demo.phase4_smoke
-```
+## Submission and learning material
 
-API contracts and example requests are documented in `docs/api-dashboard.md`.
-The filesystem-path endpoints accept only paths below the configured repository `data/` root. This
-API is not designed for direct Internet exposure.
+The evidence-linked Park package is under
+[submission/park-application-1405](submission/park-application-1405/README.fa.md). Personal fields
+and unverified traction remain outside source control until Reza supplies and verifies them.
 
-## Start the implementation agent
+Persian guides under [learning](learning/) explain each completed section, changed files, commands,
+tests, limitations, and interview questions. Internal AI-agent workflows were moved to
+[docs/development](docs/development/) so the public landing page stays product-first.
 
-The repository includes a durable agent prompt and an active, phase-gated roadmap. The safe default implements only the current phase, validates it, updates the roadmap, and stops before the next phase:
+## AI disclosure and license
 
-```powershell
-Set-Location "C:\Users\Reza\Desktop\promoguard-ai"
-powershell -ExecutionPolicy Bypass -File .\start-agent.ps1
-```
-
-Use a stronger model for an architecture-critical phase:
-
-```powershell
-.\start-agent.ps1 -Model gpt-5.6-sol -Reasoning high -RunMode phase
-```
-
-For DeepSeek V4 Pro, first configure DeepSeek as the Codex provider using its official Windows setup and choose option 2. This changes the shared global Codex provider configuration and requires a DeepSeek API key, so review and run it yourself:
-
-```powershell
-irm https://cdn.deepseek.com/api-docs/codex-deepseek-setup-en.ps1 | iex
-Set-Location "C:\Users\Reza\Desktop\promoguard-ai"
-.\start-agent.ps1 -Model deepseek-v4-pro -Reasoning high -RunMode phase
-```
-
-Run the DeepSeek setup again and choose its restore option to return to the previous Codex provider configuration.
-
-Read `IMPLEMENTATION_AGENT_PROMPT.md` for the full operating contract and `ROADMAP.md` for the current phase, deadlines, acceptance gates, and completion evidence.
-
-## Persian learning notes
-
-Each completed phase has a standalone Persian study guide under `learning/`. Start with
-`learning/01-real-data-foundation/README.fa.md` and continue through
-`learning/04-api-dashboard/README.fa.md`; the guides explain implementation, data-quality
-decisions, commands, tests, limitations, and interview preparation.
-The model and reasoning policy for future phase execution is documented in
-`docs/model-selection-plan-fa.md`.
-
-## Current status
-
-- [x] Real-data contract, ingestion, validation, provenance, and canonical weekly panel
-- [x] Seasonal-naive baseline and recursive naive reference
-- [x] Time-aware backtest with WAPE, MASE, bias, and interval coverage
-- [x] Typed observational promotion audit with pre/during/post diagnostics
-- [x] Typed FastAPI boundary, Persian Streamlit workflow, and real-data demo smoke
-- [x] Evidence-linked Park submission package, 90-day pilot plan, and two-minute demo script
-- [ ] Real-experiment causal benchmark
-- [ ] Cannibalization diagnostics
-- [ ] Uncertainty and abstention policy
-- [ ] Profit scenario optimizer
-- [ ] Evidence-grounded Persian report generation
-
-## Evidence policy
-
-Public data supports reproducible engineering and research; it is not evidence of impact on an
-Iranian company. A real business-impact claim requires a design partner and an approved experiment.
-
-## Park submission package
-
-The fill-ready Persian application answers, one-page brief, risk register, pilot plan, evidence
-index, demo script, and real dashboard screenshots are in
-`submission/park-application-1405/`. Read its `README.fa.md` before adapting any text for an
-official form: personal fields and unverified traction are deliberately left as placeholders.
+Development is openly AI-assisted, but deterministic tests, evidence links, decision records, and
+human submission ownership are mandatory. Read [AI_USAGE.md](AI_USAGE.md) for the exact boundary.
+Source code is licensed under Apache-2.0; the external dataset keeps its own publisher terms and is
+not covered by the code license.

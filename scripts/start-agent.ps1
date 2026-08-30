@@ -17,7 +17,7 @@ if (-not (Get-Command codex -ErrorAction SilentlyContinue)) {
 }
 
 $LaunchPrompt = @"
-Read AGENTS.md, IMPLEMENTATION_AGENT_PROMPT.md, and ROADMAP.md completely before acting.
+Read AGENTS.md, docs/development/implementation-agent-prompt.md, and ROADMAP.md completely before acting.
 Run mode is: $RunMode.
 Resume the single ACTIVE roadmap phase from the repository's current state. Implement it end to end, validate it, and update ROADMAP.md using observed evidence. In phase mode, activate the next phase but stop before implementing it. Do not commit, push, deploy, use paid APIs, or change global configuration. End with the required evidence report.
 "@
