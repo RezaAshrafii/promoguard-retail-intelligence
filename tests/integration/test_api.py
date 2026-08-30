@@ -87,6 +87,20 @@ def test_missing_local_panel_returns_not_found(client: TestClient, tmp_path: Pat
     assert response.status_code == 404
 
 
+def test_api_blocks_blank_canonical_grain_identifier(
+    client: TestClient, tmp_path: Path
+) -> None:
+    panel = realistic_panel()
+    panel.loc[0, "store_id"] = "   "
+    invalid_path = tmp_path / "invalid-grain.csv"
+    panel.to_csv(invalid_path, index=False)
+
+    response = client.post("/v1/panels/validate", json={"input_path": str(invalid_path)})
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["missing_store_id_rows"] == 1
+
+
 def test_partial_event_key_is_rejected_by_contract(client: TestClient, panel_path: Path) -> None:
     response = client.post(
         "/v1/audits",

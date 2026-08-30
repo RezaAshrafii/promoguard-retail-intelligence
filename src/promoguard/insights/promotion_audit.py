@@ -9,6 +9,8 @@ from typing import Any, Literal
 import pandas as pd
 from pydantic import BaseModel, Field, field_validator
 
+from promoguard.data.grain import normalize_required_identifiers
+
 GROUP_COLUMNS = ["store_id", "upc"]
 REQUIRED_COLUMNS = ["week_end_date", "store_id", "upc", "units", "promotion_flag"]
 
@@ -123,11 +125,10 @@ def prepare_audit_panel(panel: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise ValueError(f"Audit panel is missing required columns: {', '.join(missing)}")
     result = panel.copy()
+    result = normalize_required_identifiers(result, context="Audit panel")
     result["week_end_date"] = pd.to_datetime(result["week_end_date"], errors="coerce")
     if result["week_end_date"].isna().any():
         raise ValueError("Audit panel contains invalid week_end_date values.")
-    result["store_id"] = result["store_id"].astype("string")
-    result["upc"] = result["upc"].astype("string")
     if result["units"].isna().any() or (result["units"] < 0).any():
         raise ValueError("Audit panel units must be present and non-negative.")
     if not result["promotion_flag"].isin([0, 1]).all():

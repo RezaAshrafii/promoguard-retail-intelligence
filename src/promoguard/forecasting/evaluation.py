@@ -8,6 +8,8 @@ from typing import Any
 
 import pandas as pd
 
+from promoguard.data.grain import normalize_required_identifiers
+
 GROUP_COLUMNS = ["store_id", "upc"]
 REQUIRED_PANEL_COLUMNS = ["week_end_date", "store_id", "upc", "units", "promotion_flag"]
 
@@ -30,6 +32,7 @@ def prepare_panel(panel: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise ValueError(f"Forecast panel is missing required columns: {', '.join(missing)}")
     result = panel[REQUIRED_PANEL_COLUMNS].copy()
+    result = normalize_required_identifiers(result, context="Forecast panel")
     result["week_end_date"] = pd.to_datetime(result["week_end_date"], errors="coerce")
     if result["week_end_date"].isna().any():
         raise ValueError("Forecast panel contains invalid week_end_date values.")

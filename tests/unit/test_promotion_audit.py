@@ -139,6 +139,18 @@ def test_missing_inventory_emits_stockout_unobservable_warning() -> None:
     assert any(warning.code == "STOCKOUT_UNOBSERVABLE" for warning in result.warnings)
 
 
+def test_audit_domain_rejects_blank_grain_identifier() -> None:
+    panel = audit_fixture()
+    panel.loc[0, "upc"] = "   "
+
+    try:
+        run_audit(panel)
+    except ValueError as error:
+        assert "upc=1" in str(error)
+    else:
+        raise AssertionError("Blank UPC must be rejected before audit logic.")
+
+
 def test_post_event_values_do_not_change_during_event_estimate() -> None:
     original = run_audit(audit_fixture())
     changed = audit_fixture(post_units=999)

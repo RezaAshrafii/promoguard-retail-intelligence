@@ -7,6 +7,11 @@ from typing import Any
 
 import pandas as pd
 
+from promoguard.data.grain import (
+    missing_identifier_counts,
+    normalize_identifier_values,
+)
+
 REQUIRED_CANONICAL_COLUMNS = {
     "week_end_date",
     "store_id",
@@ -57,6 +62,8 @@ def validate_canonical_panel(frame: pd.DataFrame, *, max_rows: int = 1_000_000) 
         "oversized_row_count": len(frame) > max_rows,
         "empty": frame.empty,
         "date_parse_errors": None,
+        "missing_store_id_rows": None,
+        "missing_upc_rows": None,
         "duplicate_grain_rows": None,
         "negative_units_rows": None,
         "missing_units_rows": None,
@@ -72,13 +79,18 @@ def validate_canonical_panel(frame: pd.DataFrame, *, max_rows: int = 1_000_000) 
         return report
 
     working = frame.rename(columns=lambda column: str(column).strip()).copy()
+    identifier_counts = missing_identifier_counts(working, ["store_id", "upc"])
+    working["store_id"] = normalize_identifier_values(working["store_id"])
+    working["upc"] = normalize_identifier_values(working["upc"])
     raw_dates = working["week_end_date"]
-    parsed_dates = pd.to_datetime(raw_dates, errors="coerce")
+    parsed_dates = pd.to_datetime(raw_dates, errors="coerce", format="mixed")
     units = pd.to_numeric(working["units"], errors="coerce")
     promotions = pd.to_numeric(working["promotion_flag"], errors="coerce")
     report.update(
         {
             "date_parse_errors": int(parsed_dates.isna().sum()),
+            "missing_store_id_rows": identifier_counts["store_id"],
+            "missing_upc_rows": identifier_counts["upc"],
             "duplicate_grain_rows": int(working.duplicated(CANONICAL_GRAIN).sum()),
             "negative_units_rows": int((units < 0).sum()),
             "missing_units_rows": int(units.isna().sum()),
@@ -95,6 +107,8 @@ def validate_canonical_panel(frame: pd.DataFrame, *, max_rows: int = 1_000_000) 
         report["empty"],
         report["oversized_row_count"],
         report["date_parse_errors"],
+        report["missing_store_id_rows"],
+        report["missing_upc_rows"],
         report["duplicate_grain_rows"],
         report["negative_units_rows"],
         report["missing_units_rows"],

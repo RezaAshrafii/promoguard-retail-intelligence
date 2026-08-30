@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from promoguard.data.dunnhumby import build_weekly_panel, load_dataset, validate_transactions
 
@@ -44,6 +45,21 @@ def test_quality_report_flags_duplicate_grain() -> None:
     frame = pd.concat([valid_frame(), valid_frame().iloc[[0]]], ignore_index=True)
     report = validate_transactions(frame)
     assert report["duplicate_grain_rows"] == 1
+    assert report["valid"] is False
+
+
+@pytest.mark.parametrize(
+    ("column", "value"),
+    [("STORE_NUM", None), ("STORE_NUM", "   "), ("UPC", None), ("UPC", "")],
+)
+def test_quality_report_rejects_missing_or_blank_grain_identifier(column, value) -> None:
+    frame = valid_frame()
+    frame[column] = frame[column].astype("object")
+    frame.loc[0, column] = value
+
+    report = validate_transactions(frame)
+
+    assert report["missing_grain_identifiers"][column] == 1
     assert report["valid"] is False
 
 

@@ -7,6 +7,7 @@ from promoguard.forecasting.evaluation import (
     evaluate_backtest,
     forecast_split,
     make_rolling_splits,
+    prepare_panel,
 )
 
 
@@ -42,7 +43,7 @@ def test_seasonal_prediction_uses_only_the_requested_historical_lag() -> None:
         panel["week_end_date"].unique(), min_train_weeks=8, horizon=2, max_folds=1
     )[0]
     result = forecast_split(panel, split, seasonal_period=4, exclude_promotions=False)
-    first = result[(result["store_id"] == 1) & (result["upc"] == 10)].iloc[0]
+    first = result[(result["store_id"] == "1") & (result["upc"] == "10")].iloc[0]
     assert first["seasonal_naive_52"] == 14
     assert first["naive_1"] == 17
 
@@ -83,6 +84,18 @@ def test_mase_scale_uses_only_consecutive_non_promotion_weeks() -> None:
     result = forecast_split(panel, split, seasonal_period=2, exclude_promotions=True)
 
     assert result.iloc[0]["mase_scale"] == 2.0
+
+
+def test_forecast_domain_rejects_blank_grain_identifier() -> None:
+    panel = panel_fixture()
+    panel.loc[0, "store_id"] = None
+
+    try:
+        prepare_panel(panel)
+    except ValueError as error:
+        assert "store_id=1" in str(error)
+    else:
+        raise AssertionError("Missing store_id must be rejected before forecasting.")
 
 
 def test_backtest_returns_baselines_and_segment_metrics() -> None:

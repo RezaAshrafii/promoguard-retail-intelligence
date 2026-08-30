@@ -9,6 +9,8 @@ from typing import Any
 
 import pandas as pd
 
+from promoguard.data.grain import missing_identifier_counts
+
 TRANSACTION_SHEET = "dh Transaction Data"
 STORE_SHEET = "dh Store Lookup"
 PRODUCT_SHEET = "dh Products Lookup"
@@ -106,6 +108,8 @@ def validate_transactions(frame: pd.DataFrame) -> dict[str, Any]:
         working["WEEK_END_DATE"] = parsed_dates
 
     numeric_parse_errors = _non_numeric_counts(working, NUMERIC_COLUMNS)
+    missing_grain_identifiers = missing_identifier_counts(working, ["STORE_NUM", "UPC"])
+    grain_identifier_parse_errors = _non_numeric_counts(working, ["STORE_NUM", "UPC"])
     numeric_missing_values = {
         column: int(working[column].isna().sum())
         for column in NUMERIC_COLUMNS
@@ -159,6 +163,8 @@ def validate_transactions(frame: pd.DataFrame) -> dict[str, Any]:
         duplicate_rows or 0,
         promotion_flag_conflicts,
         *numeric_parse_errors.values(),
+        *missing_grain_identifiers.values(),
+        *grain_identifier_parse_errors.values(),
         *negative_values.values(),
         *invalid_promotion_values.values(),
         *missing_promotion_values.values(),
@@ -183,6 +189,8 @@ def validate_transactions(frame: pd.DataFrame) -> dict[str, Any]:
         "date_missing_values": date_missing_values,
         "global_week_gaps": global_week_gaps,
         "numeric_parse_errors": numeric_parse_errors,
+        "missing_grain_identifiers": missing_grain_identifiers,
+        "grain_identifier_parse_errors": grain_identifier_parse_errors,
         "numeric_missing_values": numeric_missing_values,
         "negative_values": negative_values,
         "duplicate_grain_rows": duplicate_rows,

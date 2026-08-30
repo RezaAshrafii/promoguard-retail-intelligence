@@ -46,7 +46,7 @@ def _load_valid_panel(input_path: str) -> pd.DataFrame:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
     report = validate_canonical_panel(panel, max_rows=MAX_PANEL_ROWS)
     if not report["valid"]:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=report)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=report)
     return panel
 
 
@@ -122,5 +122,5 @@ def create_audit(request: AuditRequest) -> PromotionAuditResult:
             contribution_assumption=request.contribution_assumption,
         )
     except ValueError as error:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error)) from error
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)) from error
 

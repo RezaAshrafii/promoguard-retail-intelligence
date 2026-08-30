@@ -73,6 +73,8 @@ def _show_quality_report(report: dict[str, Any]) -> None:
     problems = {
         "ستون‌های ضروریِ غایب": ", ".join(report["missing_required_columns"]) or "—",
         "تاریخ نامعتبر": report["date_parse_errors"],
+        "شناسه فروشگاه خالی": report["missing_store_id_rows"],
+        "شناسه کالا خالی": report["missing_upc_rows"],
         "فروش منفی": report["negative_units_rows"],
         "فروش خالی": report["missing_units_rows"],
         "پرچم پروموشن نامعتبر": report["invalid_promotion_rows"],

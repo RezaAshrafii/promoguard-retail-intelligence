@@ -1,0 +1,26 @@
+{
+  "dataset": "dunnhumby-breakfast-at-the-frat",
+  "validated_at": "2026-08-30",
+  "source_rows": 524950,
+  "canonical_rows": 524950,
+  "source_contract": {
+    "missing_STORE_NUM_rows": 0,
+    "missing_UPC_rows": 0,
+    "non_numeric_STORE_NUM_rows": 0,
+    "non_numeric_UPC_rows": 0,
+    "valid": true
+  },
+  "canonical_contract": {
+    "missing_store_id_rows": 0,
+    "missing_upc_rows": 0,
+    "duplicate_grain_rows_after_normalization": 0,
+    "series": 3909,
+    "valid": true
+  },
+  "policy": {
+    "missing_values": ["null", "empty string", "whitespace-only string"],
+    "normalization": "trimmed nullable string",
+    "duplicate_check": "after identifier normalization",
+    "reused_by": ["source ingestion", "canonical validation", "forecasting", "promotion audit", "API", "dashboard"]
+  }
+}

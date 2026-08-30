@@ -31,8 +31,13 @@ def test_valid_panel_returns_application_metrics() -> None:
     ("mutation", "field"),
     [
         (lambda frame: frame.drop(columns="units"), "missing_required_columns"),
+        (lambda frame: frame.assign(week_end_date=["bad-date", "2024-01-14"]), "date_parse_errors"),
         (lambda frame: frame.assign(units=[-1, 2]), "negative_units_rows"),
         (lambda frame: frame.assign(promotion_flag=[0, 2]), "invalid_promotion_rows"),
+        (lambda frame: frame.assign(store_id=[None, "1"]), "missing_store_id_rows"),
+        (lambda frame: frame.assign(store_id=["   ", "1"]), "missing_store_id_rows"),
+        (lambda frame: frame.assign(upc=[None, "10"]), "missing_upc_rows"),
+        (lambda frame: frame.assign(upc=["", "10"]), "missing_upc_rows"),
         (lambda frame: pd.concat([frame, frame.iloc[[0]]]), "duplicate_grain_rows"),
     ],
 )
@@ -40,6 +45,18 @@ def test_invalid_panel_is_blocked(mutation, field: str) -> None:
     report = validate_canonical_panel(mutation(canonical_panel()))
     assert report["valid"] is False
     assert report[field]
+
+
+def test_duplicate_grain_is_checked_after_identifier_normalization() -> None:
+    panel = canonical_panel()
+    panel.loc[1, "week_end_date"] = panel.loc[0, "week_end_date"]
+    panel["store_id"] = ["1", " 1 "]
+    panel["upc"] = ["10", "10 "]
+
+    report = validate_canonical_panel(panel)
+
+    assert report["duplicate_grain_rows"] == 1
+    assert report["valid"] is False
 
 
 def test_row_safety_limit_is_enforced() -> None:

@@ -52,6 +52,8 @@ class PanelQualityResponse(BaseModel):
     oversized_row_count: bool
     empty: bool
     date_parse_errors: int | None
+    missing_store_id_rows: int | None
+    missing_upc_rows: int | None
     duplicate_grain_rows: int | None
     negative_units_rows: int | None
     missing_units_rows: int | None
