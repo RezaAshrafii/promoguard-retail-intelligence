@@ -1,0 +1,44 @@
+{
+  "status": "passed",
+  "input_path": "data/processed/breakfast-at-the-frat",
+  "health": {
+    "status": "ok",
+    "service": "promoguard-api",
+    "version": "0.1.0"
+  },
+  "quality": {
+    "valid": true,
+    "rows": 524950,
+    "series": 3909,
+    "promotion_rows": 149386,
+    "date_min": "2009-01-14",
+    "date_max": "2012-01-04"
+  },
+  "promotion_discovery": {
+    "count": 49384,
+    "returned": 5,
+    "first_audit_id": "10019-1111009477-2009-01-14"
+  },
+  "audit": {
+    "audit_id": "23345-2840004768-2010-01-13",
+    "observed_units": 128.0,
+    "baseline_units": {
+      "point": 185.0,
+      "lower": 115.0,
+      "upper": 255.0
+    },
+    "incremental_units": {
+      "point": -57.0,
+      "lower": -127.0,
+      "upper": 13.0
+    },
+    "decision": "experiment",
+    "warning_codes": [
+      "OBSERVATIONAL_ONLY",
+      "MISSING_COST",
+      "STOCKOUT_UNOBSERVABLE",
+      "FORWARD_BUY_RISK"
+    ],
+    "claim_language": "observational incremental-units estimate; causal effect not identified"
+  }
+}
