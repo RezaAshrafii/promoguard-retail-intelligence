@@ -14,6 +14,9 @@ Before making changes, read these files completely:
 
 Keep calculations in `src/promoguard`; API and dashboard code are adapters. Prefer a small, tested vertical slice over additional frameworks. Do not add LLM calls until deterministic analytical outputs and their tests exist.
 
+Before each phase execution, select the model and reasoning level using
+`docs/model-selection-plan-fa.md`; record any model change and its reason in the phase report.
+
 For every completed roadmap phase, create a dedicated Persian learning folder under
 `learning/NN-phase-name/` with `README.fa.md`. Explain the goal, architecture, every changed file,
 commands, test evidence, data assumptions, limitations, common interview questions, and a simple

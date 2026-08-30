@@ -98,6 +98,8 @@ Read `IMPLEMENTATION_AGENT_PROMPT.md` for the full operating contract and `ROADM
 Each completed phase has a standalone Persian study guide under `learning/`. Start with
 `learning/01-real-data-foundation/README.fa.md`; it explains the implementation, data-quality
 decisions, commands, tests, limitations, and interview preparation for the completed foundation.
+The model and reasoning policy for future phase execution is documented in
+`docs/model-selection-plan-fa.md`.
 
 ## Current status
 

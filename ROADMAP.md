@@ -159,7 +159,7 @@ Completion evidence:
   health, and real-data evaluation passed.
 - Learning guide: `learning/02-forecasting-baseline/README.fa.md`.
 
-## Phase 3 — PENDING — Honest promotion-audit MVP
+## Phase 3 — ACTIVE — Honest promotion-audit MVP
 
 Plain-language goal: compare observed promotion-period sales with the validated no-promotion baseline, while labeling the result as an audit estimate rather than a causal claim.
 
