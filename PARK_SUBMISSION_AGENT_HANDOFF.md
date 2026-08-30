@@ -12,7 +12,7 @@ Finish and quality-assure the PromoGuard submission package before the internal 
 - Internal send deadline: 1405-06-11 at 15:00 Tehran time / 2026-09-02.
 - Applicant and final decision owner: Reza.
 - Repository: `promoguard-retail-intelligence`.
-- Current release line: Phase 5 complete; Release Gate 5.1 is VERIFYING; Demo Mode and Phase 6 are PAUSED.
+- Current release line: Release Gate 5.1 is DONE; Demo Mode is ACTIVE; Phase 6 is PAUSED.
 
 The submission must present a runnable, evidence-first MVP. It must not claim an Iranian customer,
 revenue, causal impact, profit improvement, patent, award, or production readiness unless Reza adds
@@ -50,8 +50,8 @@ As of 2026-08-31:
 - Completed Release Gate 5.1 fixes: audit contribution semantics, consecutive-week MASE scale,
   canonical grain identifiers, local API path confinement, paired-coverage accounting, versioned
   AuditPolicy, AI governance, retrospective ADRs, public README, and repository hygiene/license.
-- Remaining Gate 5.1 items: push the release candidate, observe GitHub CI, finalize the report and
-  roadmap, then create and push `v0.5.1-foundation-correctness`.
+- Release Gate 5.1 passed local and GitHub CI. Its annotated release tag is
+  `v0.5.1-foundation-correctness`.
 - The submission text is stale in places: it still contains `v0.4.0-phase-04` and `47 tests`.
   Never manually replace these with a guessed number. Generate the final quality evidence first,
   then update every reference from that source of truth.
@@ -209,11 +209,11 @@ tag only at the end of the gate, never on a partial state.
 At the end of every work package, update this block and the main roadmap:
 
 ```text
-Active package: A — final verification
-Last completed task: local Release Gate 5.1 quality suite and candidate report
+Active package: B — reviewer Demo Mode
+Last completed task: Release Gate 5.1 passed local and GitHub CI
 Current blocker: none in repository; applicant eligibility and private fields require Reza
-Next command: push candidate and observe GitHub CI
-Expected next artifact: annotated `v0.5.1-foundation-correctness` tag
+Next command: implement reviewer-focused Streamlit Demo Mode from typed domain results
+Expected next artifact: tested real-data dashboard flow with no personal path
 ```
 
 If a blocking condition needs private information or external authority, stop and ask Reza. Do not

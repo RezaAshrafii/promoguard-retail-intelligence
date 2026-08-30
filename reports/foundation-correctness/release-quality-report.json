@@ -2,7 +2,7 @@
   "release": "0.5.1",
   "tag": "v0.5.1-foundation-correctness",
   "generated_on": "2026-08-31",
-  "status": "local_pass_ci_pending",
+  "status": "passed",
   "model_review_policy": {
     "implementation": "gpt-5.6-sol high",
     "final_correctness_audit": "gpt-5.6-sol xhigh",
@@ -19,7 +19,14 @@
     "compileall": {"status": "passed", "paths": ["src", "apps", "demo"]},
     "editable_install": {"status": "passed", "package_version": "0.5.1"},
     "cli_health": {"status": "passed", "message": "PromoGuard core is healthy"},
-    "github_ci": {"status": "pending"}
+    "github_ci": {
+      "status": "passed",
+      "run_id": 33336488911,
+      "url": "https://github.com/RezaAshrafii/promoguard-retail-intelligence/actions/runs/33336488911",
+      "runner": "ubuntu-latest",
+      "python": "3.11",
+      "runtime_actions": ["actions/checkout@v7", "actions/setup-python@v7"]
+    }
   },
   "real_data_validation": {
     "status": "passed",

@@ -14,8 +14,8 @@ The roadmap has two speeds:
 ## Active Park-submission execution overlay
 
 The official deadline remains 2026-09-04, but the internal send deadline is **2026-09-02 at 15:00
-Tehran time**. The Park sprint does not change the single-active-gate rule: Release Gate 5.1 is in
-final CI verification; reviewer Demo Mode and Phase 6 remain PAUSED until it closes.
+Tehran time**. The Park sprint does not change the single-active-gate rule: Release Gate 5.1 is
+closed, reviewer Demo Mode is ACTIVE, and Phase 6 remains PAUSED.
 
 Execution documents:
 
@@ -66,8 +66,8 @@ The first submission implements the center path with a documented public retail 
 | 3 | Honest promotion-audit MVP | 2026-09-01 | DONE |
 | 4 | End-to-end API/dashboard demo | 2026-09-02 | DONE |
 | 5 | Park submission evidence package | 2026-09-03/04 | DONE |
-| 5.1 | Foundation correctness release | before Demo Mode | VERIFYING |
-| 5.2 | Reviewer-focused real-data Demo Mode | immediately after 5.1 | PAUSED |
+| 5.1 | Foundation correctness release | before Demo Mode | DONE |
+| 5.2 | Reviewer-focused real-data Demo Mode | immediately after 5.1 | ACTIVE |
 | 6 | Real-experiment causal benchmarking | after correctness gate | PAUSED |
 | 7 | Cannibalization, forward-buy, uncertainty, abstention | 2026-09-15 to 09-24 | PENDING |
 | 8 | Constrained profit optimization | 2026-09-25 to 10-04 | PENDING |
@@ -280,7 +280,7 @@ Completion evidence:
   organization's current rules/deadline, and submit the form personally. Any future traction claim
   requires its own evidence.
 
-## Release gate 5.1 — VERIFYING — Foundation correctness
+## Release gate 5.1 — DONE — Foundation correctness
 
 Plain-language goal: repair ambiguous financial semantics, the non-consecutive MASE scale, and
 missing grain-identifier validation before any causal model depends on this foundation.
@@ -301,12 +301,12 @@ Local release-candidate evidence on 2026-08-31:
 - forecast evaluation regenerated with 41,516 paired rows and 71.42% paired coverage;
 - the versioned real-data audit and local API smoke passed;
 - package and API version are aligned at `0.5.1`;
-- remaining closure action: push the candidate, observe GitHub CI, then create the annotated tag.
+- GitHub CI passed on the clean Ubuntu/Python 3.11 runner after upgrading runtime actions.
 
 Machine-readable evidence:
 `reports/foundation-correctness/release-quality-report.json`.
 
-## Release 5.2 — PAUSED — Reviewer-focused real-data Demo Mode
+## Release 5.2 — ACTIVE — Reviewer-focused real-data Demo Mode
 
 Plain-language goal: make the already verified deterministic result understandable in a two-minute
 review without exposing a personal path or adding any analytical formula to the UI. This work starts

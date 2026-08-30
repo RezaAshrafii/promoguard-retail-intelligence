@@ -32,11 +32,11 @@ SHA-256 اثر انگشت فایل است. اگر حتی یک کاراکتر د�
 پنهان نکردیم و در quality report ثبت کردیم. چون ۶۷ تست پاس‌اند و warning رفتار فعلی را خراب نمی‌کند،
 blocker انتشار نیست؛ ولی در ارتقای dependency بعدی باید دوباره بررسی شود.
 
-## چرا قبل از tag منتظر GitHub CI می‌مانیم؟
+## چرا قبل از tag منتظر GitHub CI ماندیم؟
 
 تست محلی فقط ماشین فعلی را ثابت می‌کند. CI همان commit را روی محیط تمیز Ubuntu و Python 3.11 نصب
-و تست می‌کند. روند حرفه‌ای این است: candidate commit → push → CI سبز → final status → annotated
-tag. اگر CI قرمز شود، tag ساخته نمی‌شود.
+و تست می‌کند. روند اجراشده این بود: candidate commit → push → CI سبز → رفع warning نسخه Actionها
+→ CI سبز دوم → final status → annotated tag. اگر CI قرمز می‌شد، tag ساخته نمی‌شد.
 
 ## فایل‌های این بخش
 
