@@ -1,0 +1,23 @@
+{
+  "dataset": "dunnhumby-breakfast-at-the-frat",
+  "observed_at": "2026-08-30",
+  "source_workbook_sha256": "61b1d77dd6d9298fed204cc231f2b853a4c7f79376cfc30231646e1e51d0daba",
+  "grain": "week_end_date x store_num x upc",
+  "rows": 524950,
+  "canonical_columns": 27,
+  "promotion_rows": 149386,
+  "duplicate_grain_rows": 0,
+  "date_parse_errors": 0,
+  "global_week_gaps": 0,
+  "numeric_parse_errors": 0,
+  "negative_values": 0,
+  "missing_price": 23,
+  "missing_base_price": 185,
+  "zero_price_with_sales_rows": 1,
+  "price_above_base_rows": 6047,
+  "store_lookup_duplicate_rows": 4,
+  "product_lookup_duplicate_rows": 0,
+  "unmatched_product_metadata_rows": 0,
+  "unmatched_store_metadata_rows": 0,
+  "policy": "Warnings are preserved; no business value is silently imputed, clipped, or fabricated."
+}
