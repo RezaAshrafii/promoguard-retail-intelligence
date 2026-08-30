@@ -45,8 +45,8 @@ The first submission implements the center path with a documented public retail 
 | 1 | Real-data acquisition, contracts, and validation slice | 2026-08-30 | DONE |
 | 2 | Forecasting baseline and rolling-origin evaluation | 2026-08-31 | DONE |
 | 3 | Honest promotion-audit MVP | 2026-09-01 | DONE |
-| 4 | End-to-end API/dashboard demo | 2026-09-02 | ACTIVE |
-| 5 | Park submission evidence package | 2026-09-03/04 | PENDING |
+| 4 | End-to-end API/dashboard demo | 2026-09-02 | DONE |
+| 5 | Park submission evidence package | 2026-09-03/04 | ACTIVE |
 | 6 | Real-experiment causal benchmarking | 2026-09-05 to 09-14 | PENDING |
 | 7 | Cannibalization, forward-buy, uncertainty, abstention | 2026-09-15 to 09-24 | PENDING |
 | 8 | Constrained profit optimization | 2026-09-25 to 10-04 | PENDING |
@@ -192,7 +192,7 @@ Completion evidence:
   forward-buy, missing inventory, future-value invariance, and unsupported causal wording.
 - Learning guide: `learning/03-promotion-audit/README.fa.md`.
 
-## Phase 4 — ACTIVE — End-to-end API and dashboard demo
+## Phase 4 — DONE — End-to-end API and dashboard demo
 
 Plain-language goal: let a reviewer run one command, load demo CSVs, select a promotion, and understand the result without reading the code.
 
@@ -204,7 +204,29 @@ Deliverables and gate:
 - Empty, malformed, and oversized-input handling.
 - Gate: fresh-machine setup documentation, API integration tests, and one scripted demo path pass.
 
-## Phase 5 — PENDING — Park submission package
+Completion evidence:
+
+- Date/time: 2026-08-30.
+- Model/reasoning: `gpt-5.6-sol` with `high`; no statistical estimator changed in this phase.
+- Delivered: canonical application-panel quality report, typed Pydantic request/response contracts,
+  local-path and bounded-upload validation, promotion listing and audit endpoints, generated
+  OpenAPI, and a Persian Streamlit reviewer flow.
+- Boundaries: missing/malformed/invalid/empty/oversized inputs and incomplete event keys are
+  handled before domain analysis. Upload is capped at 120 MiB and application panels at one
+  million rows.
+- Real-data HTTP smoke: 524,950 rows, 3,909 store-product series, 149,386 promotion rows, and
+  49,384 promotion episodes. The representative Phase 3 audit was reproduced with decision
+  `experiment` and explicit non-causal claim language.
+- Artifacts: `reports/phase-04/demo-smoke.json` and
+  `reports/phase-04/quality-report.json`.
+- Validation: Ruff passed; 47 tests passed; compileall passed; real-data HTTP smoke passed; the
+  local Streamlit flow was exercised from load through audit and produced no server warning/error
+  after review fixes.
+- Documentation: `docs/api-dashboard.md` and `learning/04-api-dashboard/README.fa.md`.
+- Remaining limitations: no API authentication/rate limiting, no database-backed query/cache,
+  no measured business cost/inventory, and no causal or Iranian-company impact evidence.
+
+## Phase 5 — ACTIVE — Park submission package
 
 Plain-language goal: submit evidence of a focused, testable innovation—not an inflated list of future technologies.
 

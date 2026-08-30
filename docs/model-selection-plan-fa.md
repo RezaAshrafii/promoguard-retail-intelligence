@@ -6,20 +6,20 @@
 
 ## تصمیم فوری
 
-فاز فعال فعلی **Phase 3 — Honest Promotion-Audit MVP** است. برای اجرای آن استفاده کن:
+فاز فعال فعلی **Phase 5 — Park Submission Package** است. برای تدوین اولیه استفاده کن:
+
+```powershell
+.\start-agent.ps1 -Model gpt-5.6-terra -Reasoning high -RunMode phase
+```
+
+برای بازبینی نهایی سازگاری ادعاهای فرم، معماری، artifactها و محدودیت‌های causal یک اجرای جداگانه
+با Sol مناسب است:
 
 ```powershell
 .\start-agent.ps1 -Model gpt-5.6-sol -Reasoning xhigh -RunMode phase
 ```
 
-برای بازبینی نهایی estimand، warningها، و این‌که خروجی ادعای causal نسازد، یک اجرای جداگانه با
-`max` مناسب است:
-
-```powershell
-.\start-agent.ps1 -Model gpt-5.6-sol -Reasoning max -RunMode phase
-```
-
-اجرای `max` جایگزین تست و بررسی انسانی نیست؛ فقط برای design review و audit نهایی استفاده می‌شود.
+اجرای review جایگزین شاهد، تست و بررسی انسانی نیست؛ فقط برای consistency audit نهایی استفاده می‌شود.
 
 ## ماتریس پیشنهادی فازها
 

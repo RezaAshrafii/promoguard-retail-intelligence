@@ -1,0 +1,63 @@
+{
+  "phase": 4,
+  "status": "passed",
+  "validated_on": "2026-08-30",
+  "model": "gpt-5.6-sol",
+  "reasoning": "high",
+  "checks": {
+    "ruff": {
+      "status": "passed",
+      "command": "python -m ruff check ."
+    },
+    "pytest": {
+      "status": "passed",
+      "command": "python -m pytest -q",
+      "passed": 47,
+      "failed": 0,
+      "known_dependency_warnings": 1
+    },
+    "compileall": {
+      "status": "passed",
+      "command": "python -m compileall -q src apps demo"
+    },
+    "cli_health": {
+      "status": "passed",
+      "command": "python -m promoguard.cli health"
+    },
+    "real_data_http_smoke": {
+      "status": "passed",
+      "command": "python -m demo.phase4_smoke",
+      "evidence": "reports/phase-04/demo-smoke.json"
+    },
+    "browser_flow": {
+      "status": "passed",
+      "path": "load real panel -> quality report -> representative event -> audit result",
+      "server_warnings_after_fixes": 0,
+      "server_errors_after_fixes": 0
+    }
+  },
+  "real_data": {
+    "rows": 524950,
+    "series": 3909,
+    "promotion_rows": 149386,
+    "promotion_episodes": 49384,
+    "date_min": "2009-01-14",
+    "date_max": "2012-01-04"
+  },
+  "acceptance_gate": {
+    "typed_api_and_openapi": true,
+    "dashboard_end_to_end_flow": true,
+    "domain_logic_not_duplicated_in_adapters": true,
+    "empty_malformed_oversized_handling": true,
+    "fresh_setup_documented": true,
+    "integration_tests": true,
+    "scripted_real_data_demo": true
+  },
+  "known_limitations": [
+    "The TestClient dependency emits one Starlette/httpx deprecation warning.",
+    "The API has no authentication or rate limiting in the MVP.",
+    "The full CSV is loaded from disk per API request; production storage and caching are pending.",
+    "Cost and inventory are unavailable in the public source.",
+    "The output is observational and does not identify a causal effect."
+  ]
+}

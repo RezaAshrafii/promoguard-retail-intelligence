@@ -28,7 +28,7 @@ public workbook/CSV -> data contracts -> canonical weekly panel -> baseline fore
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev,dashboard]"
 python -m promoguard.cli health
 uvicorn apps.api.main:app --reload
 streamlit run apps/dashboard/app.py
@@ -81,6 +81,30 @@ You may instead provide `--store-id`, `--upc`, and `--start-date` together. Add 
 only when it is a real, approved business input; otherwise profit remains unavailable. The output
 is an observational screening estimate with uncertainty and warnings, not a causal-effect claim.
 
+## Run the end-to-end application
+
+Start the typed API and open its generated schema at `http://127.0.0.1:8000/docs`:
+
+```powershell
+uvicorn apps.api.main:app --reload
+```
+
+In a second terminal, start the Persian dashboard:
+
+```powershell
+streamlit run apps/dashboard/app.py
+```
+
+The dashboard can load the real processed panel or validate an uploaded canonical CSV. It blocks
+analysis when required columns, dates, units, grain, promotion flags, row count, or file size fail
+the application contract. Run the reproducible real-data HTTP demo with:
+
+```powershell
+python -m demo.phase4_smoke
+```
+
+API contracts and example requests are documented in `docs/api-dashboard.md`.
+
 ## Start the implementation agent
 
 The repository includes a durable agent prompt and an active, phase-gated roadmap. The safe default implements only the current phase, validates it, updates the roadmap, and stops before the next phase:
@@ -111,8 +135,9 @@ Read `IMPLEMENTATION_AGENT_PROMPT.md` for the full operating contract and `ROADM
 ## Persian learning notes
 
 Each completed phase has a standalone Persian study guide under `learning/`. Start with
-`learning/01-real-data-foundation/README.fa.md`; it explains the implementation, data-quality
-decisions, commands, tests, limitations, and interview preparation for the completed foundation.
+`learning/01-real-data-foundation/README.fa.md` and continue through
+`learning/04-api-dashboard/README.fa.md`; the guides explain implementation, data-quality
+decisions, commands, tests, limitations, and interview preparation.
 The model and reasoning policy for future phase execution is documented in
 `docs/model-selection-plan-fa.md`.
 
@@ -122,6 +147,7 @@ The model and reasoning policy for future phase execution is documented in
 - [x] Seasonal-naive baseline and recursive naive reference
 - [x] Time-aware backtest with WAPE, MASE, bias, and interval coverage
 - [x] Typed observational promotion audit with pre/during/post diagnostics
+- [x] Typed FastAPI boundary, Persian Streamlit workflow, and real-data demo smoke
 - [ ] Real-experiment causal benchmark
 - [ ] Cannibalization diagnostics
 - [ ] Uncertainty and abstention policy
