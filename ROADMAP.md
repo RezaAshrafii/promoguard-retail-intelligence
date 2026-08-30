@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-30  
 Roadmap owner: Reza  
-Execution rule: exactly one phase is `ACTIVE`.
+Execution rule: exactly one phase or release gate is `ACTIVE`.
 
 ## Outcome and deadline tracks
 
@@ -47,7 +47,8 @@ The first submission implements the center path with a documented public retail 
 | 3 | Honest promotion-audit MVP | 2026-09-01 | DONE |
 | 4 | End-to-end API/dashboard demo | 2026-09-02 | DONE |
 | 5 | Park submission evidence package | 2026-09-03/04 | DONE |
-| 6 | Real-experiment causal benchmarking | 2026-09-05 to 09-14 | ACTIVE |
+| 5.1 | Foundation correctness release | before Phase 6 resumes | ACTIVE |
+| 6 | Real-experiment causal benchmarking | after correctness gate | PAUSED |
 | 7 | Cannibalization, forward-buy, uncertainty, abstention | 2026-09-15 to 09-24 | PENDING |
 | 8 | Constrained profit optimization | 2026-09-25 to 10-04 | PENDING |
 | 9 | Production data, monitoring, and optional verified LLM layer | 2026-10-05 to 10-19 | PENDING |
@@ -259,7 +260,21 @@ Completion evidence:
   organization's current rules/deadline, and submit the form personally. Any future traction claim
   requires its own evidence.
 
-## Phase 6 — ACTIVE — Real-experiment causal benchmarking
+## Release gate 5.1 — ACTIVE — Foundation correctness
+
+Plain-language goal: repair ambiguous financial semantics, the non-consecutive MASE scale, and
+missing grain-identifier validation before any causal model depends on this foundation.
+
+Approved scope and gate:
+
+- Decision record: `docs/decisions/0002-foundation-correctness-gate.md`.
+- Tracking: GitHub Issue #1.
+- Each correctness change is committed and verified independently.
+- Affected real-data reports are regenerated with an old-versus-new explanation.
+- Phase 6 resumes only after tests, Ruff, compileall, CI, learning documentation, and a correctness
+  release tag pass.
+
+## Phase 6 — PAUSED — Real-experiment causal benchmarking
 
 Plain-language goal: use a real public randomized marketing experiment to benchmark treatment-effect methods, then test retail observational analyses with explicit refusal rules.
 
