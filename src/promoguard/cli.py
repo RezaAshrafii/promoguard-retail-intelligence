@@ -66,6 +66,22 @@ def main() -> None:
         pd.DataFrame(result["table_rows"]).to_csv(
             args.output / "forecast-evaluation.csv", index=False
         )
+        eligibility = result["eligibility"]
+        eligibility_rows = []
+        for fold in eligibility["folds"]:
+            eligibility_rows.append(
+                {
+                    "fold": fold["fold"],
+                    "non_promotion_test_rows": fold["non_promotion_test_rows"],
+                    "paired_rows": fold["paired_rows"],
+                    "paired_coverage_ratio": fold["paired_coverage_ratio"],
+                    "rows_excluded": fold["rows_excluded"],
+                    **fold["exclusion_reasons"],
+                }
+            )
+        pd.DataFrame(eligibility_rows).to_csv(
+            args.output / "forecast-eligibility.csv", index=False
+        )
         segment_rows = [
             row
             for rows in result["segment_metrics"].values()

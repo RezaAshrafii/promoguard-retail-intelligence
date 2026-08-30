@@ -3,9 +3,90 @@
   "evaluation_target": "non-promotion rows only",
   "training_history": "promotion rows excluded; MASE scale uses consecutive weekly non-promotion pairs only",
   "eligibility": {
+    "definition": "Paired rows are non-promotion test rows with both seasonal-naive and recursive-naive predictions available.",
     "non_promotion_rows_in_test_windows": 58131,
     "paired_rows_scored_for_both_models": 41516,
-    "rows_excluded_from_paired_comparison": 16615
+    "paired_coverage_ratio": 0.7141800416301113,
+    "rows_excluded_from_paired_comparison": 16615,
+    "exclusion_reasons": {
+      "missing_seasonal_only": 16563,
+      "missing_naive_only": 0,
+      "missing_both_predictions": 52
+    },
+    "folds": [
+      {
+        "fold": 1,
+        "non_promotion_test_rows": 10122,
+        "paired_rows": 6935,
+        "paired_coverage_ratio": 0.6851412764275835,
+        "rows_excluded": 3187,
+        "exclusion_reasons": {
+          "missing_seasonal_only": 3182,
+          "missing_naive_only": 0,
+          "missing_both_predictions": 5
+        }
+      },
+      {
+        "fold": 2,
+        "non_promotion_test_rows": 10313,
+        "paired_rows": 7569,
+        "paired_coverage_ratio": 0.7339280519732376,
+        "rows_excluded": 2744,
+        "exclusion_reasons": {
+          "missing_seasonal_only": 2704,
+          "missing_naive_only": 0,
+          "missing_both_predictions": 40
+        }
+      },
+      {
+        "fold": 3,
+        "non_promotion_test_rows": 8452,
+        "paired_rows": 6623,
+        "paired_coverage_ratio": 0.7836015144344534,
+        "rows_excluded": 1829,
+        "exclusion_reasons": {
+          "missing_seasonal_only": 1828,
+          "missing_naive_only": 0,
+          "missing_both_predictions": 1
+        }
+      },
+      {
+        "fold": 4,
+        "non_promotion_test_rows": 9682,
+        "paired_rows": 7017,
+        "paired_coverage_ratio": 0.7247469531088618,
+        "rows_excluded": 2665,
+        "exclusion_reasons": {
+          "missing_seasonal_only": 2660,
+          "missing_naive_only": 0,
+          "missing_both_predictions": 5
+        }
+      },
+      {
+        "fold": 5,
+        "non_promotion_test_rows": 9193,
+        "paired_rows": 5980,
+        "paired_coverage_ratio": 0.6504949418035462,
+        "rows_excluded": 3213,
+        "exclusion_reasons": {
+          "missing_seasonal_only": 3212,
+          "missing_naive_only": 0,
+          "missing_both_predictions": 1
+        }
+      },
+      {
+        "fold": 6,
+        "non_promotion_test_rows": 10369,
+        "paired_rows": 7392,
+        "paired_coverage_ratio": 0.7128942038769409,
+        "rows_excluded": 2977,
+        "exclusion_reasons": {
+          "missing_seasonal_only": 2977,
+          "missing_naive_only": 0,
+          "missing_both_predictions": 0
+        }
+      }
+    ]
   },
   "configuration": {
     "seasonal_period_weeks": 52,
@@ -73,7 +154,7 @@
           "fold": 1,
           "n": 6935,
           "wape": 0.34697598244841515,
-          "mase": 1.1874957167234754,
+          "mase": 1.1874957167234752,
           "bias": -0.030182236745540644,
           "interval_coverage": 0.8793078586878155
         },
@@ -105,7 +186,7 @@
           "fold": 5,
           "n": 5980,
           "wape": 0.42193873624259215,
-          "mase": 1.2497423133733199,
+          "mase": 1.24974231337332,
           "bias": -0.023685830831986453,
           "interval_coverage": 0.8807692307692307
         },
@@ -121,7 +202,7 @@
       "overall": {
         "n": 41516,
         "wape": 0.4004598187687816,
-        "mase": 1.2140988510650341,
+        "mase": 1.2140988510650343,
         "bias": -0.018221695849889176,
         "interval_coverage": 0.8810819924848251
       }
@@ -140,7 +221,7 @@
           "fold": 2,
           "n": 7569,
           "wape": 0.4108350327358592,
-          "mase": 1.1769043755839805,
+          "mase": 1.1769043755839803,
           "bias": -0.03723480376372938,
           "interval_coverage": null
         },
@@ -172,7 +253,7 @@
           "fold": 6,
           "n": 7392,
           "wape": 0.3438683261771473,
-          "mase": 1.0312252822848678,
+          "mase": 1.0312252822848675,
           "bias": 0.12166422088156965,
           "interval_coverage": null
         }

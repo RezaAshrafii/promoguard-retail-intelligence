@@ -113,3 +113,37 @@ def test_backtest_returns_baselines_and_segment_metrics() -> None:
     assert len(result["segment_metrics"]["upc"]) == 2
     assert result["models"]["seasonal_naive_52"]["overall"]["interval_coverage"] is not None
     assert result["configuration"]["mase_scale_pairing"].endswith("exactly 7 days apart")
+    assert result["eligibility"]["paired_coverage_ratio"] == 1.0
+    assert len(result["eligibility"]["folds"]) == 3
+
+
+def test_backtest_explains_paired_coverage_exclusions_by_fold() -> None:
+    panel = panel_fixture()
+    first_two_weeks = sorted(panel["week_end_date"].unique())[:2]
+    panel = panel.drop(
+        index=panel.loc[
+            panel["store_id"].eq(2) & panel["week_end_date"].isin(first_two_weeks)
+        ].index
+    )
+
+    result = evaluate_backtest(
+        panel,
+        min_train_weeks=4,
+        horizon=1,
+        step=1,
+        max_folds=1,
+        seasonal_period=4,
+        exclude_promotions=False,
+    )
+
+    eligibility = result["eligibility"]
+    assert eligibility["non_promotion_rows_in_test_windows"] == 2
+    assert eligibility["paired_rows_scored_for_both_models"] == 1
+    assert eligibility["paired_coverage_ratio"] == 0.5
+    assert eligibility["rows_excluded_from_paired_comparison"] == 1
+    assert eligibility["exclusion_reasons"] == {
+        "missing_seasonal_only": 1,
+        "missing_naive_only": 0,
+        "missing_both_predictions": 0,
+    }
+    assert eligibility["folds"][0]["paired_coverage_ratio"] == 0.5

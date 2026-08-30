@@ -16,7 +16,8 @@
   step. Every prediction is generated from rows at or before that fold's cutoff.
 - Promotion rows are excluded from lag history and the evaluation target is non-promotion rows.
 - The seasonal baseline is compared with a recursive one-week persistence reference on paired rows
-  where both predictions are available.
+  where both predictions are available. Every report exposes the paired coverage ratio, excluded
+  row count, mutually exclusive missing-prediction reasons, and the same accounting per fold.
 - WAPE is total absolute error divided by total absolute actual units. Bias is signed error divided
   by total actual units. MASE is the mean per-series MAE divided by that series' training
   one-step-difference scale. The scale uses only non-promotion observations exactly seven days

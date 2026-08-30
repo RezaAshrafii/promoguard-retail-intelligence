@@ -255,6 +255,58 @@ def _segment_metrics(predictions: pd.DataFrame, segment: str) -> list[dict[str, 
     return rows
 
 
+def _paired_eligibility_summary(
+    non_promotion: pd.DataFrame,
+    splits: list[TimeSplit],
+) -> dict[str, Any]:
+    """Explain how much of each test fold supports a paired model comparison."""
+    fold_rows: list[dict[str, Any]] = []
+    total_reasons = {
+        "missing_seasonal_only": 0,
+        "missing_naive_only": 0,
+        "missing_both_predictions": 0,
+    }
+    for split in splits:
+        fold = non_promotion[non_promotion["fold"].eq(split.fold)]
+        seasonal_available = fold["seasonal_naive_52"].notna()
+        naive_available = fold["naive_1"].notna()
+        paired = seasonal_available & naive_available
+        reasons = {
+            "missing_seasonal_only": int((~seasonal_available & naive_available).sum()),
+            "missing_naive_only": int((seasonal_available & ~naive_available).sum()),
+            "missing_both_predictions": int((~seasonal_available & ~naive_available).sum()),
+        }
+        for reason, count in reasons.items():
+            total_reasons[reason] += count
+        eligible_rows = len(fold)
+        paired_rows = int(paired.sum())
+        fold_rows.append(
+            {
+                "fold": split.fold,
+                "non_promotion_test_rows": eligible_rows,
+                "paired_rows": paired_rows,
+                "paired_coverage_ratio": paired_rows / eligible_rows if eligible_rows else None,
+                "rows_excluded": eligible_rows - paired_rows,
+                "exclusion_reasons": reasons,
+            }
+        )
+
+    total_rows = len(non_promotion)
+    paired_rows = total_rows - sum(total_reasons.values())
+    return {
+        "definition": (
+            "Paired rows are non-promotion test rows with both seasonal-naive and "
+            "recursive-naive predictions available."
+        ),
+        "non_promotion_rows_in_test_windows": total_rows,
+        "paired_rows_scored_for_both_models": paired_rows,
+        "paired_coverage_ratio": paired_rows / total_rows if total_rows else None,
+        "rows_excluded_from_paired_comparison": total_rows - paired_rows,
+        "exclusion_reasons": total_reasons,
+        "folds": fold_rows,
+    }
+
+
 def evaluate_backtest(
     panel: pd.DataFrame,
     *,
@@ -279,6 +331,7 @@ def evaluate_backtest(
         ignore_index=True,
     )
     non_promotion = predictions[predictions["promotion_flag"].eq(0)].copy()
+    eligibility = _paired_eligibility_summary(non_promotion, splits)
     evaluated = non_promotion[
         non_promotion["seasonal_naive_52"].notna()
         & non_promotion["naive_1"].notna()
@@ -309,11 +362,7 @@ def evaluate_backtest(
         "dataset": "dunnhumby-breakfast-at-the-frat",
         "evaluation_target": "non-promotion rows only",
         "training_history": "promotion rows excluded; MASE scale uses consecutive weekly non-promotion pairs only",
-        "eligibility": {
-            "non_promotion_rows_in_test_windows": len(non_promotion),
-            "paired_rows_scored_for_both_models": len(evaluated),
-            "rows_excluded_from_paired_comparison": len(non_promotion) - len(evaluated),
-        },
+        "eligibility": eligibility,
         "configuration": {
             "seasonal_period_weeks": seasonal_period,
             "min_train_weeks": min_train_weeks,
