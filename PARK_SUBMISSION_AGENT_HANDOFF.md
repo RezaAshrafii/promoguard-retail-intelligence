@@ -12,7 +12,7 @@ Finish and quality-assure the PromoGuard submission package before the internal 
 - Internal send deadline: 1405-06-11 at 15:00 Tehran time / 2026-09-02.
 - Applicant and final decision owner: Reza.
 - Repository: `promoguard-retail-intelligence`.
-- Current release line: Phase 5 complete; Release Gate 5.1 is ACTIVE; Phase 6 is PAUSED.
+- Current release line: Phase 5 complete; Release Gate 5.1 is VERIFYING; Demo Mode and Phase 6 are PAUSED.
 
 The submission must present a runnable, evidence-first MVP. It must not claim an Iranian customer,
 revenue, causal impact, profit improvement, patent, award, or production readiness unless Reza adds
@@ -44,14 +44,14 @@ As of 2026-08-31:
 - Phase 5 package exists under `submission/park-application-1405/`.
 - Real public dunnhumby panel path is expected under
   `data/processed/breakfast-at-the-frat/` and is intentionally not tracked by Git.
-- The latest known full check before this handoff passed 64 tests, Ruff, compileall, real ingestion,
-  forecasting, audit, API smoke, and dashboard flow. An agent must rerun checks; this sentence is not
-  a substitute for a fresh quality report.
+- The current local release candidate passes 67 tests, Ruff, compileall, real validation,
+  forecasting, audit, and API smoke. The source of truth is
+  `reports/foundation-correctness/release-quality-report.json`.
 - Completed Release Gate 5.1 fixes: audit contribution semantics, consecutive-week MASE scale,
-  canonical grain identifiers, and local API path confinement.
-- Remaining Gate 5.1 items: explicit paired-coverage accounting; versioned configurable audit
-  policy; AI/governance docs and retrospective ADRs; README/quick-demo polish; license and repository
-  metadata; final report, tag, and release.
+  canonical grain identifiers, local API path confinement, paired-coverage accounting, versioned
+  AuditPolicy, AI governance, retrospective ADRs, public README, and repository hygiene/license.
+- Remaining Gate 5.1 items: push the release candidate, observe GitHub CI, finalize the report and
+  roadmap, then create and push `v0.5.1-foundation-correctness`.
 - The submission text is stale in places: it still contains `v0.4.0-phase-04` and `47 tests`.
   Never manually replace these with a guessed number. Generate the final quality evidence first,
   then update every reference from that source of truth.
@@ -209,11 +209,11 @@ tag only at the end of the gate, never on a partial state.
 At the end of every work package, update this block and the main roadmap:
 
 ```text
-Active package: A
-Last completed task: research and submission execution documents
+Active package: A — final verification
+Last completed task: local Release Gate 5.1 quality suite and candidate report
 Current blocker: none in repository; applicant eligibility and private fields require Reza
-Next command: inspect Release Gate 5.1 coverage and policy backlog
-Expected next artifact: paired coverage report and AuditPolicy tests
+Next command: push candidate and observe GitHub CI
+Expected next artifact: annotated `v0.5.1-foundation-correctness` tag
 ```
 
 If a blocking condition needs private information or external authority, stop and ask Reza. Do not

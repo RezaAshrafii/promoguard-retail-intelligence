@@ -14,8 +14,8 @@ The roadmap has two speeds:
 ## Active Park-submission execution overlay
 
 The official deadline remains 2026-09-04, but the internal send deadline is **2026-09-02 at 15:00
-Tehran time**. The Park sprint does not change the single-active-gate rule: Release Gate 5.1 remains
-ACTIVE and Phase 6 remains PAUSED.
+Tehran time**. The Park sprint does not change the single-active-gate rule: Release Gate 5.1 is in
+final CI verification; reviewer Demo Mode and Phase 6 remain PAUSED until it closes.
 
 Execution documents:
 
@@ -66,7 +66,8 @@ The first submission implements the center path with a documented public retail 
 | 3 | Honest promotion-audit MVP | 2026-09-01 | DONE |
 | 4 | End-to-end API/dashboard demo | 2026-09-02 | DONE |
 | 5 | Park submission evidence package | 2026-09-03/04 | DONE |
-| 5.1 | Foundation correctness release | before Phase 6 resumes | ACTIVE |
+| 5.1 | Foundation correctness release | before Demo Mode | VERIFYING |
+| 5.2 | Reviewer-focused real-data Demo Mode | immediately after 5.1 | PAUSED |
 | 6 | Real-experiment causal benchmarking | after correctness gate | PAUSED |
 | 7 | Cannibalization, forward-buy, uncertainty, abstention | 2026-09-15 to 09-24 | PENDING |
 | 8 | Constrained profit optimization | 2026-09-25 to 10-04 | PENDING |
@@ -279,7 +280,7 @@ Completion evidence:
   organization's current rules/deadline, and submit the form personally. Any future traction claim
   requires its own evidence.
 
-## Release gate 5.1 — ACTIVE — Foundation correctness
+## Release gate 5.1 — VERIFYING — Foundation correctness
 
 Plain-language goal: repair ambiguous financial semantics, the non-consecutive MASE scale, and
 missing grain-identifier validation before any causal model depends on this foundation.
@@ -292,6 +293,24 @@ Approved scope and gate:
 - Affected real-data reports are regenerated with an old-versus-new explanation.
 - Phase 6 resumes only after tests, Ruff, compileall, CI, learning documentation, and a correctness
   release tag pass.
+
+Local release-candidate evidence on 2026-08-31:
+
+- 67 tests passed; Ruff and compileall passed;
+- the 524,950-row real panel validated with no missing grain identifier or duplicate grain row;
+- forecast evaluation regenerated with 41,516 paired rows and 71.42% paired coverage;
+- the versioned real-data audit and local API smoke passed;
+- package and API version are aligned at `0.5.1`;
+- remaining closure action: push the candidate, observe GitHub CI, then create the annotated tag.
+
+Machine-readable evidence:
+`reports/foundation-correctness/release-quality-report.json`.
+
+## Release 5.2 — PAUSED — Reviewer-focused real-data Demo Mode
+
+Plain-language goal: make the already verified deterministic result understandable in a two-minute
+review without exposing a personal path or adding any analytical formula to the UI. This work starts
+only after the correctness tag exists and does not resume Phase 6.
 
 ## Phase 6 — PAUSED — Real-experiment causal benchmarking
 

@@ -33,8 +33,9 @@ not current capabilities.
 | Representative audit | -57 units, interval [-127, 13] | observed minus baseline; not causal lift |
 | Audit recommendation | `needs_more_evidence` | blocking forward-buy warning; do not roll out |
 
-The test count and final command evidence are generated in the Release Gate 5.1 quality report;
-they are not guessed in this page.
+The Release Gate 5.1 candidate passes **67 tests**. Command evidence and the one known dependency
+deprecation warning are recorded in
+[the machine-readable quality report](reports/foundation-correctness/release-quality-report.json).
 
 ## Architecture
 

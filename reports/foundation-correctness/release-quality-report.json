@@ -1,0 +1,74 @@
+{
+  "release": "0.5.1",
+  "tag": "v0.5.1-foundation-correctness",
+  "generated_on": "2026-08-31",
+  "status": "local_pass_ci_pending",
+  "model_review_policy": {
+    "implementation": "gpt-5.6-sol high",
+    "final_correctness_audit": "gpt-5.6-sol xhigh",
+    "note": "Model review supplements but does not replace executable evidence or owner approval."
+  },
+  "checks": {
+    "ruff": {"status": "passed"},
+    "pytest": {
+      "status": "passed",
+      "passed": 67,
+      "warnings": 1,
+      "known_warning": "Starlette TestClient currently emits an httpx deprecation warning from a dependency boundary."
+    },
+    "compileall": {"status": "passed", "paths": ["src", "apps", "demo"]},
+    "editable_install": {"status": "passed", "package_version": "0.5.1"},
+    "cli_health": {"status": "passed", "message": "PromoGuard core is healthy"},
+    "github_ci": {"status": "pending"}
+  },
+  "real_data_validation": {
+    "status": "passed",
+    "dataset": "dunnhumby-breakfast-at-the-frat",
+    "rows": 524950,
+    "series": 3909,
+    "promotion_rows": 149386,
+    "missing_grain_identifiers": 0,
+    "duplicate_grain_rows": 0,
+    "date_parse_errors": 0,
+    "business_data_is_synthetic": false,
+    "raw_data_tracked_in_git": false
+  },
+  "forecast_evidence": {
+    "status": "passed",
+    "folds": 6,
+    "eligible_non_promotion_rows": 58131,
+    "paired_rows": 41516,
+    "paired_coverage_ratio": 0.7141800416301113,
+    "seasonal_naive_wape": 0.4004598187687816,
+    "recursive_naive_wape": 0.3482837249959048,
+    "result": "negative_model_result_preserved",
+    "artifact": "reports/phase-02/forecast-evaluation.json",
+    "sha256": "95114567432d60e9985cf7e276c42fb16288a0f0dc1f99e12b0058a744aa3def"
+  },
+  "audit_evidence": {
+    "status": "passed",
+    "audit_id": "23345-2840004768-2010-01-13",
+    "policy": "promoguard-observational-screening@1.0.0",
+    "observed_units": 128.0,
+    "baseline_point": 185.0,
+    "difference_point": -57.0,
+    "difference_interval": [-127.0, 13.0],
+    "recommendation": "needs_more_evidence",
+    "blocking_warning": "FORWARD_BUY_RISK",
+    "artifact": "reports/phase-03/promotion-audit.json",
+    "sha256": "0d0cc2509c2b350b082681ea9b1282ae61aee7f2186b1c84c24c2e5b6026d59d"
+  },
+  "api_smoke": {
+    "status": "passed",
+    "deployment_scope": "local_demo_only",
+    "version": "0.5.1",
+    "artifact": "reports/phase-04/demo-smoke.json",
+    "sha256": "c56c0ffe2e829a57f6ce2518bff890645315554c60760c36ab897afa871dbc12"
+  },
+  "claim_boundaries": {
+    "causal_effect_claimed": false,
+    "promotion_profit_claimed": false,
+    "iranian_customer_impact_claimed": false,
+    "production_readiness_claimed": false
+  }
+}

@@ -37,7 +37,7 @@ def main() -> None:
     parser.add_argument("--audit-policy", type=Path)
     args = parser.parse_args()
     if args.command == "health":
-        print("PromoGuard scaffold is healthy")
+        print("PromoGuard core is healthy")
     elif args.command == "ingest":
         if args.input is None or args.output is None:
             parser.error("ingest requires --input and --output")
