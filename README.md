@@ -148,6 +148,7 @@ The model and reasoning policy for future phase execution is documented in
 - [x] Time-aware backtest with WAPE, MASE, bias, and interval coverage
 - [x] Typed observational promotion audit with pre/during/post diagnostics
 - [x] Typed FastAPI boundary, Persian Streamlit workflow, and real-data demo smoke
+- [x] Evidence-linked Park submission package, 90-day pilot plan, and two-minute demo script
 - [ ] Real-experiment causal benchmark
 - [ ] Cannibalization diagnostics
 - [ ] Uncertainty and abstention policy
@@ -158,3 +159,10 @@ The model and reasoning policy for future phase execution is documented in
 
 Public data supports reproducible engineering and research; it is not evidence of impact on an
 Iranian company. A real business-impact claim requires a design partner and an approved experiment.
+
+## Park submission package
+
+The fill-ready Persian application answers, one-page brief, risk register, pilot plan, evidence
+index, demo script, and real dashboard screenshots are in
+`submission/park-application-1405/`. Read its `README.fa.md` before adapting any text for an
+official form: personal fields and unverified traction are deliberately left as placeholders.

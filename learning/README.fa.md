@@ -8,6 +8,7 @@
 2. [فاز ۲ — baseline پیش‌بینی و ارزیابی زمانی](02-forecasting-baseline/README.fa.md)
 3. [فاز ۳ — ممیزی صادقانه پروموشن](03-promotion-audit/README.fa.md)
 4. [فاز ۴ — API تایپ‌شده، داشبورد و دموی واقعی](04-api-dashboard/README.fa.md)
+5. [فاز ۵ — بسته ارائه پارک و برنامه pilot](05-park-submission/README.fa.md)
 
 فازهای بعدی پس از تکمیل، در پوشه‌ی جداگانه و با همین الگو اضافه می‌شوند. وضعیت هر فاز در [نقشه راه پروژه](../ROADMAP.md) ثبت می‌شود.
 

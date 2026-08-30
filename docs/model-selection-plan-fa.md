@@ -6,17 +6,18 @@
 
 ## تصمیم فوری
 
-فاز فعال فعلی **Phase 5 — Park Submission Package** است. برای تدوین اولیه استفاده کن:
-
-```powershell
-.\start-agent.ps1 -Model gpt-5.6-terra -Reasoning high -RunMode phase
-```
-
-برای بازبینی نهایی سازگاری ادعاهای فرم، معماری، artifactها و محدودیت‌های causal یک اجرای جداگانه
-با Sol مناسب است:
+فاز فعال فعلی **Phase 6 — Real-Experiment Causal Benchmarking** است. برای طراحی estimator،
+splitها و guardrailهای causal استفاده کن:
 
 ```powershell
 .\start-agent.ps1 -Model gpt-5.6-sol -Reasoning xhigh -RunMode phase
+```
+
+برای بازبینی نهایی estimand، overlap، placebo، leakage و زبان abstention یک اجرای جداگانه با Sol
+مناسب است:
+
+```powershell
+.\start-agent.ps1 -Model gpt-5.6-sol -Reasoning max -RunMode phase
 ```
 
 اجرای review جایگزین شاهد، تست و بررسی انسانی نیست؛ فقط برای consistency audit نهایی استفاده می‌شود.

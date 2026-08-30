@@ -46,8 +46,8 @@ The first submission implements the center path with a documented public retail 
 | 2 | Forecasting baseline and rolling-origin evaluation | 2026-08-31 | DONE |
 | 3 | Honest promotion-audit MVP | 2026-09-01 | DONE |
 | 4 | End-to-end API/dashboard demo | 2026-09-02 | DONE |
-| 5 | Park submission evidence package | 2026-09-03/04 | ACTIVE |
-| 6 | Real-experiment causal benchmarking | 2026-09-05 to 09-14 | PENDING |
+| 5 | Park submission evidence package | 2026-09-03/04 | DONE |
+| 6 | Real-experiment causal benchmarking | 2026-09-05 to 09-14 | ACTIVE |
 | 7 | Cannibalization, forward-buy, uncertainty, abstention | 2026-09-15 to 09-24 | PENDING |
 | 8 | Constrained profit optimization | 2026-09-25 to 10-04 | PENDING |
 | 9 | Production data, monitoring, and optional verified LLM layer | 2026-10-05 to 10-19 | PENDING |
@@ -226,7 +226,7 @@ Completion evidence:
 - Remaining limitations: no API authentication/rate limiting, no database-backed query/cache,
   no measured business cost/inventory, and no causal or Iranian-company impact evidence.
 
-## Phase 5 — ACTIVE — Park submission package
+## Phase 5 — DONE — Park submission package
 
 Plain-language goal: submit evidence of a focused, testable innovation—not an inflated list of future technologies.
 
@@ -239,7 +239,27 @@ Deliverables and gate:
 - Risk table covering data access, causal validity, adoption, and privacy.
 - Gate: every claim links to runnable code, an artifact, a real interview note, or is explicitly labeled as a hypothesis.
 
-## Phase 6 — PENDING — Real-experiment causal benchmarking
+Completion evidence:
+
+- Date/time: 2026-08-30.
+- Model/reasoning: `gpt-5.6-terra` with `high`; final claim audit applied the repository evidence
+  policy. No new statistical or causal claim was introduced.
+- Delivered: Persian one-page brief, fill-ready official-form responses with personal placeholders,
+  architecture and 90-day validation plan, risk register, two-minute demo script, evidence index,
+  and real dashboard screenshots under `submission/park-application-1405/`.
+- Honest traction: runnable public-data prototype evidence is documented; no customer interview,
+  pilot, contract, revenue, patent, award, or Iranian business impact is claimed.
+- Screenshots: `01-quality-report.png` records the validated real panel and
+  `02-observational-audit.png` records the conservative experiment recommendation.
+- Quality report: `reports/phase-05/submission-quality-report.json` records claim coverage and
+  remaining applicant/external-validation steps.
+- Learning guide: `learning/05-park-submission/README.fa.md` explains each document, all changes,
+  the form answers, demo, likely review questions, and the send-day checklist in Persian.
+- Remaining action outside repository: the applicant must fill personal fields, verify the receiving
+  organization's current rules/deadline, and submit the form personally. Any future traction claim
+  requires its own evidence.
+
+## Phase 6 — ACTIVE — Real-experiment causal benchmarking
 
 Plain-language goal: use a real public randomized marketing experiment to benchmark treatment-effect methods, then test retail observational analyses with explicit refusal rules.
 
