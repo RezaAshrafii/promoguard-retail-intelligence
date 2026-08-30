@@ -19,7 +19,8 @@
   where both predictions are available.
 - WAPE is total absolute error divided by total absolute actual units. Bias is signed error divided
   by total actual units. MASE is the mean per-series MAE divided by that series' training
-  one-step-difference scale.
+  one-step-difference scale. The scale uses only non-promotion observations exactly seven days
+  apart; it never bridges a removed promotion week or another calendar gap.
 - The seasonal interval is a non-parametric 90th percentile absolute seasonal residual interval
   computed from training history only. Coverage is the fraction of held-out actuals inside it.
 - A lower WAPE is forecast evidence only. It is not evidence that a promotion caused lift or profit.

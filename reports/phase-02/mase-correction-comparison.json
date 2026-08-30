@@ -1,0 +1,29 @@
+{
+  "correction": "MASE scale now uses only same-series non-promotion observations exactly seven days apart",
+  "reason": "The previous shift-based scale could bridge a removed promotion week and treat a multi-week gap as a one-week difference.",
+  "before": {
+    "seasonal_naive_52_mase": 1.2005928445457346,
+    "naive_1_mase": 1.0946883636658642
+  },
+  "after": {
+    "seasonal_naive_52_mase": 1.2140988510650341,
+    "naive_1_mase": 1.1088790731216842
+  },
+  "absolute_change": {
+    "seasonal_naive_52_mase": 0.013506006519299563,
+    "naive_1_mase": 0.014190709455820016
+  },
+  "relative_change_percent": {
+    "seasonal_naive_52_mase": 1.1249447787946565,
+    "naive_1_mase": 1.2963241345051335
+  },
+  "invariants": {
+    "paired_rows": 41516,
+    "seasonal_naive_52_wape": 0.4004598187687816,
+    "naive_1_wape": 0.3482837249959048,
+    "seasonal_naive_52_bias": -0.018221695849889176,
+    "naive_1_bias": 0.031142139374953793,
+    "seasonal_interval_coverage": 0.8810819924848251,
+    "model_selection_conclusion": "recursive naive remains the lower-WAPE baseline"
+  }
+}

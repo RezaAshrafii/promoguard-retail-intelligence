@@ -136,7 +136,11 @@ def _training_scales(history: pd.DataFrame, seasonal_period: int) -> tuple[pd.Da
     """Calculate per-series MASE and interval scales using training rows only."""
     ordered = history.sort_values(GROUP_COLUMNS + ["week_end_date"]).copy()
     ordered["previous_units"] = ordered.groupby(GROUP_COLUMNS, sort=False)["units"].shift(1)
-    naive_diffs = (ordered["units"] - ordered["previous_units"]).abs()
+    ordered["previous_week_end_date"] = ordered.groupby(GROUP_COLUMNS, sort=False)[
+        "week_end_date"
+    ].shift(1)
+    consecutive_week = (ordered["week_end_date"] - ordered["previous_week_end_date"]).dt.days.eq(7)
+    naive_diffs = (ordered["units"] - ordered["previous_units"]).abs().where(consecutive_week)
     scales = (
         ordered.assign(absolute_difference=naive_diffs)
         .groupby(GROUP_COLUMNS, as_index=False)["absolute_difference"]
@@ -301,7 +305,7 @@ def evaluate_backtest(
     return {
         "dataset": "dunnhumby-breakfast-at-the-frat",
         "evaluation_target": "non-promotion rows only",
-        "training_history": "promotion rows excluded from lag lookups",
+        "training_history": "promotion rows excluded; MASE scale uses consecutive weekly non-promotion pairs only",
         "eligibility": {
             "non_promotion_rows_in_test_windows": len(non_promotion),
             "paired_rows_scored_for_both_models": len(evaluated),
@@ -314,6 +318,7 @@ def evaluate_backtest(
             "step_weeks": step,
             "max_folds": max_folds,
             "folds_evaluated": len(splits),
+            "mase_scale_pairing": "same series, non-promotion observations exactly 7 days apart",
         },
         "splits": [asdict(split) | {key: value.isoformat() for key, value in asdict(split).items() if isinstance(value, pd.Timestamp)} for split in splits],
         "models": models,
