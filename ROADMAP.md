@@ -1,6 +1,6 @@
 # PromoGuard active development roadmap
 
-Last updated: 2026-08-30  
+Last updated: 2026-08-31
 Roadmap owner: Reza  
 Execution rule: exactly one phase or release gate is `ACTIVE`.
 
@@ -10,6 +10,25 @@ The roadmap has two speeds:
 
 - **Submission track:** produce a narrow but honest MVP package by **2026-09-04 (13 Shahrivar 1405)**. This is a five-day sprint, so the submission should promise a validated pilot, not a complete enterprise platform.
 - **Professional track:** extend the same codebase after submission into a production-minded portfolio project with causal validation, monitoring, optimization, and verified AI explanations.
+
+## Active Park-submission execution overlay
+
+The official deadline remains 2026-09-04, but the internal send deadline is **2026-09-02 at 15:00
+Tehran time**. The Park sprint does not change the single-active-gate rule: Release Gate 5.1 remains
+ACTIVE and Phase 6 remains PAUSED.
+
+Execution documents:
+
+- `submission/park-application-1405/MASTER-SUBMISSION-ROADMAP-FA.md` — dated delivery gates,
+  package manifest, reviewer questions, and send criteria;
+- `submission/park-application-1405/video-production-plan-fa.md` — reviewer demo mode, shot list,
+  recording QA, and prohibited edits;
+- `docs/research/park-competitive-profile-benchmark-fa.md` — evidence-based benchmark of accepted
+  team patterns and application quality;
+- `PARK_SUBMISSION_AGENT_HANDOFF.md` — continuation contract for any future coding agent.
+
+Submission work must not create a second active development phase. Correctness and evidence refresh
+come before UI polish; external PDFs and video come only after release numbers are frozen.
 
 ## System architecture
 
