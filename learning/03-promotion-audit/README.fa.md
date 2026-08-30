@@ -13,7 +13,8 @@
 فروش واقعی هنگام promotion - فروش موردانتظار بدون promotion
 ```
 
-خروجی این تفریق را «برآورد مشاهده‌ای incremental units» می‌نامیم. آن را causal lift نمی‌نامیم؛
+خروجی این تفریق را «تفاوت برآوردشده‌ی فروش مشاهده‌شده با مبنا» می‌نامیم. آن را causal lift یا
+incremental causal units نمی‌نامیم؛
 چون فروش، قیمت و promotion در یک دیتاست observational ثبت شده‌اند و تخصیص promotion تصادفی نبوده
 است.
 
@@ -39,9 +40,9 @@ recursive-naive baseline + residual interval
       ↓
 pre / during / post diagnostics
       ↓
-warningها + margin scenario اختیاری
+warningها + contribution sensitivity اختیاری
       ↓
-typed JSON + approve/reject/experiment
+typed JSON + توصیه‌ی آزمون/شواهد بیشتر/کم‌اولویت‌سازی
 ```
 
 ## promotion episode چیست؟
@@ -63,11 +64,11 @@ typed JSON + approve/reject/experiment
 طول promotion: 3 هفته
 baseline کل: 20 × 3 = 60 واحد
 فروش مشاهده‌شده: 90 واحد
-incremental estimate: 90 - 60 = 30 واحد
+observed-minus-baseline estimate: 90 - 60 = 30 واحد
 ```
 
 هیچ مقدار during یا post برای ساخت baseline استفاده نمی‌شود. بنابراین تغییر داده‌های آینده،
-baseline و incremental estimate دوره‌ی promotion را تغییر نمی‌دهد.
+baseline و تفاوت برآوردشده‌ی دوره‌ی promotion را تغییر نمی‌دهد.
 
 ## بازه‌ی عدم‌قطعیت
 
@@ -94,7 +95,7 @@ post کمتر از ۸۰ درصد میانگین pre باشد، `FORWARD_BUY_RISK
 | کد | معنی ساده | اثر بر تصمیم |
 |---|---|---|
 | `OBSERVATIONAL_ONLY` | این برآورد causal نیست | هشدار دائمی |
-| `MISSING_COST` | unit margin نداریم | blocking |
+| `ECONOMIC_IMPACT_UNAVAILABLE` | اقتصاد کامل پروموشن قابل محاسبه نیست | info |
 | `SHORT_HISTORY` | history کافی نیست | blocking |
 | `STOCKOUT_UNOBSERVABLE` | inventory در منبع نیست | هشدار |
 | `STOCKOUT_RISK` | موجودی در promotion صفر شده | blocking |
@@ -108,23 +109,25 @@ post کمتر از ۸۰ درصد میانگین pre باشد، `FORWARD_BUY_RISK
 
 تصمیم‌ها برای screening هستند، نه اجرای خودکار کمپین:
 
-- اگر warning blocking وجود داشته باشد: `experiment`؛
-- اگر کل بازه‌ی incremental زیر صفر باشد: `reject`؛
-- اگر کل بازه بالای صفر باشد، margin واقعی داده شده باشد و blocker نداشته باشیم: `approve`؛
-- در بقیه‌ی حالت‌ها: `experiment`.
+- اگر warning blocking وجود داشته باشد: `needs_more_evidence`؛
+- اگر کل بازه‌ی تفاوت زیر صفر باشد: `deprioritize_and_investigate`؛
+- اگر کل بازه بالای صفر باشد: `candidate_for_controlled_test`؛
+- اگر بازه صفر را قطع کند: `needs_more_evidence`.
 
-`approve` فقط یعنی شواهد برای یک pilot کنترل‌شده مناسب است؛ به معنی rollout یا اثبات causal نیست.
+هیچ‌کدام approval مالی یا دستور rollout نیستند. contribution sensitivity نیز اجازه تغییر این
+توصیه را ندارد.
 
-## profit چگونه برخورد شد؟
+## اثر مالی چگونه برخورد شد؟
 
-دیتای عمومی cost یا unit margin ندارد. بنابراین در اجرای واقعی:
+دیتای عمومی cost، trade spend یا اقتصاد کامل تخفیف را ندارد. بنابراین در اجرای واقعی:
 
 ```json
-"margin_scenario": null
+"contribution_sensitivity": null
 ```
 
-و warning `MISSING_COST` ثبت شد. اگر در آینده design partner مقدار واقعی unit margin را تأیید کند،
-می‌توان آن را با `--unit-margin` وارد کرد. آن خروجی همچنان با برچسب `scenario_only` ذخیره می‌شود.
+و warning اطلاعاتی `ECONOMIC_IMPACT_UNAVAILABLE` ثبت شد. اگر یک فرض contribution با مقدار، ارز و
+منبع انسانی تأیید شود، خروجی با برچسب `sensitivity_only` ساخته می‌شود. این عدد سود پروموشن نیست و
+روی recommendation اثر نمی‌گذارد.
 
 ما برای زیباتر شدن خروجی، cost مصنوعی اختراع نکردیم.
 
@@ -154,16 +157,16 @@ History: 52 non-promotion rows
 Observed units: 128
 Baseline units: 185
 Baseline interval: [115, 255]
-Incremental estimate: -57
-Incremental interval: [-127, 13]
+Observed-minus-baseline estimate: -57
+Observed-minus-baseline interval: [-127, 13]
 Pre mean: 30
 During mean: 25.6
 Post mean: 21.75
 Post / Pre ratio: 0.725
-Decision: experiment
+Recommendation: needs_more_evidence
 ```
 
-بازه‌ی incremental صفر را قطع می‌کند؛ یعنی نمی‌توانیم با این audit جهت اثر را قطعی بدانیم. علاوه
+بازه‌ی تفاوت صفر را قطع می‌کند؛ یعنی نمی‌توانیم با این audit جهت اثر را قطعی بدانیم. علاوه
 بر آن، cost وجود ندارد و نسبت post/pre برابر `0.725` است؛ بنابراین forward-buy risk فعال شده است.
 
 ## فایل‌های تغییرکرده
@@ -176,7 +179,7 @@ Decision: experiment
   - انتخاب event نماینده؛
   - baseline و interval؛
   - pre/during/post diagnostics؛
-  - warningها، margin scenario و decision logic.
+  - warningها، contribution sensitivity و recommendation logic.
 - `src/promoguard/insights/__init__.py`
   - public interfaceهای audit را export می‌کند.
 - `src/promoguard/cli.py`
@@ -187,8 +190,8 @@ Decision: experiment
 - `tests/unit/test_promotion_audit.py`
   - episode متوالی؛
   - positive و negative interval؛
-  - margin scenario؛
-  - missing cost؛
+  - contribution sensitivity؛
+  - unavailable economic impact؛
   - forward-buy؛
   - short history؛
   - severe shift؛
@@ -227,10 +230,12 @@ Decision: experiment
   --start-date 2010-01-13
 ```
 
-فقط با margin واقعی و تأییدشده:
+فقط برای sensitivity با فرض تأییدشده، ارز و منبع:
 
 ```powershell
-... --unit-margin 1.25
+... --assumed-contribution-per-incremental-unit 1.25 `
+    --contribution-currency IRR `
+    --contribution-assumption-source "approved finance sensitivity input"
 ```
 
 ## نتیجه‌ی تست‌ها
@@ -271,7 +276,7 @@ forward-buy است.
 ### چرا event واقعی نتیجه‌ی منفی دارد؟
 
 چون event بر اساس outcome انتخاب نشده است. اولین episode واجد شرایط انتخاب شد. بازه صفر را قطع
-می‌کند، پس نتیجه‌ی درست `experiment` است، نه داستان‌سازی درباره‌ی موفقیت یا شکست قطعی.
+می‌کند، پس نتیجه‌ی درست `needs_more_evidence` است، نه داستان‌سازی درباره‌ی موفقیت یا شکست قطعی.
 
 ### فرق interval این فاز با confidence interval چیست؟
 
@@ -280,10 +285,10 @@ forward-buy است.
 
 ### اگر cost نداشته باشیم چه می‌کنی؟
 
-profit را unavailable اعلام می‌کنم. فقط با unit margin واقعی، یک scenario برچسب‌خورده محاسبه
-می‌شود.
+اثر مالی را unavailable اعلام می‌کنم. در صورت داشتن فرض contribution، فقط یک sensitivity
+برچسب‌خورده می‌سازم که recommendation را تغییر نمی‌دهد.
 
 ## فاز بعدی
 
 فاز ۴، API و dashboard را روی همین typed JSON می‌سازد. محاسبات داخل UI قرار نمی‌گیرند؛ UI فقط
-نتیجه، بازه، warningها، decision و شواهد را نمایش می‌دهد.
+نتیجه، بازه، warningها، recommendation و شواهد را نمایش می‌دهد.

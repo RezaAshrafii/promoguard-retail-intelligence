@@ -54,9 +54,30 @@ def test_validate_list_and_audit_realistic_panel(client: TestClient, panel_path:
     audit = client.post("/v1/audits", json={"input_path": str(panel_path)})
     assert audit.status_code == 200
     payload = audit.json()
-    assert payload["decision"] == "experiment"
+    assert payload["recommendation"] == "candidate_for_controlled_test"
     assert any(warning["code"] == "OBSERVATIONAL_ONLY" for warning in payload["warnings"])
-    assert "causal effect not identified" in payload["claim_language"]
+    assert "causal treatment effect" in payload["claim_language"]
+
+
+def test_contribution_sensitivity_is_typed_and_never_drives_recommendation(
+    client: TestClient, panel_path: Path
+) -> None:
+    response = client.post(
+        "/v1/audits",
+        json={
+            "input_path": str(panel_path),
+            "contribution_assumption": {
+                "amount_per_incremental_unit": -100,
+                "currency": "irr",
+                "source": "approved test assumption",
+            },
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["contribution_sensitivity"]["status"] == "sensitivity_only"
+    assert payload["contribution_sensitivity"]["assumption"]["currency"] == "IRR"
+    assert payload["recommendation"] == "candidate_for_controlled_test"
 
 
 def test_missing_local_panel_returns_not_found(client: TestClient, tmp_path: Path) -> None:

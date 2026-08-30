@@ -10,5 +10,6 @@ series, 149,386 promotion rows, and zero duplicate grain rows.
 
 ![Observational audit result](02-observational-audit.png)
 
-`02-observational-audit.png` shows the representative event selection and the audit decision. The
-visible message is intentionally an experiment recommendation, not a claim of causal impact.
+`02-observational-audit.png` shows the representative event selection and the updated screening
+recommendation. The visible message intentionally asks for more evidence; it is not a causal,
+rollout, or financial approval.

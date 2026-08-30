@@ -60,8 +60,10 @@ def run_demo(input_path: Path) -> dict[str, Any]:
             "audit_id": audit["audit_id"],
             "observed_units": audit["observed_units"],
             "baseline_units": audit["baseline_units"],
-            "incremental_units": audit["incremental_units"],
-            "decision": audit["decision"],
+            "estimated_units_difference_vs_baseline": audit[
+                "estimated_units_difference_vs_baseline"
+            ],
+            "recommendation": audit["recommendation"],
             "warning_codes": [warning["code"] for warning in audit["warnings"]],
             "claim_language": audit["claim_language"],
         },

@@ -119,7 +119,7 @@ def create_audit(request: AuditRequest) -> PromotionAuditResult:
             store_id=str(selection["store_id"]),
             upc=str(selection["upc"]),
             start_date=selection["start_date"],
-            unit_margin=request.unit_margin,
+            contribution_assumption=request.contribution_assumption,
         )
     except ValueError as error:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error)) from error

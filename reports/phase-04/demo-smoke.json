@@ -27,18 +27,18 @@
       "lower": 115.0,
       "upper": 255.0
     },
-    "incremental_units": {
+    "estimated_units_difference_vs_baseline": {
       "point": -57.0,
       "lower": -127.0,
       "upper": 13.0
     },
-    "decision": "experiment",
+    "recommendation": "needs_more_evidence",
     "warning_codes": [
       "OBSERVATIONAL_ONLY",
-      "MISSING_COST",
+      "ECONOMIC_IMPACT_UNAVAILABLE",
       "STOCKOUT_UNOBSERVABLE",
       "FORWARD_BUY_RISK"
     ],
-    "claim_language": "observational incremental-units estimate; causal effect not identified"
+    "claim_language": "observed-minus-baseline estimate; causal treatment effect and financial impact not identified"
   }
 }

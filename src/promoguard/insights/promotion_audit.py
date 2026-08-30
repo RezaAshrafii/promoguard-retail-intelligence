@@ -7,18 +7,18 @@ from enum import StrEnum
 from typing import Any, Literal
 
 import pandas as pd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 GROUP_COLUMNS = ["store_id", "upc"]
 REQUIRED_COLUMNS = ["week_end_date", "store_id", "upc", "units", "promotion_flag"]
 
 
-class AuditDecision(StrEnum):
-    """Screening action returned by the observational audit."""
+class AuditRecommendation(StrEnum):
+    """Non-rollout screening action returned by the observational audit."""
 
-    APPROVE = "approve"
-    REJECT = "reject"
-    EXPERIMENT = "experiment"
+    CANDIDATE_FOR_CONTROLLED_TEST = "candidate_for_controlled_test"
+    NEEDS_MORE_EVIDENCE = "needs_more_evidence"
+    DEPRIORITIZE_AND_INVESTIGATE = "deprioritize_and_investigate"
 
 
 class WarningSeverity(StrEnum):
@@ -55,12 +55,36 @@ class WindowSummary(BaseModel):
     promotion_weeks: int
 
 
-class MarginScenario(BaseModel):
-    """What-if margin result; it is not measured profit."""
+class ContributionAssumption(BaseModel):
+    """User-approved sensitivity input; it is not an observed financial field."""
 
-    unit_margin: float = Field(gt=0)
-    estimate: EstimateInterval
-    status: Literal["scenario_only"] = "scenario_only"
+    amount_per_incremental_unit: float = Field(allow_inf_nan=False)
+    currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    source: str = Field(min_length=1)
+
+    @field_validator("currency", mode="before")
+    @classmethod
+    def normalize_currency(cls, value: object) -> object:
+        return value.strip().upper() if isinstance(value, str) else value
+
+    @field_validator("source")
+    @classmethod
+    def reject_blank_source(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("contribution assumption source must not be blank")
+        return normalized
+
+
+class ContributionSensitivity(BaseModel):
+    """Linear what-if sensitivity; not promotion profit or gross-margin impact."""
+
+    assumption: ContributionAssumption
+    estimated_contribution_difference_vs_baseline: EstimateInterval
+    status: Literal["sensitivity_only"] = "sensitivity_only"
+    limitation: Literal[
+        "Does not model margin lost on baseline units, trade spend, funding, or other costs."
+    ] = "Does not model margin lost on baseline units, trade spend, funding, or other costs."
 
 
 class PromotionAuditResult(BaseModel):
@@ -77,16 +101,16 @@ class PromotionAuditResult(BaseModel):
     history_weeks: int
     observed_units: float
     baseline_units: EstimateInterval
-    incremental_units: EstimateInterval
-    margin_scenario: MarginScenario | None
+    estimated_units_difference_vs_baseline: EstimateInterval
+    contribution_sensitivity: ContributionSensitivity | None
     pre_window: WindowSummary
     during_window: WindowSummary
     post_window: WindowSummary
     pre_to_reference_ratio: float | None
     post_to_pre_ratio: float | None
-    decision: AuditDecision
-    decision_scope: str
-    decision_rationale: str
+    recommendation: AuditRecommendation
+    recommendation_scope: str
+    recommendation_rationale: str
     warnings: list[AuditWarning]
     assumptions: list[str]
     evidence_refs: list[str]
@@ -201,21 +225,32 @@ def _baseline_interval(history: pd.DataFrame, duration_weeks: int) -> EstimateIn
     )
 
 
-def _decision(
-    incremental: EstimateInterval,
+def _recommendation(
+    units_difference: EstimateInterval,
     warnings: list[AuditWarning],
-    unit_margin: float | None,
-) -> tuple[AuditDecision, str]:
+) -> tuple[AuditRecommendation, str]:
     blocking_codes = {
         warning.code for warning in warnings if warning.severity == WarningSeverity.BLOCKING
     }
     if blocking_codes:
-        return AuditDecision.EXPERIMENT, "Blocking diagnostics require a better controlled experiment."
-    if incremental.upper < 0:
-        return AuditDecision.REJECT, "Observed units remain below baseline across the audit interval."
-    if incremental.lower > 0 and unit_margin is not None:
-        return AuditDecision.APPROVE, "Evidence supports only a controlled pilot under the supplied margin scenario."
-    return AuditDecision.EXPERIMENT, "The audit interval or missing margin does not support rollout."
+        return (
+            AuditRecommendation.NEEDS_MORE_EVIDENCE,
+            "Blocking diagnostics require better data or a controlled experiment.",
+        )
+    if units_difference.upper < 0:
+        return (
+            AuditRecommendation.DEPRIORITIZE_AND_INVESTIGATE,
+            "Observed units remain below the forecast baseline across the audit interval; investigate confounding before spending more.",
+        )
+    if units_difference.lower > 0:
+        return (
+            AuditRecommendation.CANDIDATE_FOR_CONTROLLED_TEST,
+            "Observed units remain above the forecast baseline across the audit interval; test the hypothesis under controlled assignment.",
+        )
+    return (
+        AuditRecommendation.NEEDS_MORE_EVIDENCE,
+        "The observational interval crosses zero, so the direction is unresolved.",
+    )
 
 
 def audit_promotion_event(
@@ -224,14 +259,12 @@ def audit_promotion_event(
     store_id: str,
     upc: str,
     start_date: str | date | pd.Timestamp,
-    unit_margin: float | None = None,
+    contribution_assumption: ContributionAssumption | None = None,
     pre_window_weeks: int = 4,
     post_window_weeks: int = 4,
     min_history_weeks: int = 26,
 ) -> PromotionAuditResult:
     """Audit one promotion episode with pre-event-only baseline and explicit limitations."""
-    if unit_margin is not None and unit_margin <= 0:
-        raise ValueError("unit_margin must be positive when supplied.")
     prepared = prepare_audit_panel(panel)
     store_key, upc_key = str(store_id), str(upc)
     event_start = pd.Timestamp(start_date)
@@ -266,7 +299,7 @@ def audit_promotion_event(
     post = group[(group["week_end_date"] > event_end) & (group["week_end_date"] <= post_end)]
     baseline = _baseline_interval(history, duration_weeks)
     observed_units = float(during["units"].sum())
-    incremental = EstimateInterval(
+    units_difference = EstimateInterval(
         point=observed_units - baseline.point,
         lower=observed_units - baseline.upper,
         upper=observed_units - baseline.lower,
@@ -287,14 +320,13 @@ def audit_promotion_event(
                 f"Only {len(history)} non-promotion history rows are available; {min_history_weeks} are required.",
             )
         )
-    if unit_margin is None:
-        warnings.append(
-            _warning(
-                "MISSING_COST",
-                WarningSeverity.BLOCKING,
-                "Unit margin is unavailable, so profit is not calculated.",
-            )
+    warnings.append(
+        _warning(
+            "ECONOMIC_IMPACT_UNAVAILABLE",
+            WarningSeverity.INFO,
+            "Full promotion economics are unavailable; any contribution output is sensitivity-only and cannot drive the recommendation.",
         )
+    )
     if "inventory_on_hand" not in prepared.columns:
         warnings.append(
             _warning(
@@ -367,17 +399,21 @@ def audit_promotion_event(
                 )
             )
 
-    margin_scenario = None
-    if unit_margin is not None:
-        margin_scenario = MarginScenario(
-            unit_margin=unit_margin,
-            estimate=EstimateInterval(
-                point=incremental.point * unit_margin,
-                lower=incremental.lower * unit_margin,
-                upper=incremental.upper * unit_margin,
+    contribution_sensitivity = None
+    if contribution_assumption is not None:
+        amount = contribution_assumption.amount_per_incremental_unit
+        transformed_bounds = sorted(
+            [units_difference.lower * amount, units_difference.upper * amount]
+        )
+        contribution_sensitivity = ContributionSensitivity(
+            assumption=contribution_assumption,
+            estimated_contribution_difference_vs_baseline=EstimateInterval(
+                point=units_difference.point * amount,
+                lower=transformed_bounds[0],
+                upper=transformed_bounds[1],
             ),
         )
-    decision, rationale = _decision(incremental, warnings, unit_margin)
+    recommendation, rationale = _recommendation(units_difference, warnings)
     return PromotionAuditResult(
         audit_id=str(event["audit_id"]),
         dataset="dunnhumby-breakfast-at-the-frat",
@@ -390,16 +426,16 @@ def audit_promotion_event(
         history_weeks=len(history),
         observed_units=observed_units,
         baseline_units=baseline,
-        incremental_units=incremental,
-        margin_scenario=margin_scenario,
+        estimated_units_difference_vs_baseline=units_difference,
+        contribution_sensitivity=contribution_sensitivity,
         pre_window=_window_summary(pre, pre_window_weeks),
         during_window=_window_summary(during, duration_weeks),
         post_window=_window_summary(post, post_window_weeks),
         pre_to_reference_ratio=pre_ratio,
         post_to_pre_ratio=post_ratio,
-        decision=decision,
-        decision_scope="screening recommendation for a controlled pilot; not a rollout instruction",
-        decision_rationale=rationale,
+        recommendation=recommendation,
+        recommendation_scope="observational screening for experiment prioritization; never a rollout or financial approval",
+        recommendation_rationale=rationale,
         warnings=warnings,
         assumptions=[
             "The last observed non-promotion units are a usable short-horizon baseline.",
@@ -411,5 +447,5 @@ def audit_promotion_event(
             "reports/phase-02/forecast-evaluation.json",
             "docs/evaluation-protocol.md",
         ],
-        claim_language="observational incremental-units estimate; causal effect not identified",
+        claim_language="observed-minus-baseline estimate; causal treatment effect and financial impact not identified",
     )

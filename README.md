@@ -1,8 +1,9 @@
 # PromoGuard Retail Intelligence
 
-Reliable promotion-effect analysis for FMCG and retail decisions.
+Evidence-aware promotion auditing for FMCG and retail experiment prioritization.
 
-> Did a promotion create incremental profit, or only shift demand between products and time periods?
+> Did observed promotion-period sales differ from a forecast baseline, and is the hypothesis worth
+> a controlled test?
 
 This repository is an initial research and product scaffold. It does not claim causal validity on observational data until the required diagnostics and experiments pass.
 
@@ -10,8 +11,8 @@ This repository is an initial research and product scaffold. It does not claim c
 
 ```text
 public workbook/CSV -> data contracts -> canonical weekly panel -> baseline forecast
-       -> causal effect + cannibalization -> uncertainty/shift checks
-       -> approve/reject/experiment -> verified insight JSON -> dashboard
+       -> observational audit + diagnostics -> uncertainty/shift checks
+       -> controlled-test/deprioritize/more-evidence recommendation -> verified JSON -> dashboard
 ```
 
 ## Repository map
@@ -77,9 +78,10 @@ promoguard promotion-audit `
   --output reports/phase-03
 ```
 
-You may instead provide `--store-id`, `--upc`, and `--start-date` together. Add `--unit-margin`
-only when it is a real, approved business input; otherwise profit remains unavailable. The output
-is an observational screening estimate with uncertainty and warnings, not a causal-effect claim.
+You may instead provide `--store-id`, `--upc`, and `--start-date` together. An optional contribution
+sensitivity requires an approved amount, ISO currency, and assumption source. It never changes the
+screening recommendation and is not promotion profit or gross-margin impact. The units difference
+is observational, with uncertainty and warnings; it is not a causal-effect claim.
 
 ## Run the end-to-end application
 

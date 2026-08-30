@@ -1,7 +1,9 @@
 """Verified insight objects and evidence-grounded narrative generation."""
 
 from promoguard.insights.promotion_audit import (
-    AuditDecision,
+    AuditRecommendation,
+    ContributionAssumption,
+    ContributionSensitivity,
     PromotionAuditResult,
     audit_promotion_event,
     detect_promotion_episodes,
@@ -9,7 +11,9 @@ from promoguard.insights.promotion_audit import (
 )
 
 __all__ = [
-    "AuditDecision",
+    "AuditRecommendation",
+    "ContributionAssumption",
+    "ContributionSensitivity",
     "PromotionAuditResult",
     "audit_promotion_event",
     "detect_promotion_episodes",

@@ -35,9 +35,12 @@
   interval.
 - Pre and post windows are four weeks by default. A post-to-pre ratio below 0.8 triggers a blocking
   forward-buy warning; a recent-pre to older-history ratio outside 0.5–1.5 triggers severe shift.
-- Missing unit margin blocks a profit decision. A supplied margin creates a labeled scenario only;
-  it does not convert public-data estimates into measured profit.
+- Full promotion economics remain unavailable. An optional contribution assumption must include an
+  amount per incremental unit, ISO currency, and source. Its sensitivity output never changes the
+  screening recommendation and is not promotion profit or gross-margin impact.
 - Missing inventory emits `STOCKOUT_UNOBSERVABLE`; observed zero inventory emits a blocking
   `STOCKOUT_RISK` warning.
-- `approve` means only “support a controlled pilot under the supplied scenario.” Blocking warnings
-  or intervals crossing zero return `experiment`. The output never identifies causal effect.
+- A positive units-difference interval returns `candidate_for_controlled_test`; a negative interval
+  returns `deprioritize_and_investigate`; blockers or an interval crossing zero return
+  `needs_more_evidence`. The output never approves rollout, identifies causal effect, or estimates
+  financial impact.

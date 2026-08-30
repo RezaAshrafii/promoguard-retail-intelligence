@@ -11,6 +11,7 @@ import pandas as pd
 
 from promoguard.data.panel import load_weekly_panel, validate_canonical_panel
 from promoguard.insights.promotion_audit import (
+    ContributionAssumption,
     PromotionAuditResult,
     audit_promotion_event,
     detect_promotion_episodes,
@@ -96,16 +97,16 @@ def _event_label(row: pd.Series) -> str:
 
 
 def _show_audit(result: PromotionAuditResult) -> None:
-    decision_labels = {
-        "approve": "پایلوت کنترل‌شده قابل بررسی است",
-        "reject": "برای ادامه پیشنهاد نمی‌شود",
-        "experiment": "ابتدا آزمایش کنترل‌شده لازم است",
+    recommendation_labels = {
+        "candidate_for_controlled_test": "این فرضیه ارزش آزمون کنترل‌شده دارد",
+        "deprioritize_and_investigate": "فعلاً کم‌اولویت شود و علت اختلاف بررسی شود",
+        "needs_more_evidence": "برای نتیجه‌گیری، شواهد بیشتری لازم است",
     }
     payload = result.model_dump(mode="json")
     st.subheader("نتیجه ممیزی")
-    st.info(decision_labels[result.decision.value])
-    st.caption(result.decision_rationale)
-    observed, baseline, incremental = st.columns(3)
+    st.info(recommendation_labels[result.recommendation.value])
+    st.caption(result.recommendation_rationale)
+    observed, baseline, difference = st.columns(3)
     observed.metric("فروش مشاهده‌شده", f"{result.observed_units:,.0f} واحد")
     baseline.metric(
         "فروش مبنا",
@@ -115,14 +116,24 @@ def _show_audit(result: PromotionAuditResult) -> None:
             f"{result.baseline_units.upper:,.0f}"
         ),
     )
-    incremental.metric(
+    units_difference = result.estimated_units_difference_vs_baseline
+    difference.metric(
         "تفاوت مشاهده‌شده با مبنا",
-        f"{result.incremental_units.point:+,.0f} واحد",
+        f"{units_difference.point:+,.0f} واحد",
         help=(
-            f"بازه عدم‌قطعیت: {result.incremental_units.lower:+,.0f} تا "
-            f"{result.incremental_units.upper:+,.0f}"
+            f"بازه عدم‌قطعیت: {units_difference.lower:+,.0f} تا "
+            f"{units_difference.upper:+,.0f}"
         ),
     )
+    if result.contribution_sensitivity is not None:
+        sensitivity = result.contribution_sensitivity
+        estimate = sensitivity.estimated_contribution_difference_vs_baseline
+        st.info(
+            "تحلیل حساسیت سهم واحد — نه سود پروموشن: "
+            f"{estimate.point:+,.2f} {sensitivity.assumption.currency} "
+            f"(منبع فرض: {sensitivity.assumption.source})"
+        )
+        st.caption(sensitivity.limitation)
 
     window_rows = []
     for label, window in (
@@ -242,12 +253,24 @@ def main() -> None:
         format_func=lambda event: _event_label(pd.Series(event)),
         help="برای حفظ سرعت، حداکثر ۵۰۰ رویداد نخست به‌علاوه رویداد نماینده نمایش داده می‌شود.",
     )
-    include_margin = st.checkbox("سناریوی حاشیه سود واحد را هم بررسی کن")
-    unit_margin = (
-        st.number_input("حاشیه سود هر واحد", min_value=0.01, value=1.0, step=0.1)
-        if include_margin
-        else None
-    )
+    include_contribution = st.checkbox("تحلیل حساسیت سهم فرضی هر واحد را نمایش بده")
+    contribution_assumption = None
+    if include_contribution:
+        contribution_amount = st.number_input(
+            "سهم فرضی هر واحد افزوده‌شده", value=1.0, step=0.1
+        )
+        contribution_currency = st.text_input("کد ارز سه‌حرفی", value="IRR")
+        contribution_source = st.text_input(
+            "منبع این فرض", value="ورودی تأییدشده کاربر برای تحلیل حساسیت"
+        )
+        try:
+            contribution_assumption = ContributionAssumption(
+                amount_per_incremental_unit=contribution_amount,
+                currency=contribution_currency,
+                source=contribution_source,
+            )
+        except ValueError as error:
+            st.error(str(error))
     if st.button("اجرای ممیزی", type="primary"):
         try:
             result = audit_promotion_event(
@@ -255,7 +278,7 @@ def main() -> None:
                 store_id=str(selected["store_id"]),
                 upc=str(selected["upc"]),
                 start_date=selected["start_date"],
-                unit_margin=unit_margin,
+                contribution_assumption=contribution_assumption,
             )
             _show_audit(result)
         except ValueError as error:

@@ -2,14 +2,14 @@
 
 ## Intended use
 
-Screen one documented store-product promotion episode for incremental-unit signals, uncertainty,
-data warnings, and whether a controlled experiment is warranted.
+Screen one documented store-product promotion episode for an observed-minus-forecast-baseline units
+difference, uncertainty, data warnings, and whether a controlled experiment is worth prioritizing.
 
 ## Not intended for
 
 - causal treatment-effect claims;
 - autonomous price or campaign changes;
-- measured profit without approved cost inputs;
+- promotion profit, gross-margin impact, or financial approval;
 - stockout or cannibalization conclusions without the required fields and diagnostics.
 
 ## Data and model
@@ -22,9 +22,13 @@ data warnings, and whether a controlled experiment is warranted.
 
 ## Abstention behavior
 
-The result returns `experiment` when history is short, cost is missing, shift is severe, inventory
-reaches zero, the post window is incomplete, forward-buy risk is detected, or the interval does not
-support a directional screening decision.
+The result returns `needs_more_evidence` when diagnostics block interpretation or the interval
+crosses zero. A positive interval can only produce `candidate_for_controlled_test`; a negative
+interval can only produce `deprioritize_and_investigate`. None is a rollout or financial decision.
+
+An optional contribution sensitivity linearly multiplies the units difference by a typed,
+user-approved assumption with currency and source. It never changes the recommendation and does not
+model margin lost on baseline units, trade spend, funding, or other costs.
 
 ## Known limitations
 

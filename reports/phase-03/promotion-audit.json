@@ -14,12 +14,12 @@
     "lower": 115.0,
     "upper": 255.0
   },
-  "incremental_units": {
+  "estimated_units_difference_vs_baseline": {
     "point": -57.0,
     "lower": -127.0,
     "upper": 13.0
   },
-  "margin_scenario": null,
+  "contribution_sensitivity": null,
   "pre_window": {
     "requested_weeks": 4,
     "observed_weeks": 4,
@@ -43,9 +43,9 @@
   },
   "pre_to_reference_ratio": 1.348314606741573,
   "post_to_pre_ratio": 0.725,
-  "decision": "experiment",
-  "decision_scope": "screening recommendation for a controlled pilot; not a rollout instruction",
-  "decision_rationale": "Blocking diagnostics require a better controlled experiment.",
+  "recommendation": "needs_more_evidence",
+  "recommendation_scope": "observational screening for experiment prioritization; never a rollout or financial approval",
+  "recommendation_rationale": "Blocking diagnostics require better data or a controlled experiment.",
   "warnings": [
     {
       "code": "OBSERVATIONAL_ONLY",
@@ -53,9 +53,9 @@
       "message": "The estimate is an observational audit and does not identify a treatment effect."
     },
     {
-      "code": "MISSING_COST",
-      "severity": "blocking",
-      "message": "Unit margin is unavailable, so profit is not calculated."
+      "code": "ECONOMIC_IMPACT_UNAVAILABLE",
+      "severity": "info",
+      "message": "Full promotion economics are unavailable; any contribution output is sensitivity-only and cannot drive the recommendation."
     },
     {
       "code": "STOCKOUT_UNOBSERVABLE",
@@ -78,5 +78,5 @@
     "reports/phase-02/forecast-evaluation.json",
     "docs/evaluation-protocol.md"
   ],
-  "claim_language": "observational incremental-units estimate; causal effect not identified"
+  "claim_language": "observed-minus-baseline estimate; causal treatment effect and financial impact not identified"
 }

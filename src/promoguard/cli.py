@@ -11,6 +11,7 @@ import pandas as pd
 from promoguard.data.dunnhumby import build_panel, load_dataset, validate_transactions
 from promoguard.forecasting.evaluation import evaluate_backtest
 from promoguard.insights.promotion_audit import (
+    ContributionAssumption,
     audit_promotion_event,
     select_representative_event,
 )
@@ -29,7 +30,9 @@ def main() -> None:
     parser.add_argument("--store-id")
     parser.add_argument("--upc")
     parser.add_argument("--start-date")
-    parser.add_argument("--unit-margin", type=float)
+    parser.add_argument("--assumed-contribution-per-incremental-unit", type=float)
+    parser.add_argument("--contribution-currency")
+    parser.add_argument("--contribution-assumption-source")
     args = parser.parse_args()
     if args.command == "health":
         print("PromoGuard scaffold is healthy")
@@ -81,6 +84,26 @@ def main() -> None:
         supplied_keys = [args.store_id, args.upc, args.start_date]
         if any(supplied_keys) and not all(supplied_keys):
             parser.error("provide --store-id, --upc, and --start-date together, or omit all three")
+        contribution_values = [
+            args.assumed_contribution_per_incremental_unit,
+            args.contribution_currency,
+            args.contribution_assumption_source,
+        ]
+        if any(value is not None for value in contribution_values) and not all(
+            value is not None for value in contribution_values
+        ):
+            parser.error(
+                "provide assumed contribution, currency, and assumption source together, or omit all three"
+            )
+        contribution_assumption = (
+            ContributionAssumption(
+                amount_per_incremental_unit=args.assumed_contribution_per_incremental_unit,
+                currency=args.contribution_currency,
+                source=args.contribution_assumption_source,
+            )
+            if all(value is not None for value in contribution_values)
+            else None
+        )
         panel = pd.read_csv(panel_path, parse_dates=["week_end_date"])
         selection = (
             {
@@ -96,7 +119,7 @@ def main() -> None:
             store_id=str(selection["store_id"]),
             upc=str(selection["upc"]),
             start_date=selection["start_date"],
-            unit_margin=args.unit_margin,
+            contribution_assumption=contribution_assumption,
         )
         payload = result.model_dump(mode="json")
         args.output.mkdir(parents=True, exist_ok=True)

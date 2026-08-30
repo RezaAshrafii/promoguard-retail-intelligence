@@ -11,8 +11,9 @@ Observed sales lift after a discount does not equal incremental demand or increm
 ## First promise
 
 For the public MVP, use a documented weekly sales/price/promotion panel to produce an auditable
-promotion-lift analysis with uncertainty and an explicit decision to approve, reject, or run a
-better experiment. Profit is unavailable until real cost data is supplied by a design partner.
+observed-minus-baseline analysis with uncertainty and an explicit recommendation to prioritize a
+controlled test, gather more evidence, or deprioritize and investigate. It does not approve rollout
+or estimate promotion profit.
 
 ## Non-goals for v0
 

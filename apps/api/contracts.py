@@ -7,6 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
+from promoguard.insights.promotion_audit import ContributionAssumption
+
 
 class DatasetPathRequest(BaseModel):
     """Reference a local processed directory or canonical panel CSV."""
@@ -26,7 +28,7 @@ class AuditRequest(DatasetPathRequest):
     store_id: str | None = None
     upc: str | None = None
     start_date: date | None = None
-    unit_margin: float | None = Field(default=None, gt=0)
+    contribution_assumption: ContributionAssumption | None = None
 
     @model_validator(mode="after")
     def require_complete_event_key(self) -> AuditRequest:

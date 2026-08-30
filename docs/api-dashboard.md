@@ -46,8 +46,22 @@ Invoke-RestMethod `
 ```
 
 An explicit audit key requires all three fields together: `store_id`, `upc`, and `start_date`.
-Omitting all three applies the documented representative-event rule. `unit_margin` is optional and
-must be a positive, approved business input; otherwise the API refuses to calculate profit.
+Omitting all three applies the documented representative-event rule. An optional typed
+`contribution_assumption` contains `amount_per_incremental_unit`, a three-letter ISO `currency`, and
+the human-approved assumption `source`. The resulting sensitivity never changes the recommendation
+and is not promotion profit or gross-margin impact.
+
+Example optional sensitivity fragment:
+
+```json
+{
+  "contribution_assumption": {
+    "amount_per_incremental_unit": 12500,
+    "currency": "IRR",
+    "source": "approved finance input for sensitivity review"
+  }
+}
+```
 
 Boundary behavior:
 
@@ -71,8 +85,8 @@ The flow is:
 1. choose the real local panel or a canonical CSV upload;
 2. inspect validity, row count, series count, promotion rows, date range, and quality failures;
 3. select one detected promotion episode;
-4. optionally enter a real unit-margin scenario;
-5. run the audit and inspect decision, intervals, windows, warnings, assumptions, and evidence;
+4. optionally enter a sourced contribution assumption for sensitivity only;
+5. run the audit and inspect recommendation, intervals, windows, warnings, assumptions, and evidence;
 6. download the typed JSON result.
 
 The interface states that the result is observational and does not identify a causal effect. A
