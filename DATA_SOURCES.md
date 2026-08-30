@@ -1,5 +1,9 @@
 # PromoGuard public data sources
 
+The Apache-2.0 repository license applies to PromoGuard source code only. External datasets keep
+their publisher terms and are not redistributed by this repository. A user must review and accept
+the applicable source terms before downloading or using a dataset.
+
 ## Recommended primary source
 
 Use **dunnhumby Breakfast at the Frat** first. It is the closest public source to promotion-effectiveness analysis: 156 weeks, five products, three brands, four categories, unit sales, households, visits, spend, base price, shelf price, and promotional support.

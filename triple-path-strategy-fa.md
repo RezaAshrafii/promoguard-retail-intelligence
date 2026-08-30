@@ -196,7 +196,9 @@ flowchart LR
 - [dunnhumby Source Files](https://www.dunnhumby.com/source-files/) برای تراکنش خانوار، کمپین و کوپن؛
 - X5/Lenta فقط برای benchmark بخش uplift و با رعایت مجوز منبع.
 
-برای شش روز اول، کل دیتاست بزرگ دانلود و پردازش نشود. یک برش ثابت و مستند، مثلاً ۳ خانواده × ۵ فروشگاه × ۱۲ ماه، کافی است. هزینه و حاشیه‌ای که در دیتاست وجود ندارد باید صریحاً synthetic و برچسب‌گذاری شود.
+تصمیم اجرایی نهایی با این طرح اولیه متفاوت شد: کل دیتاست عمومی Breakfast at the Frat پردازش شد و
+هیچ هزینه، موجودی یا حاشیهٔ مصنوعی به‌عنوان شاهد تجاری ساخته نشد. فیلد غایب باید محدودیت باقی
+بماند؛ سناریوی اختیاری contribution فقط با فرض ورودیِ صریح کاربر اجرا می‌شود و profit نام ندارد.
 
 ## ساختار Repository
 
@@ -207,24 +209,14 @@ promoguard-ai/
 │   └── dashboard/            # Streamlit v0, Next.js v1
 ├── src/promoguard/
 │   ├── data/
-│   ├── features/
 │   ├── forecasting/
-│   ├── causal/
-│   ├── cannibalization/
-│   ├── uncertainty/
-│   ├── optimization/
 │   └── insights/
-├── warehouse/
-│   ├── migrations/
-│   └── dbt/
 ├── orchestration/
 ├── data_contracts/
 ├── configs/
 ├── tests/
 │   ├── unit/
-│   ├── integration/
-│   ├── statistical/
-│   └── golden_insights/
+│   └── integration/
 ├── docs/
 │   ├── problem-brief.md
 │   ├── evaluation-protocol.md
@@ -232,7 +224,6 @@ promoguard-ai/
 │   ├── limitations.md
 │   └── decisions/
 ├── demo/
-├── docker-compose.yml
 ├── pyproject.toml
 └── README.md
 ```
