@@ -48,7 +48,14 @@
   "full_suite": {
     "ruff": "passed",
     "pytest": "73 passed, 1 known dependency warning",
-    "compileall": "passed"
+    "compileall": "passed",
+    "github_ci": {
+      "status": "passed",
+      "run_id": 33349666063,
+      "url": "https://github.com/RezaAshrafii/promoguard-retail-intelligence/actions/runs/33349666063",
+      "runner": "ubuntu-latest",
+      "python": "3.11"
+    }
   },
   "screenshots": [
     "submission/park-application-1405/screenshots/03-demo-mode-event-result.png",

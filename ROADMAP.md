@@ -320,7 +320,8 @@ Completion evidence on 2026-08-31:
 - three visible reviewer steps and deterministic representative-event selection;
 - observed/baseline/interval visualization sourced only from `PromotionAuditResult`;
 - Persian recommendation, warnings, and non-causal/non-financial boundary;
-- 73-test full suite, Ruff, compileall, real browser execution, privacy text check, and screenshots;
+- 73-test full suite, Ruff, compileall, GitHub CI, real browser execution, privacy text check, and
+  screenshots;
 - machine-readable report: `reports/phase-05/demo-mode-quality-report.json`.
 
 ## Work package 5.3 — ACTIVE — Final submission evidence refresh
