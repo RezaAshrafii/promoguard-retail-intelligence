@@ -7,7 +7,6 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
-
 ROOT = Path(r"C:\Users\Reza\Desktop\promoguard-ai")
 OUT = ROOT / "learning" / "project-mastery-guide" / "PromoGuard_Project_Mastery_Guide_FA.docx"
 
