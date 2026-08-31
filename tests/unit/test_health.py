@@ -8,5 +8,5 @@ def test_health_endpoint() -> None:
     response = TestClient(app).get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
-    assert response.json()["version"] == __version__ == "0.5.1"
+    assert response.json()["version"] == __version__ == "0.5.2"
 

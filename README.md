@@ -33,9 +33,10 @@ not current capabilities.
 | Representative audit | -57 units, interval [-127, 13] | observed minus baseline; not causal lift |
 | Audit recommendation | `needs_more_evidence` | blocking forward-buy warning; do not roll out |
 
-The Release Gate 5.1 candidate passes **67 tests**. Command evidence and the one known dependency
-deprecation warning are recorded in
-[the machine-readable quality report](reports/foundation-correctness/release-quality-report.json).
+Release Gate 5.1 passed 67 tests; the current Demo Mode release passes **73 tests**. Command evidence
+and the one known dependency deprecation warning are recorded in the
+[correctness report](reports/foundation-correctness/release-quality-report.json) and
+[Demo Mode report](reports/phase-05/demo-mode-quality-report.json).
 
 ## Architecture
 
@@ -67,6 +68,8 @@ streamlit run apps/dashboard/app.py -- --demo
 
 The dedicated Demo Mode uses the real processed panel, hides local path details, and guides the
 reviewer through data quality, event selection, and the bounded recommendation.
+
+![PromoGuard reviewer Demo Mode](submission/park-application-1405/screenshots/04-demo-mode-chart-warnings.png)
 
 ## Full real-data run
 

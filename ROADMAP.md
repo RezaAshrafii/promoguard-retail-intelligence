@@ -14,8 +14,9 @@ The roadmap has two speeds:
 ## Active Park-submission execution overlay
 
 The official deadline remains 2026-09-04, but the internal send deadline is **2026-09-02 at 15:00
-Tehran time**. The Park sprint does not change the single-active-gate rule: Release Gate 5.1 is
-closed, reviewer Demo Mode is ACTIVE, and Phase 6 remains PAUSED.
+Tehran time**. The Park sprint does not change the single-active-gate rule: Release Gate 5.1 and
+reviewer Demo Mode are closed, final submission evidence refresh is ACTIVE, and Phase 6 remains
+PAUSED.
 
 Execution documents:
 
@@ -67,7 +68,8 @@ The first submission implements the center path with a documented public retail 
 | 4 | End-to-end API/dashboard demo | 2026-09-02 | DONE |
 | 5 | Park submission evidence package | 2026-09-03/04 | DONE |
 | 5.1 | Foundation correctness release | before Demo Mode | DONE |
-| 5.2 | Reviewer-focused real-data Demo Mode | immediately after 5.1 | ACTIVE |
+| 5.2 | Reviewer-focused real-data Demo Mode | immediately after 5.1 | DONE |
+| 5.3 | Final submission evidence refresh | before recording/submission | ACTIVE |
 | 6 | Real-experiment causal benchmarking | after correctness gate | PAUSED |
 | 7 | Cannibalization, forward-buy, uncertainty, abstention | 2026-09-15 to 09-24 | PENDING |
 | 8 | Constrained profit optimization | 2026-09-25 to 10-04 | PENDING |
@@ -306,11 +308,25 @@ Local release-candidate evidence on 2026-08-31:
 Machine-readable evidence:
 `reports/foundation-correctness/release-quality-report.json`.
 
-## Release 5.2 — ACTIVE — Reviewer-focused real-data Demo Mode
+## Release 5.2 — DONE — Reviewer-focused real-data Demo Mode
 
 Plain-language goal: make the already verified deterministic result understandable in a two-minute
 review without exposing a personal path or adding any analytical formula to the UI. This work starts
 only after the correctness tag exists and does not resume Phase 6.
+
+Completion evidence on 2026-08-31:
+
+- explicit `--demo` launch and one-click full real-data path;
+- three visible reviewer steps and deterministic representative-event selection;
+- observed/baseline/interval visualization sourced only from `PromotionAuditResult`;
+- Persian recommendation, warnings, and non-causal/non-financial boundary;
+- 73-test full suite, Ruff, compileall, real browser execution, privacy text check, and screenshots;
+- machine-readable report: `reports/phase-05/demo-mode-quality-report.json`.
+
+## Work package 5.3 — ACTIVE — Final submission evidence refresh
+
+Plain-language goal: replace stale version/test references in the external Park package with values
+from the verified 0.5.2 evidence, then run the placeholder and claim audit before recording.
 
 ## Phase 6 — PAUSED — Real-experiment causal benchmarking
 

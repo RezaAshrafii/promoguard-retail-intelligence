@@ -12,7 +12,7 @@ Finish and quality-assure the PromoGuard submission package before the internal 
 - Internal send deadline: 1405-06-11 at 15:00 Tehran time / 2026-09-02.
 - Applicant and final decision owner: Reza.
 - Repository: `promoguard-retail-intelligence`.
-- Current release line: Release Gate 5.1 is DONE; Demo Mode is ACTIVE; Phase 6 is PAUSED.
+- Current release line: Release Gate 5.1 and Demo Mode are DONE; submission refresh is ACTIVE; Phase 6 is PAUSED.
 
 The submission must present a runnable, evidence-first MVP. It must not claim an Iranian customer,
 revenue, causal impact, profit improvement, patent, award, or production readiness unless Reza adds
@@ -209,11 +209,11 @@ tag only at the end of the gate, never on a partial state.
 At the end of every work package, update this block and the main roadmap:
 
 ```text
-Active package: B — reviewer Demo Mode
-Last completed task: Release Gate 5.1 passed local and GitHub CI
+Active package: C — submission evidence refresh
+Last completed task: reviewer Demo Mode passed tests, real browser review, and privacy checks
 Current blocker: none in repository; applicant eligibility and private fields require Reza
-Next command: implement reviewer-focused Streamlit Demo Mode from typed domain results
-Expected next artifact: tested real-data dashboard flow with no personal path
+Next command: refresh stale version/test references from verified 0.5.2 reports
+Expected next artifact: final external claim-audit report with only approved personal placeholders
 ```
 
 If a blocking condition needs private information or external authority, stop and ask Reza. Do not

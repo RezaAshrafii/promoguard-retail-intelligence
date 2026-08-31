@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 import json
+import sys
 from io import BytesIO
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
+from apps.dashboard.presentation import (
+    audit_comparison_records,
+    audit_event_summary,
+    claim_boundary_copy,
+    demo_mode_requested,
+    recommendation_presentation,
+    warning_presentation_records,
+)
 from promoguard.data.panel import load_weekly_panel, validate_canonical_panel
 from promoguard.insights.promotion_audit import (
     ContributionAssumption,
@@ -27,6 +36,67 @@ MAX_UPLOAD_BYTES = 120 * 1024 * 1024
 MAX_PANEL_ROWS = 1_000_000
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PANEL_PATH = REPOSITORY_ROOT / "data" / "processed" / "breakfast-at-the-frat"
+
+
+def _apply_reviewer_style() -> None:
+    st.markdown(
+        """
+        <style>
+        [data-testid="stMainBlockContainer"] p,
+        [data-testid="stSidebarContent"] p,
+        [data-testid="stWidgetLabel"] {
+            direction: rtl;
+            text-align: right;
+        }
+        [data-testid="stMetric"], [data-testid="stAlert"] { direction: rtl; text-align: right; }
+        .stButton > button[kind="primary"] {
+            background: #4f46e5;
+            border-color: #4f46e5;
+            color: white;
+        }
+        .pg-hero {
+            padding: 1.1rem 1.3rem;
+            border: 1px solid rgba(99, 102, 241, 0.28);
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(49, 46, 129, 0.82));
+            color: white;
+            margin-bottom: 1rem;
+        }
+        .pg-hero h1 {
+            direction: ltr;
+            unicode-bidi: isolate;
+            text-align: left;
+            margin: 0 0 .35rem 0;
+            font-size: 2rem;
+        }
+        .pg-hero p { direction: rtl; text-align: right; margin: 0; opacity: .9; }
+        .pg-step {
+            direction: rtl;
+            display: inline-block;
+            padding: .28rem .7rem;
+            border-radius: 999px;
+            background: rgba(99, 102, 241, .12);
+            color: rgb(79, 70, 229);
+            font-weight: 700;
+            margin: .5rem 0;
+        }
+        .pg-boundary {
+            padding: .8rem 1rem;
+            border-right: 4px solid #f59e0b;
+            background: rgba(245, 158, 11, .08);
+            border-radius: 10px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _step(number: int, title: str) -> None:
+    st.markdown(
+        f'<div class="pg-step">مرحله {number} از ۳ — {title}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 if st is not None:
@@ -98,16 +168,13 @@ def _event_label(row: pd.Series) -> str:
     return f"فروشگاه {row['store_id']} | UPC {row['upc']} | شروع {start}"
 
 
-def _show_audit(result: PromotionAuditResult) -> None:
-    recommendation_labels = {
-        "candidate_for_controlled_test": "این فرضیه ارزش آزمون کنترل‌شده دارد",
-        "deprioritize_and_investigate": "فعلاً کم‌اولویت شود و علت اختلاف بررسی شود",
-        "needs_more_evidence": "برای نتیجه‌گیری، شواهد بیشتری لازم است",
-    }
+def _show_audit(result: PromotionAuditResult, *, compact_demo: bool = False) -> None:
     payload = result.model_dump(mode="json")
-    st.subheader("نتیجه ممیزی")
-    st.info(recommendation_labels[result.recommendation.value])
-    st.caption(result.recommendation_rationale)
+    presentation = recommendation_presentation(result.recommendation)
+    status_method = getattr(st, presentation.style)
+    st.subheader("نتیجه ممیزی قابل‌ممیزی")
+    status_method(f"**{presentation.title}**\n\n{presentation.explanation}")
+    st.caption("منطق دقیق و machine-readable در فایل JSON قابل دانلود حفظ شده است.")
     observed, baseline, difference = st.columns(3)
     observed.metric("فروش مشاهده‌شده", f"{result.observed_units:,.0f} واحد")
     baseline.metric(
@@ -126,6 +193,55 @@ def _show_audit(result: PromotionAuditResult) -> None:
             f"بازه عدم‌قطعیت: {units_difference.lower:+,.0f} تا "
             f"{units_difference.upper:+,.0f}"
         ),
+    )
+
+    chart_data = pd.DataFrame(audit_comparison_records(result))
+    st.vega_lite_chart(
+        chart_data,
+        {
+            "height": 180,
+            "layer": [
+                {
+                    "mark": {"type": "bar", "cornerRadiusEnd": 6, "size": 34},
+                    "encoding": {
+                        "y": {
+                            "field": "label",
+                            "type": "nominal",
+                            "sort": None,
+                            "title": None,
+                        },
+                        "x": {"field": "value", "type": "quantitative", "title": "واحد فروش"},
+                        "color": {
+                            "field": "kind",
+                            "type": "nominal",
+                            "scale": {
+                                "domain": ["observed", "baseline"],
+                                "range": ["#4f46e5", "#0f766e"],
+                            },
+                            "legend": None,
+                        },
+                        "tooltip": [
+                            {"field": "label", "type": "nominal", "title": "شاخص"},
+                            {"field": "value", "type": "quantitative", "title": "مقدار"},
+                        ],
+                    },
+                },
+                {
+                    "transform": [{"filter": "datum.kind === 'baseline'"}],
+                    "mark": {"type": "errorbar", "ticks": True, "color": "#111827"},
+                    "encoding": {
+                        "y": {"field": "label", "type": "nominal", "sort": None, "title": None},
+                        "x": {"field": "lower", "type": "quantitative", "title": "واحد فروش"},
+                        "x2": {"field": "upper"},
+                    },
+                },
+            ],
+        },
+        width="stretch",
+    )
+    st.caption(
+        "خط روی فروش مبنا بازه عدم‌قطعیت را نشان می‌دهد؛ این نمودار مستقیماً از نتیجه typed ساخته "
+        "شده و هیچ محاسبه تحلیلی تازه‌ای در رابط کاربری ندارد."
     )
     if result.contribution_sensitivity is not None:
         sensitivity = result.contribution_sensitivity
@@ -152,13 +268,23 @@ def _show_audit(result: PromotionAuditResult) -> None:
                 "هفته پروموشن": window.promotion_weeks,
             }
         )
-    st.dataframe(pd.DataFrame(window_rows), hide_index=True, width="stretch")
+    with st.expander("رفتار فروش قبل، حین و بعد از رویداد", expanded=not compact_demo):
+        st.dataframe(pd.DataFrame(window_rows), hide_index=True, width="stretch")
 
     st.subheader("هشدارها و مرز ادعا")
-    warnings = [warning.model_dump(mode="json") for warning in result.warnings]
+    warnings = warning_presentation_records(result)
     if warnings:
         st.dataframe(pd.DataFrame(warnings), hide_index=True, width="stretch")
-    st.warning(result.claim_language)
+    claim_copy, scope_copy = claim_boundary_copy()
+    st.markdown(
+        f'<div class="pg-boundary"><strong>مرز ادعا:</strong> {claim_copy}<br>'
+        f'<strong>دامنه تصمیم:</strong> {scope_copy}</div>',
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        f"سیاست تصمیم: {result.policy.policy_id} — نسخه {result.policy.version} | "
+        "مدل مبنا: recursive-naive-1 بر پایه آخرین هفته غیرپروموشنی"
+    )
     with st.expander("فرض‌ها و شواهد"):
         st.write("فرض‌ها:")
         for assumption in result.assumptions:
@@ -174,17 +300,111 @@ def _show_audit(result: PromotionAuditResult) -> None:
     )
 
 
+def _demo_workflow() -> None:
+    st.sidebar.success("حالت ارائه با داده واقعی فعال است")
+    st.sidebar.caption("بدون API خارجی، بدون LLM و بدون داده مصنوعی")
+
+    _step(1, "داده واقعی و کنترل کیفیت")
+    st.write(
+        "منبع: دیتاست عمومی **dunnhumby Breakfast at the Frat**؛ فایل خام در Git نگهداری نمی‌شود."
+    )
+    run_label = (
+        "اجرای دوباره دموی واقعی"
+        if "reviewer_demo" in st.session_state
+        else "اجرای دموی واقعی با یک کلیک"
+    )
+    if st.button(run_label, type="primary", width="stretch"):
+        try:
+            with st.spinner("در حال اعتبارسنجی داده و اجرای ممیزی deterministic..."):
+                panel = _load_local_panel(str(DEFAULT_PANEL_PATH))
+                report = validate_canonical_panel(panel, max_rows=MAX_PANEL_ROWS)
+                if not report["valid"]:
+                    st.session_state["reviewer_demo"] = {"quality": report, "result": None}
+                else:
+                    representative = _representative_event(panel)
+                    result = audit_promotion_event(
+                        panel,
+                        store_id=str(representative["store_id"]),
+                        upc=str(representative["upc"]),
+                        start_date=representative["start_date"],
+                    )
+                    st.session_state["reviewer_demo"] = {
+                        "quality": report,
+                        "result": result,
+                    }
+        except (FileNotFoundError, OSError, ValueError):
+            st.error(
+                "داده واقعی پردازش‌شده روی این دستگاه آماده نیست. مسیر محلی برای حفظ حریم خصوصی "
+                "نمایش داده نشد؛ ابتدا دستور ingest مستندشده را اجرا کنید."
+            )
+            st.code(
+                "promoguard ingest --input data/raw/breakfast-at-the-frat "
+                "--output data/processed/breakfast-at-the-frat"
+            )
+            return
+
+    demo = st.session_state.get("reviewer_demo")
+    if demo is None:
+        st.info(
+            "این یک نمونه ساختگی نیست. با کلیک روی دکمه، پنل کامل واقعی validate و همان رویداد "
+            "نمایندهٔ deterministic ممیزی می‌شود."
+        )
+        return
+
+    st.progress(100, text="داده واقعی بارگذاری و کنترل شد")
+    _show_quality_report(demo["quality"])
+    if demo["result"] is None:
+        st.error("کنترل کیفیت رد شد؛ ممیزی برای جلوگیری از خروجی نامعتبر اجرا نشد.")
+        return
+
+    result: PromotionAuditResult = demo["result"]
+    _step(2, "رویداد انتخاب‌شده با قانون ثابت")
+    st.caption(
+        f"سیستم نخستین رویدادی را انتخاب می‌کند که حداقل "
+        f"{result.policy.representative_min_history_weeks} هفته تاریخچه و پنجره پس از پروموشن "
+        "کامل داشته باشد؛ انتخاب دستیِ نتیجه‌پسند در Demo Mode وجود ندارد."
+    )
+    columns = st.columns(4)
+    for column, (label, value) in zip(columns, audit_event_summary(result), strict=True):
+        column.metric(label, value)
+
+    _step(3, "نتیجه، عدم‌قطعیت و مرز تصمیم")
+    _show_audit(result, compact_demo=True)
+
+
 def main() -> None:
     if st is None:  # pragma: no cover
         print("Install dashboard extras with: python -m pip install -e '.[dashboard]'")
         return
 
-    st.set_page_config(page_title="PromoGuard Retail Intelligence", page_icon="🛡️", layout="wide")
-    st.title("PromoGuard Retail Intelligence")
-    st.caption("غربالگری قابل‌ممیزی پروموشن‌های خرده‌فروشی بر پایه داده واقعی")
+    launch_in_demo = demo_mode_requested(sys.argv)
+    st.set_page_config(
+        page_title="PromoGuard Retail Intelligence",
+        page_icon="🛡️",
+        layout="wide",
+        initial_sidebar_state="collapsed" if launch_in_demo else "expanded",
+    )
+    _apply_reviewer_style()
+    st.markdown(
+        """
+        <div class="pg-hero">
+          <h1>PromoGuard Retail Intelligence</h1>
+          <p>غربالگری قابل‌ممیزی پروموشن خرده‌فروشی با داده واقعی و خروجی abstention-first</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    mode = st.sidebar.radio(
+        "حالت اجرا",
+        ["دموی داور", "تحلیل دستی"],
+        index=0 if launch_in_demo else 1,
+    )
     st.warning(
         "این ابزار رابطه علّی یا سود قطعی را ادعا نمی‌کند؛ خروجی برای تصمیم اولیه و طراحی آزمایش است."
     )
+    if mode == "دموی داور":
+        _demo_workflow()
+        return
 
     source = st.radio(
         "منبع داده",

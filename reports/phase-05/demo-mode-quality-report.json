@@ -1,0 +1,63 @@
+{
+  "work_package": "reviewer-demo-mode",
+  "release": "0.5.2",
+  "tag": "v0.5.2-park-demo",
+  "validated_on": "2026-08-31",
+  "status": "passed_local_real_data_and_browser_review",
+  "launch_command": "streamlit run apps/dashboard/app.py -- --demo",
+  "data": {
+    "dataset": "dunnhumby-breakfast-at-the-frat",
+    "business_data_is_synthetic": false,
+    "rows": 524950,
+    "series": 3909,
+    "promotion_rows": 149386,
+    "duplicate_grain_rows": 0
+  },
+  "deterministic_event": {
+    "audit_id": "23345-2840004768-2010-01-13",
+    "store_id": "23345",
+    "upc": "2840004768",
+    "start_date": "2010-01-13",
+    "duration_weeks": 5,
+    "policy": "promoguard-observational-screening@1.0.0"
+  },
+  "typed_result": {
+    "observed_units": 128.0,
+    "baseline_point": 185.0,
+    "baseline_interval": [115.0, 255.0],
+    "difference_point": -57.0,
+    "difference_interval": [-127.0, 13.0],
+    "recommendation": "needs_more_evidence",
+    "blocking_warning": "FORWARD_BUY_RISK"
+  },
+  "browser_review": {
+    "one_click_real_data_flow_completed": true,
+    "three_steps_visible": true,
+    "observed_baseline_interval_chart_visible": true,
+    "persian_recommendation_visible": true,
+    "persian_claim_boundary_visible": true,
+    "personal_path_visible": false,
+    "traceback_visible": false,
+    "external_api_key_required": false
+  },
+  "presentation_tests": {
+    "status": "passed",
+    "count": 6,
+    "scope": "mode detection, typed chart mapping, recommendation, event identity, warnings, claim boundary"
+  },
+  "full_suite": {
+    "ruff": "passed",
+    "pytest": "73 passed, 1 known dependency warning",
+    "compileall": "passed"
+  },
+  "screenshots": [
+    "submission/park-application-1405/screenshots/03-demo-mode-event-result.png",
+    "submission/park-application-1405/screenshots/04-demo-mode-chart-warnings.png"
+  ],
+  "architecture_gate": {
+    "analytical_formula_in_dashboard": false,
+    "duplicate_domain_calculation": false,
+    "numbers_source": "PromotionAuditResult",
+    "llm_runtime_call": false
+  }
+}

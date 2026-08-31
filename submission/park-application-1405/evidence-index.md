@@ -6,9 +6,11 @@
 | Real public retail panel was processed | `reports/phase-04/demo-smoke.json` | Iranian-company performance |
 | 524,950 rows and 3,909 series passed the path | `reports/phase-04/demo-smoke.json` | Data representativeness for any future client |
 | Application quality gate passed | `reports/phase-04/quality-report.json` | Production reliability at scale |
-| 47 automated tests passed | `reports/phase-04/quality-report.json`, `tests/` | Absence of every possible defect |
+| 73 automated tests passed | `reports/phase-05/demo-mode-quality-report.json`, `tests/` | Absence of every possible defect |
 | Output is observational, not causal | `src/promoguard/insights/promotion_audit.py`, Phase 3 artifact | Treatment effect or ROI |
 | The dashboard is reviewer-facing and Persian | `apps/dashboard/app.py`, `learning/04-api-dashboard/README.fa.md` | Product-market fit |
+| Reviewer Demo Mode runs without showing a local path | `reports/phase-05/demo-mode-quality-report.json`, screenshots 03/04 | Cloud or production deployment |
+| Dashboard chart uses typed result values | `apps/dashboard/presentation.py`, `tests/unit/test_dashboard_presentation.py` | Causal validity of those values |
 | A 90-day pilot is planned | `architecture-and-90day-plan-fa.md` | A signed pilot, interview, or customer |
 
 ## Claim-audit rule

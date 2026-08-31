@@ -89,6 +89,25 @@ or server-owned dataset IDs and add authorization, rate limiting, safe storage, 
 streamlit run apps/dashboard/app.py
 ```
 
+For the reviewer-focused real-data flow, start with the explicit app argument:
+
+```powershell
+streamlit run apps/dashboard/app.py -- --demo
+```
+
+Demo Mode collapses the sidebar, never renders the local filesystem path, and completes this
+three-step flow from one button:
+
+1. load and validate the locally processed official public panel;
+2. select the representative event using the versioned minimum-history rule;
+3. run the deterministic audit and render observed units, baseline interval, recommendation,
+   warnings, policy version, and claim boundary.
+
+If the local data is unavailable, the reviewer sees a generic ingest instruction instead of a
+personal path or stack trace. Demo Mode uses no external API key, LLM, synthetic business data, or
+UI-side analytical formula. Persian chart/warning copy is a tested presentation mapping; the
+download remains the original typed machine-readable JSON.
+
 The flow is:
 
 1. choose the real local panel or a canonical CSV upload;
