@@ -242,9 +242,9 @@ Completion evidence:
   `experiment` and explicit non-causal claim language.
 - Artifacts: `reports/phase-04/demo-smoke.json` and
   `reports/phase-04/quality-report.json`.
-- Validation: Ruff passed; 47 tests passed; compileall passed; real-data HTTP smoke passed; the
-  local Streamlit flow was exercised from load through audit and produced no server warning/error
-  after review fixes.
+- Validation at Phase 4 completion: Ruff, the then-current full test suite, compileall, real-data
+  HTTP smoke, and the local Streamlit flow passed. Current release evidence is tracked separately
+  under Phase 5.2.
 - Documentation: `docs/api-dashboard.md` and `learning/04-api-dashboard/README.fa.md`.
 - Remaining limitations: no API authentication/rate limiting, no database-backed query/cache,
   no measured business cost/inventory, and no causal or Iranian-company impact evidence.
@@ -324,10 +324,27 @@ Completion evidence on 2026-08-31:
   screenshots;
 - machine-readable report: `reports/phase-05/demo-mode-quality-report.json`.
 
-## Work package 5.3 — ACTIVE — Final submission evidence refresh
+## Work package 5.3 — DONE — Final submission evidence refresh
 
 Plain-language goal: replace stale version/test references in the external Park package with values
 from the verified 0.5.2 evidence, then run the placeholder and claim audit before recording.
+
+Completion evidence on 2026-08-31:
+
+- all external package references use the verified 0.5.2 release and 73-test suite;
+- 524,950 rows, 3,909 series, 149,386 promotion rows, and the representative audit are frozen in
+  one machine-readable source of truth;
+- stale-reference, placeholder, JSON, claim-boundary, and anonymous public-access checks passed;
+- exactly seven approved identity placeholders remain in the public draft and no private value was
+  committed;
+- machine-readable reports: `reports/phase-05/submission-quality-report.json` and
+  `reports/phase-05/submission-claim-audit.json`.
+
+## Work package 5.4 — ACTIVE — Owner-only form, PDFs, and final video
+
+Plain-language goal: Reza verifies eligibility, completes the official form and private attachments
+outside Git, records the 110–118 second demo, and checks every final link without authentication.
+Repository development remains frozen unless this packaging pass finds a factual or technical defect.
 
 ## Phase 6 — PAUSED — Real-experiment causal benchmarking
 

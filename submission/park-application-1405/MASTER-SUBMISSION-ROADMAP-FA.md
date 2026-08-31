@@ -108,10 +108,10 @@
 - [ ] تماس با داخلی ۱۹۲ و ثبت پاسخ شرایط احراز؛
 - [ ] جمع‌آوری نام کامل، دانشگاه، رشته، مقطع، تاریخ تولد، نشانی، ایمیل و تلفن؛
 - [ ] آماده‌کردن گواهی اشتغال به تحصیل و تصویر کارت ملی خارج از Git؛
-- [ ] تکمیل باقی‌مانده Release Gate 5.1: coverage accounting و versioned audit policy؛
-- [ ] اجرای Ruff، pytest، compileall و real-data smoke؛
-- [ ] تولید یک source-of-truth JSON برای اعداد بسته؛
-- [ ] اصلاح سند model selection که هنوز Phase 6 را active نشان می‌دهد؛
+- [x] تکمیل Release Gate 5.1: coverage accounting و versioned audit policy؛
+- [x] اجرای Ruff، pytest، compileall، real-data smoke و GitHub CI؛
+- [x] تولید source-of-truth JSON برای اعداد بسته؛
+- [x] اصلاح سند model selection و توقف Phase 6 تا پایان ارسال؛
 - [ ] تصمیم نهایی درباره نام فارسی و انگلیسی محصول.
 
 خروجی Gate A:
@@ -129,15 +129,15 @@
 
 کارها:
 
-- [ ] افزودن demo mode به Streamlit بدون framework جدید؛
-- [ ] افزودن نمودار observed/baseline/interval و کارت تصمیم؛
-- [ ] پنهان‌کردن مسیر محلی و کنترل‌های توسعه در demo mode؛
-- [ ] تست واحد helperهای جدید و smoke مسیر داور؛
-- [ ] به‌روزرسانی README با quick demo حداکثر سه فرمان؛
-- [ ] افزودن License و metadata لازم؛
-- [ ] تولید quality report نهایی با تعداد تست واقعی؛
-- [ ] ساخت tag پیشنهادی `v0.5.1-foundation-correctness`؛
-- [ ] ساخت GitHub Release با محدودیت‌ها و فرمان بازتولید.
+- [x] افزودن Demo Mode به Streamlit بدون framework جدید؛
+- [x] افزودن نمودار observed/baseline/interval و کارت تصمیم؛
+- [x] پنهان‌کردن مسیر محلی و کنترل‌های توسعه در Demo Mode؛
+- [x] تست واحد helperهای جدید و اجرای واقعی مسیر داور در مرورگر؛
+- [x] به‌روزرسانی README با quick demo سه‌فرمانی؛
+- [x] افزودن License و metadata لازم؛
+- [x] تولید quality report نهایی با ۷۳ تست؛
+- [x] ساخت tagهای `v0.5.1-foundation-correctness` و `v0.5.2-park-demo`؛
+- [x] ساخت GitHub Release با محدودیت‌ها و فرمان بازتولید.
 
 خروجی Gate B:
 

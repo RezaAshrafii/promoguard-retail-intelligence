@@ -1,42 +1,72 @@
 {
-  "phase": 5,
-  "status": "passed_with_explicit_external_validation_gaps",
-  "validated_on": "2026-08-30",
-  "model": "gpt-5.6-terra",
-  "reasoning": "high",
+  "phase": "5.3",
+  "status": "repository_package_verified_private_and_external_actions_pending",
+  "validated_on": "2026-08-31",
+  "release": {
+    "current_tag": "v0.5.2-park-demo",
+    "correctness_tag": "v0.5.1-foundation-correctness",
+    "repository": "https://github.com/RezaAshrafii/promoguard-retail-intelligence",
+    "release_url": "https://github.com/RezaAshrafii/promoguard-retail-intelligence/releases/tag/v0.5.2-park-demo",
+    "tests_passed": 73,
+    "ruff": "passed",
+    "compileall": "passed",
+    "github_ci_run": "https://github.com/RezaAshrafii/promoguard-retail-intelligence/actions/runs/33349715140"
+  },
+  "frozen_real_data_facts": {
+    "dataset": "dunnhumby-breakfast-at-the-frat",
+    "rows": 524950,
+    "series": 3909,
+    "promotion_rows": 149386,
+    "duplicate_grain_rows": 0,
+    "representative_audit_id": "23345-2840004768-2010-01-13",
+    "observed_units": 128.0,
+    "baseline_point": 185.0,
+    "baseline_interval": [115.0, 255.0],
+    "difference_point": -57.0,
+    "difference_interval": [-127.0, 13.0],
+    "recommendation": "needs_more_evidence",
+    "blocking_warning": "FORWARD_BUY_RISK"
+  },
   "package": {
     "one_page_brief": "submission/park-application-1405/one-page-brief-fa.md",
     "form_response": "submission/park-application-1405/form-response-fa.md",
     "architecture_and_90_day_plan": "submission/park-application-1405/architecture-and-90day-plan-fa.md",
     "risk_register": "submission/park-application-1405/risk-register-fa.md",
     "two_minute_demo_script": "submission/park-application-1405/demo-script-2min-fa.md",
+    "video_production_plan": "submission/park-application-1405/video-production-plan-fa.md",
     "evidence_index": "submission/park-application-1405/evidence-index.md",
+    "claim_audit": "reports/phase-05/submission-claim-audit.json",
     "screenshots": [
       "submission/park-application-1405/screenshots/01-quality-report.png",
-      "submission/park-application-1405/screenshots/02-observational-audit.png"
+      "submission/park-application-1405/screenshots/02-observational-audit.png",
+      "submission/park-application-1405/screenshots/03-demo-mode-event-result.png",
+      "submission/park-application-1405/screenshots/04-demo-mode-chart-warnings.png"
     ]
   },
   "claim_audit": {
-    "runnable_mvp": "supported by code, tests, and phase-04 smoke evidence",
-    "real_public_data_execution": "supported by reports/phase-04/demo-smoke.json",
-    "causal_or_profit_claim": "not made; package labels outputs observational",
+    "runnable_mvp": "supported by code, 73 tests, CI, real-data browser execution, and release",
+    "real_public_data_execution": "supported by phase-02 through phase-05 artifacts",
+    "causal_or_profit_claim": "not made; outputs remain observational and non-financial",
     "iranian_customer_or_business_impact": "not made; a future pilot is labeled as a hypothesis",
     "interviews": "not claimed because no interview notes exist",
-    "patent_award_revenue": "not claimed without user-supplied evidence",
-    "personal_identity_fields": "left as explicit placeholders"
+    "patent_award_revenue": "not claimed without owner-supplied evidence",
+    "personal_identity_fields": "explicitly allowed placeholders until Reza supplies private data"
   },
-  "submission_gate": {
-    "every_material_claim_has_evidence_or_hypothesis_label": true,
-    "architecture_and_90_day_plan_present": true,
-    "risk_table_present": true,
-    "two_minute_demo_script_present": true,
-    "actual_dashboard_screenshots_present": true,
-    "form_fields_preserve_unknown_personal_values": true
-  },
-  "external_validation_still_required": [
-    "Applicant must replace all personal placeholders with truthful data.",
-    "Applicant must complete any mandatory official-form fields and signature.",
-    "No client interview, pilot, contract, revenue, patent, or award may be claimed unless evidence is added.",
-    "The receiving organization's current submission rules and deadline must be checked by the applicant before submission."
+  "allowed_private_placeholders": [
+    "<نام و نام خانوادگی واقعی>",
+    "<اطلاعات واقعی>",
+    "<نام واقعی دانشگاه>",
+    "<فقط اطلاعات واقعی متقاضی>",
+    "<نام متقاضی>",
+    "<دانشگاه واقعی>",
+    "<شماره واقعی>"
+  ],
+  "external_actions_required_before_submission": [
+    "Reza must replace every allowed placeholder with truthful private data outside Git.",
+    "Reza must complete and sign the official form and attach mandatory identity/enrollment documents.",
+    "Applicant eligibility and the receiving organization's current rules must be verified.",
+    "The final video must be recorded, uploaded without login, and checked on an anonymous device.",
+    "No interview, pilot, contract, revenue, patent, or award may be claimed unless evidence is added.",
+    "Reza must personally send the final package and retain receipt evidence."
   ]
 }

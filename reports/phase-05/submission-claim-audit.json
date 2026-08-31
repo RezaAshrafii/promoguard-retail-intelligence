@@ -1,0 +1,78 @@
+{
+  "work_package": "park-submission-claim-audit",
+  "validated_on": "2026-08-31",
+  "status": "passed_for_public_repository_package_private_submission_actions_pending",
+  "review": {
+    "consistency_pass": {
+      "model": "gpt-5.6-terra",
+      "reasoning": "high"
+    },
+    "final_claim_audit": {
+      "model": "gpt-5.6-sol",
+      "reasoning": "xhigh"
+    },
+    "note": "Model review supplements executable evidence and does not authorize stronger business claims."
+  },
+  "source_of_truth": "reports/phase-05/submission-quality-report.json",
+  "frozen_claims": {
+    "release_tag": "v0.5.2-park-demo",
+    "tests_passed": 73,
+    "real_rows": 524950,
+    "series": 3909,
+    "promotion_rows": 149386,
+    "representative_recommendation": "needs_more_evidence",
+    "blocking_warning": "FORWARD_BUY_RISK"
+  },
+  "automated_text_audit": {
+    "submission_stale_version_or_test_references": 0,
+    "approved_private_placeholders": 7,
+    "unapproved_placeholders": 0,
+    "todo_tbd_fixme_markers_requiring_repository_work": 0,
+    "json_parse": "passed",
+    "git_diff_check": "passed"
+  },
+  "claim_boundaries": {
+    "runnable_local_mvp": "supported",
+    "real_public_data_execution": "supported",
+    "deterministic_reviewer_demo": "supported",
+    "causal_promotion_effect": "not_claimed",
+    "profit_or_roi_impact": "not_claimed",
+    "iranian_customer_impact": "not_claimed",
+    "production_readiness": "not_claimed",
+    "customer_or_contract": "not_claimed",
+    "patent_award_or_revenue": "not_claimed",
+    "target_market": "explicit_hypothesis",
+    "ninety_day_pilot": "explicit_plan"
+  },
+  "anonymous_public_access": {
+    "method": "unauthenticated GitHub REST and raw-content HTTP requests",
+    "repository_http_status": 200,
+    "release_http_status": 200,
+    "readme_http_status": 200,
+    "repository_private": false,
+    "default_branch": "main",
+    "license": "Apache-2.0",
+    "repository_url": "https://github.com/RezaAshrafii/promoguard-retail-intelligence",
+    "release_url": "https://github.com/RezaAshrafii/promoguard-retail-intelligence/releases/tag/v0.5.2-park-demo"
+  },
+  "approved_private_placeholders": [
+    "<نام و نام خانوادگی واقعی>",
+    "<اطلاعات واقعی>",
+    "<نام واقعی دانشگاه>",
+    "<فقط اطلاعات واقعی متقاضی>",
+    "<نام متقاضی>",
+    "<دانشگاه واقعی>",
+    "<شماره واقعی>"
+  ],
+  "decision": {
+    "public_repository_evidence_package": "ready",
+    "official_park_submission": "not_ready",
+    "remaining_owner_actions": [
+      "Verify applicant eligibility and current official submission instructions.",
+      "Complete the official form with truthful private data outside Git.",
+      "Attach required enrollment and identity documents through the official channel.",
+      "Record and upload the final video, then test its link without login.",
+      "Send the final package and retain receipt evidence."
+    ]
+  }
+}

@@ -40,7 +40,7 @@ Do not rely on chat memory when repository evidence disagrees with it.
 As of 2026-08-31:
 
 - Branch: `main`, tracking `origin/main`.
-- Latest release tag before the active gate: `v0.5.0-phase-05`.
+- Latest release tag: `v0.5.2-park-demo`; correctness tag: `v0.5.1-foundation-correctness`.
 - Phase 5 package exists under `submission/park-application-1405/`.
 - Real public dunnhumby panel path is expected under
   `data/processed/breakfast-at-the-frat/` and is intentionally not tracked by Git.
@@ -52,9 +52,8 @@ As of 2026-08-31:
   AuditPolicy, AI governance, retrospective ADRs, public README, and repository hygiene/license.
 - Release Gate 5.1 passed local and GitHub CI. Its annotated release tag is
   `v0.5.1-foundation-correctness`.
-- The submission text is stale in places: it still contains `v0.4.0-phase-04` and `47 tests`.
-  Never manually replace these with a guessed number. Generate the final quality evidence first,
-  then update every reference from that source of truth.
+- Submission version and test references must be read from the verified Phase 5 quality reports;
+  personal placeholders remain until Reza supplies private information outside Git.
 
 ## 4. Active execution order
 
@@ -209,11 +208,11 @@ tag only at the end of the gate, never on a partial state.
 At the end of every work package, update this block and the main roadmap:
 
 ```text
-Active package: C — submission evidence refresh
-Last completed task: reviewer Demo Mode passed tests, real browser review, and privacy checks
-Current blocker: none in repository; applicant eligibility and private fields require Reza
-Next command: refresh stale version/test references from verified 0.5.2 reports
-Expected next artifact: final external claim-audit report with only approved personal placeholders
+Active package: D/E — private form, PDFs, and final video
+Last completed task: public submission evidence and claim audit passed with verified 0.5.2 facts
+Current blocker: none in repository; applicant eligibility, private fields, documents, and video require Reza
+Next action: Reza verifies eligibility and completes the private official form outside Git
+Expected next artifact: private signed form/PDF package and a video URL tested without login
 ```
 
 If a blocking condition needs private information or external authority, stop and ask Reza. Do not

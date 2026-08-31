@@ -24,8 +24,8 @@
 
 ## وضعیت نسخه و اعداد
 
-آخرین tag کامل پیش از gate فعال `v0.5.0-phase-05` است. Release Gate 5.1 هنوز فعال است؛ بنابراین
-نسخه نهایی، تعداد تست و اعداد بسته فقط پس از تولید quality report نهایی freeze می‌شوند. عددهای
-قدیمی نباید با حدس یا جایگزینی دستی به‌روزرسانی شوند. اجرای evidence path با
-`python -m demo.phase4_smoke` انجام می‌شود و گزارش فعلی آن در `reports/phase-04/demo-smoke.json`
-قرار دارد.
+نسخه فنی correctness با tag `v0.5.1-foundation-correctness` و نسخه ارائه داور با tag
+`v0.5.2-park-demo` منتشر شده‌اند. عددهای freeze‌شده بسته عبارت‌اند از: ۵۲۴٬۹۵۰ ردیف، ۳٬۹۰۹ سری،
+۱۴۹٬۳۸۶ ردیف پروموشن و ۷۳ تست پاس. منبع حقیقت این اعداد
+`reports/phase-05/submission-quality-report.json` و `reports/phase-05/demo-mode-quality-report.json`
+است. فرم نهایی هنوز تا تکمیل اطلاعات خصوصی متقاضی و احراز شرایط دانشگاه آماده ارسال نیست.
