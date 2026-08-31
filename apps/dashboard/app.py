@@ -10,6 +10,13 @@ from typing import Any
 
 import pandas as pd
 
+# Streamlit executes this file as a script, so the repository root is not
+# guaranteed to be on sys.path when the entrypoint is passed by file path.
+# Add it before importing the sibling `apps` package.
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
 from apps.dashboard.presentation import (
     audit_comparison_records,
     audit_event_summary,
@@ -34,7 +41,6 @@ except ImportError:  # pragma: no cover - keeps core/API installs usable
 
 MAX_UPLOAD_BYTES = 120 * 1024 * 1024
 MAX_PANEL_ROWS = 1_000_000
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PANEL_PATH = REPOSITORY_ROOT / "data" / "processed" / "breakfast-at-the-frat"
 
 
