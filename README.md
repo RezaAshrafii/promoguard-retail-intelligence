@@ -40,7 +40,7 @@ capabilities. The Criteo benchmark is documented in [docs/causal-benchmark.md](d
 | Criteo randomized ITT benchmark | visit +1.034pp; conversion +0.115pp | external advertising RCT; not a retail causal claim |
 
 Release Gate 5.1 passed 67 tests; the current Demo Mode release passes **73 tests**. Phase 7.1 adds
-four checked cross-SKU/presentation cases; the current development suite passes **77 tests**. Command evidence
+four checked cross-SKU/presentation cases; the current development suite passes **83 tests**. Command evidence
 and the one known dependency deprecation warning are recorded in the
 [correctness report](reports/foundation-correctness/release-quality-report.json) and
 [Demo Mode report](reports/phase-05/demo-mode-quality-report.json).
