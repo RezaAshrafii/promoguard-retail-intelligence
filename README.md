@@ -15,13 +15,15 @@ readiness from public observational data.
 - creates a canonical weekly store/SKU panel with provenance and quality evidence;
 - compares seasonal-naive and recursive-naive forecasts across six expanding time folds;
 - discloses paired model coverage and every excluded-row reason;
-- audits one promotion using pre/during/post windows, uncertainty, warnings, and a versioned policy;
+- audits one promotion using pre/during/post windows, uncertainty, forward-buy, and a versioned policy;
+- screens complete, non-concurrently-promoted same-store category neighbors for descriptive
+  cross-SKU substitution candidates; it never labels the result causal;
 - serves typed local FastAPI endpoints and a Persian Streamlit dashboard;
 - preserves an explicit abstention result when the evidence is insufficient.
 
-Planned causal benchmarking, cannibalization analysis, constrained optimization, monitoring, and an
-optional evidence-grounded LLM explanation layer are listed in [ROADMAP.md](ROADMAP.md); they are
-not current capabilities.
+Planned causal benchmarking, deeper substitution validation, constrained optimization, monitoring,
+and an optional evidence-grounded LLM explanation layer are listed in [ROADMAP.md](ROADMAP.md);
+they are not current capabilities.
 
 ## Evidence snapshot
 
@@ -32,8 +34,10 @@ not current capabilities.
 | Recursive-naive WAPE | 0.3483 | retained as the transparent short-horizon baseline |
 | Representative audit | -57 units, interval [-127, 13] | observed minus baseline; not causal lift |
 | Audit recommendation | `needs_more_evidence` | blocking forward-buy warning; do not roll out |
+| Cross-SKU screen | 1 eligible neighbor, 0 candidates | no observed decline crossed the policy threshold; not no-effect proof |
 
-Release Gate 5.1 passed 67 tests; the current Demo Mode release passes **73 tests**. Command evidence
+Release Gate 5.1 passed 67 tests; the current Demo Mode release passes **73 tests**. Phase 7.1 adds
+four checked cross-SKU/presentation cases; the current development suite passes **77 tests**. Command evidence
 and the one known dependency deprecation warning are recorded in the
 [correctness report](reports/foundation-correctness/release-quality-report.json) and
 [Demo Mode report](reports/phase-05/demo-mode-quality-report.json).
@@ -92,6 +96,8 @@ change the screening recommendation and is not promotion profit or gross-margin 
 
 - Time-aware forecast accuracy is predictive evidence, not treatment-effect evidence.
 - Observed minus forecast is an observational difference, not a causal counterfactual.
+- Same-category neighbor co-movement is a descriptive substitution candidate, not a causal
+  cannibalization effect or proof of incremental demand.
 - The source has no inventory field, so stockout-censored demand cannot be diagnosed.
 - Full promotion economics are unavailable; missing values are never invented.
 - Public international data proves reproducible engineering, not Iranian product-market fit.

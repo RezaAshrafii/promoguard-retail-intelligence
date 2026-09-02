@@ -1,0 +1,45 @@
+{
+  "work_package": "phase-07-1-cross-sku-screening",
+  "validated_on": "2026-09-02",
+  "status": "passed_local_real_data_execution",
+  "model_review": {
+    "design_and_policy": "gpt-5.6-sol xhigh",
+    "implementation": "gpt-5.6-sol high",
+    "documentation": "gpt-5.6-terra high"
+  },
+  "policy": "promoguard-observational-screening@1.1.0",
+  "data": {
+    "dataset": "dunnhumby-breakfast-at-the-frat",
+    "business_data_is_synthetic": false,
+    "raw_data_tracked_in_git": false
+  },
+  "representative_real_data_result": {
+    "audit_id": "23345-2840004768-2010-01-13",
+    "category": "BAG SNACKS",
+    "eligible_neighbor_count": 1,
+    "cannibalization_status": "no_candidates",
+    "candidate_count": 0,
+    "recommendation": "needs_more_evidence",
+    "existing_blocking_warning": "FORWARD_BUY_RISK"
+  },
+  "cross_sku_refusal_rules": [
+    "A category value is required for the focal SKU.",
+    "A neighbor must be in the same store and category as the focal SKU.",
+    "Every requested pre and during week must be present; missing weeks are never filled with zero.",
+    "A neighbor promoted in either comparison window is excluded.",
+    "A candidate is descriptive only and cannot identify causal substitution or incremental demand."
+  ],
+  "local_checks": {
+    "ruff": "passed",
+    "full_suite": "77 passed, 1 known dependency warning",
+    "compileall": "passed",
+    "browser_review": {
+      "real_demo_completed": true,
+      "cross_sku_section_visible": true,
+      "persian_claim_boundary_visible": true,
+      "english_domain_limitation_visible": false,
+      "personal_path_visible": false,
+      "traceback_visible": false
+    }
+  }
+}

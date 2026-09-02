@@ -20,6 +20,9 @@ if str(REPOSITORY_ROOT) not in sys.path:
 from apps.dashboard.presentation import (
     audit_comparison_records,
     audit_event_summary,
+    cannibalization_candidate_records,
+    cannibalization_limitation_copy,
+    cannibalization_presentation,
     claim_boundary_copy,
     demo_mode_requested,
     recommendation_presentation,
@@ -276,6 +279,20 @@ def _show_audit(result: PromotionAuditResult, *, compact_demo: bool = False) -> 
         )
     with st.expander("رفتار فروش قبل، حین و بعد از رویداد", expanded=not compact_demo):
         st.dataframe(pd.DataFrame(window_rows), hide_index=True, width="stretch")
+
+    st.subheader("بررسی جایگزینی کالاهای هم‌دسته")
+    substitution = cannibalization_presentation(result)
+    substitution_method = getattr(st, substitution.style)
+    substitution_method(f"**{substitution.title}**\n\n{substitution.explanation}")
+    summary = result.cannibalization
+    st.caption(
+        f"دسته کالا: {summary.category or 'نامشخص'} | "
+        f"همسایه واجدشرایط: {summary.eligible_neighbor_count}"
+    )
+    candidates = cannibalization_candidate_records(result)
+    if candidates:
+        st.dataframe(pd.DataFrame(candidates), hide_index=True, width="stretch")
+    st.caption(cannibalization_limitation_copy(result))
 
     st.subheader("هشدارها و مرز ادعا")
     warnings = warning_presentation_records(result)

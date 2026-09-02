@@ -101,7 +101,7 @@ three-step flow from one button:
 1. load and validate the locally processed official public panel;
 2. select the representative event using the versioned minimum-history rule;
 3. run the deterministic audit and render observed units, baseline interval, recommendation,
-   warnings, policy version, and claim boundary.
+   warnings, policy version, claim boundary, and same-store category-neighbor screening.
 
 If the local data is unavailable, the reviewer sees a generic ingest instruction instead of a
 personal path or stack trace. Demo Mode uses no external API key, LLM, synthetic business data, or
@@ -119,6 +119,12 @@ The flow is:
 
 The interface states that the result is observational and does not identify a causal effect. A
 reviewer can see the limitation before selecting data and again beside the result.
+
+Policy v1.1.0 adds a typed `cannibalization` field to the audit result. It only screens neighbors
+from the same store and category when every pre/during week is present and the neighbor has no
+promotion in either window. The dashboard exposes any candidate table directly from that typed
+field. `candidates_detected` is a blocking reason to investigate with a controlled design; it is
+not a cross-SKU causal effect or proof that focal-SKU demand is incremental.
 
 ## Scripted evidence path
 

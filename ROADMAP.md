@@ -358,9 +358,20 @@ Deliverables and gate:
 - Statistical tests use documented splits and confidence intervals, not a single lucky run.
 - Gate: Criteo results use the dataset’s treatment/outcome definitions; retail outputs abstain when the public data cannot identify a causal effect.
 
-## Phase 7 — PENDING — Cannibalization and uncertainty
+## Phase 7 — ACTIVE — Cannibalization and uncertainty
 
 Plain-language goal: detect when one SKU’s apparent win is another SKU’s loss or demand borrowed from next week.
+
+Phase 7.1 completion evidence on 2026-09-02:
+
+- policy `promoguard-observational-screening@1.1.0` adds a same-store, same-category
+  cross-SKU screen with complete-window and concurrent-promotion refusal rules;
+- eligible neighbor declines below the predeclared 0.8 ratio are typed as blocking
+  `CANNIBALIZATION_CANDIDATE` diagnostics, never as a causal substitution claim;
+- the real representative event has one eligible `BAG SNACKS` neighbor and no candidate crossing
+  the threshold, while the independently measured `FORWARD_BUY_RISK` remains visible;
+- the Streamlit audit display exposes the typed diagnostic, candidate table when present, and its
+  observational limitation without recomputing any analytical value.
 
 Deliverables and gate:
 

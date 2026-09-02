@@ -30,6 +30,11 @@ An optional contribution sensitivity linearly multiplies the units difference by
 user-approved assumption with currency and source. It never changes the recommendation and does not
 model margin lost on baseline units, trade spend, funding, or other costs.
 
+Policy v1.1.0 may flag descriptive same-store, same-category neighbor declines as
+`CANNIBALIZATION_CANDIDATE`. It requires complete pre/during windows and excludes concurrently
+promoted neighbors. This is a conservative investigation trigger, not an identified substitution
+effect or a reason to claim incremental demand.
+
 ## Known limitations
 
 See `docs/limitations.md`. The most important limitation is that observational lift is not a causal

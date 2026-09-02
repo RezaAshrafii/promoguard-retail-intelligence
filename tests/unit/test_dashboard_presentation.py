@@ -5,6 +5,9 @@ import pandas as pd
 from apps.dashboard.presentation import (
     audit_comparison_records,
     audit_event_summary,
+    cannibalization_candidate_records,
+    cannibalization_limitation_copy,
+    cannibalization_presentation,
     claim_boundary_copy,
     demo_mode_requested,
     recommendation_presentation,
@@ -93,5 +96,15 @@ def test_warning_copy_preserves_codes_and_blocking_severity() -> None:
 def test_claim_boundary_is_explicitly_non_causal_and_non_financial() -> None:
     claim, scope = claim_boundary_copy()
     assert "اثر علّی" in claim
+    assert "جایگزینی" in claim
     assert "اثر مالی" in claim
     assert "نه rollout" in scope
+
+
+def test_cannibalization_presentation_preserves_not_assessed_boundary() -> None:
+    presentation = cannibalization_presentation(_result())
+
+    assert presentation.style == "info"
+    assert "انجام نشد" in presentation.title
+    assert cannibalization_candidate_records(_result()) == []
+    assert "علت فنی" in cannibalization_limitation_copy(_result())

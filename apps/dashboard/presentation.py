@@ -22,6 +22,15 @@ class RecommendationPresentation:
     style: str
 
 
+@dataclass(frozen=True)
+class CannibalizationPresentation:
+    """Persian reviewer-facing copy for the typed cross-SKU screening result."""
+
+    title: str
+    explanation: str
+    style: str
+
+
 RECOMMENDATION_PRESENTATIONS = {
     AuditRecommendation.CANDIDATE_FOR_CONTROLLED_TEST: RecommendationPresentation(
         title="این فرضیه ارزش آزمون کنترل‌شده دارد",
@@ -50,6 +59,13 @@ WARNING_PRESENTATIONS = {
     ),
     "FORWARD_BUY_RISK": (
         "افت فروش پس از پروموشن از آستانه سیاست عبور کرده و می‌تواند نشانه جابه‌جایی زمان خرید باشد."
+    ),
+    "CANNIBALIZATION_CANDIDATE": (
+        "کاهش هم‌زمان یک کالای هم‌دسته دیده شده است؛ قبل از نامیدن فروش کالا به‌عنوان تقاضای جدید، "
+        "آزمون کنترل‌شده لازم است."
+    ),
+    "CANNIBALIZATION_UNAVAILABLE": (
+        "بررسی cross-SKU در این policy یا با ستون‌های فعلی داده قابل انجام نیست."
     ),
 }
 
@@ -115,10 +131,69 @@ def warning_presentation_records(result: PromotionAuditResult) -> list[dict[str,
     ]
 
 
+def cannibalization_presentation(result: PromotionAuditResult) -> CannibalizationPresentation:
+    """Map the domain status without inferring a causal substitution effect in the UI."""
+
+    summary = result.cannibalization
+    if summary.status == "candidates_detected":
+        return CannibalizationPresentation(
+            title="کاندیدای جایگزینی بین کالاهای هم‌دسته دیده شد",
+            explanation=(
+                "این یک نشانه مشاهده‌ای است، نه اثبات cannibalization؛ نتیجهٔ فروش کالای اصلی "
+                "نباید incremental demand تلقی شود."
+            ),
+            style="warning",
+        )
+    if summary.status == "no_candidates":
+        return CannibalizationPresentation(
+            title="کاندیدای افت معنادار در همسایه‌های واجدشرایط پیدا نشد",
+            explanation=(
+                "این خروجی نبود اثر را ثابت نمی‌کند؛ فقط هیچ همسایه واجدشرایطی از آستانه سیاست "
+                "عبور نکرده است."
+            ),
+            style="info",
+        )
+    return CannibalizationPresentation(
+        title="بررسی کالاهای هم‌دسته در این اجرا انجام نشد",
+        explanation="دلیل و محدودیت دقیق در گزارش typed نگهداری شده است.",
+        style="info",
+    )
+
+
+def cannibalization_candidate_records(result: PromotionAuditResult) -> list[dict[str, Any]]:
+    """Expose candidate values exactly as calculated by the domain layer."""
+
+    return [
+        {
+            "کالا (UPC)": candidate.upc,
+            "شرح": candidate.description or "—",
+            "میانگین قبل": candidate.pre_mean_units,
+            "میانگین حین": candidate.during_mean_units,
+            "نسبت حین به قبل": candidate.during_to_pre_ratio,
+            "افت تخمینی واحد": candidate.estimated_units_decline,
+        }
+        for candidate in result.cannibalization.candidates
+    ]
+
+
+def cannibalization_limitation_copy(result: PromotionAuditResult) -> str:
+    """Return a Persian claim boundary for the typed cross-SKU diagnostic."""
+
+    if result.cannibalization.status == "not_assessed":
+        return (
+            "این بررسی با policy یا ستون‌های فعلی داده قابل انجام نبوده است؛ علت فنی در JSON "
+            "ممیزی ثبت شده است."
+        )
+    return (
+        "فقط همسایه‌های همان فروشگاه و دسته، با پنجره کامل و بدون پروموشن هم‌زمان بررسی شدند؛ "
+        "این مقایسه اثر جایگزینی، تقاضای افزایشی یا رابطه علّی را شناسایی نمی‌کند."
+    )
+
+
 def claim_boundary_copy() -> tuple[str, str]:
     """Return bounded Persian copy for the existing domain claim and decision scope."""
 
     return (
-        "این عدد اختلاف مشاهده‌شده با خط مبناست؛ اثر علّی و اثر مالی شناسایی نشده‌اند.",
+        "این عدد اختلاف مشاهده‌شده با خط مبناست؛ اثر علّی، اثر جایگزینی بین کالاها و اثر مالی شناسایی نشده‌اند.",
         "فقط برای اولویت‌بندی آزمایش کنترل‌شده؛ نه rollout و نه تأیید مالی.",
     )
