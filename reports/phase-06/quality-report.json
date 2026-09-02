@@ -1,0 +1,24 @@
+{
+  "phase": "6.1",
+  "name": "Criteo randomized ITT benchmark",
+  "date": "2026-09-02",
+  "real_data_execution": {
+    "source_file": "data/raw/criteo-uplift/criteo-uplift-v2.1.csv.gz",
+    "raw_data_committed_to_git": false,
+    "rows_streamed": 13979592,
+    "chunks_streamed": 56,
+    "benchmark_result": "criteo-uplift-itt-benchmark.json"
+  },
+  "quality_gates": {
+    "schema_contract": "passed on the full publisher file during benchmark execution",
+    "unit_and_integration_tests": "82 passed",
+    "ruff": "passed",
+    "compileall": "passed",
+    "git_diff_check": "passed"
+  },
+  "known_warning": "StarletteDeprecationWarning from FastAPI's installed test client dependency; no project test failed.",
+  "claim_boundary": [
+    "Aggregate ITT effects are valid only for the published Criteo benchmark under its documented randomized assignment.",
+    "No individual treatment-effect, exposure-mediated, retail causal, Iranian market, profit, or rollout claim is made."
+  ]
+}

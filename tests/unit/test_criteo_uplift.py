@@ -1,0 +1,85 @@
+from __future__ import annotations
+
+import pandas as pd
+import pytest
+
+from promoguard.causal.criteo_uplift import (
+    FEATURE_COLUMNS,
+    summarize_criteo_uplift_chunks,
+    validate_criteo_uplift_frame,
+)
+
+
+def criteo_test_fixture() -> pd.DataFrame:
+    """Tiny test-only fixture; production evidence always uses the publisher file."""
+    rows = []
+    for treatment, visit, conversion, exposure, offset in [
+        (1, 1, 1, 1, 0.0),
+        (1, 1, 0, 1, 0.5),
+        (0, 0, 0, 0, 0.0),
+        (0, 1, 0, 0, 0.5),
+    ]:
+        row = {feature: float(index) + offset for index, feature in enumerate(FEATURE_COLUMNS)}
+        row.update(
+            {
+                "treatment": treatment,
+                "visit": visit,
+                "conversion": conversion,
+                "exposure": exposure,
+            }
+        )
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def test_contract_accepts_documented_columns_and_binary_values() -> None:
+    report = validate_criteo_uplift_frame(criteo_test_fixture())
+
+    assert report["valid"] is True
+    assert report["missing_columns"] == []
+    assert report["unexpected_columns"] == []
+
+
+def test_contract_rejects_invalid_binary_outcome() -> None:
+    frame = criteo_test_fixture()
+    frame.loc[0, "visit"] = 2
+
+    report = validate_criteo_uplift_frame(frame)
+
+    assert report["valid"] is False
+    assert report["binary_invalid_counts"]["visit"] == 1
+
+
+def test_contract_rejects_non_finite_feature() -> None:
+    frame = criteo_test_fixture()
+    frame.loc[0, "f3"] = float("inf")
+
+    report = validate_criteo_uplift_frame(frame)
+
+    assert report["valid"] is False
+    assert report["feature_invalid_counts"]["f3"] == 1
+
+
+def test_chunked_summary_reports_itt_and_never_uses_exposure_as_an_outcome() -> None:
+    frame = criteo_test_fixture()
+
+    result = summarize_criteo_uplift_chunks([frame.iloc[:2], frame.iloc[2:]])
+
+    assert result["rows_read"] == 4
+    assert result["chunks_read"] == 2
+    assert result["treatment"] == {
+        "treated_rows": 2,
+        "control_rows": 2,
+        "treated_fraction": 0.5,
+    }
+    assert result["outcome_effects"]["visit"]["intention_to_treat_risk_difference"] == 0.5
+    assert result["outcome_effects"]["conversion"]["intention_to_treat_risk_difference"] == 0.5
+    assert "exposure" not in result["outcome_effects"]
+    assert len(result["feature_balance"]) == 12
+
+
+def test_summary_refuses_invalid_chunk_before_aggregation() -> None:
+    frame = criteo_test_fixture().drop(columns="conversion")
+
+    with pytest.raises(ValueError, match="contract failed"):
+        summarize_criteo_uplift_chunks([frame])

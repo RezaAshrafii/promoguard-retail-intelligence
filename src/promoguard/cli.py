@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from promoguard.causal.criteo_uplift import evaluate_criteo_uplift
 from promoguard.data.dunnhumby import build_panel, load_dataset, validate_transactions
 from promoguard.forecasting.evaluation import evaluate_backtest
 from promoguard.insights.promotion_audit import (
@@ -22,7 +23,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="promoguard")
     parser.add_argument(
         "command",
-        choices=["health", "ingest", "validate", "forecast-evaluate", "promotion-audit"],
+        choices=[
+            "health",
+            "ingest",
+            "validate",
+            "forecast-evaluate",
+            "promotion-audit",
+            "causal-benchmark",
+        ],
         nargs="?",
         default="health",
     )
@@ -35,6 +43,7 @@ def main() -> None:
     parser.add_argument("--contribution-currency")
     parser.add_argument("--contribution-assumption-source")
     parser.add_argument("--audit-policy", type=Path)
+    parser.add_argument("--chunksize", type=int, default=250_000)
     args = parser.parse_args()
     if args.command == "health":
         print("PromoGuard core is healthy")
@@ -156,6 +165,15 @@ def main() -> None:
         ]
         pd.DataFrame(window_rows).to_csv(args.output / "promotion-audit-windows.csv", index=False)
         print(json.dumps(payload, indent=2))
+    elif args.command == "causal-benchmark":
+        if args.input is None or args.output is None:
+            parser.error("causal-benchmark requires --input and --output")
+        result = evaluate_criteo_uplift(args.input, chunksize=args.chunksize)
+        args.output.mkdir(parents=True, exist_ok=True)
+        (args.output / "criteo-uplift-itt-benchmark.json").write_text(
+            json.dumps(result, indent=2), encoding="utf-8"
+        )
+        print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

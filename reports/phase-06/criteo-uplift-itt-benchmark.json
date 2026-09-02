@@ -1,0 +1,118 @@
+{
+  "benchmark": "criteo-uplift-v2.1-randomized-itt",
+  "analysis_type": "aggregate intention-to-treat comparison",
+  "rows_read": 13979592,
+  "chunks_read": 56,
+  "treatment": {
+    "treated_rows": 11882655,
+    "control_rows": 2096937,
+    "treated_fraction": 0.8500001287591226
+  },
+  "outcome_effects": {
+    "visit": {
+      "treated_rate": 0.048543360048743316,
+      "control_rate": 0.03820095691954503,
+      "intention_to_treat_risk_difference": 0.010342403129198284,
+      "normal_95_ci_low": 0.010055628213713731,
+      "normal_95_ci_high": 0.010629178044682837,
+      "standard_error": 0.00014631642098864926
+    },
+    "conversion": {
+      "treated_rate": 0.0030894610674129645,
+      "control_rate": 0.0019375880152813366,
+      "intention_to_treat_risk_difference": 0.0011518730521316279,
+      "normal_95_ci_low": 0.0010845057902364738,
+      "normal_95_ci_high": 0.001219240314026782,
+      "standard_error": 3.437168357507502e-05
+    }
+  },
+  "feature_balance": [
+    {
+      "feature": "f0",
+      "treated_mean": 19.61475504093001,
+      "control_mean": 19.651704714743467,
+      "standardized_mean_difference": -0.00686562015779707
+    },
+    {
+      "feature": "f1",
+      "treated_mean": 10.070336700396352,
+      "control_mean": 10.067935425526768,
+      "standardized_mean_difference": 0.02399440055077763
+    },
+    {
+      "feature": "f2",
+      "treated_mean": 8.446301578306452,
+      "control_mean": 8.448173104019592,
+      "standardized_mean_difference": -0.006240990101536642
+    },
+    {
+      "feature": "f3",
+      "treated_mean": 4.169411678368264,
+      "control_mean": 4.232820995845125,
+      "standardized_mean_difference": -0.048836346657950405
+    },
+    {
+      "feature": "f4",
+      "treated_mean": 10.339245227688842,
+      "control_mean": 10.33652567312142,
+      "standardized_mean_difference": 0.007965661555126347
+    },
+    {
+      "feature": "f5",
+      "treated_mean": 4.026602473376325,
+      "control_mean": 4.039338816423102,
+      "standardized_mean_difference": -0.030556834812818203
+    },
+    {
+      "feature": "f6",
+      "treated_mean": -4.18279239145047,
+      "control_mean": -3.999879725528662,
+      "standardized_mean_difference": -0.04044807435082921
+    },
+    {
+      "feature": "f7",
+      "treated_mean": 5.105555292281528,
+      "control_mean": 5.08028429901489,
+      "standardized_mean_difference": 0.02126953293708547
+    },
+    {
+      "feature": "f8",
+      "treated_mean": 3.9333918541588555,
+      "control_mean": 3.934651747411191,
+      "standardized_mean_difference": -0.022433338387809802
+    },
+    {
+      "feature": "f9",
+      "treated_mean": 16.052588743730052,
+      "control_mean": 15.886252509873302,
+      "standardized_mean_difference": 0.024001061001450177
+    },
+    {
+      "feature": "f10",
+      "treated_mean": 5.333659813881366,
+      "control_mean": 5.331898099926723,
+      "standardized_mean_difference": 0.010563465217083417
+    },
+    {
+      "feature": "f11",
+      "treated_mean": -0.1709848063055786,
+      "control_mean": -0.17086774869134286,
+      "standardized_mean_difference": -0.0051595289818177886
+    }
+  ],
+  "assumptions_and_boundaries": [
+    "Uses the publisher's randomized treatment assignment as the identification basis.",
+    "Estimates aggregate intention-to-treat risk differences, not individual treatment effects.",
+    "Does not condition on exposure because exposure is post-treatment.",
+    "Does not establish a causal effect for the dunnhumby retail panel or an Iranian business.",
+    "Intervals are large-sample normal approximations for binary-outcome risk differences."
+  ],
+  "source": {
+    "dataset_page": "https://ailab.criteo.com/criteo-uplift-prediction-dataset/",
+    "download_url": "https://criteostorage.blob.core.windows.net/criteo-research-datasets/criteo-uplift-v2.1.csv.gz",
+    "license": "CC BY-NC-SA 4.0",
+    "filename": "criteo-uplift-v2.1.csv.gz",
+    "sha256": "2716e1bf0fd157a93b5bf86924d9088419dfbac2022c6cd90030220634f616dc",
+    "raw_data_committed_to_git": false
+  }
+}
