@@ -39,7 +39,7 @@ class AuditPolicy(BaseModel):
     policy_id: Literal["promoguard-observational-screening"] = (
         "promoguard-observational-screening"
     )
-    version: Literal["1.0.0"] = "1.0.0"
+    version: Literal["1.0.0", "1.1.0"] = "1.1.0"
     representative_min_history_weeks: int = Field(default=52, ge=1, le=260)
     audit_min_history_weeks: int = Field(default=26, ge=1, le=260)
     pre_window_weeks: int = Field(default=4, ge=1, le=52)
@@ -48,12 +48,19 @@ class AuditPolicy(BaseModel):
     severe_shift_lower_ratio: float = Field(default=0.5, gt=0, allow_inf_nan=False)
     severe_shift_upper_ratio: float = Field(default=1.5, gt=0, allow_inf_nan=False)
     forward_buy_ratio_threshold: float = Field(default=0.8, gt=0, allow_inf_nan=False)
+    cannibalization_ratio_threshold: float = Field(default=0.8, gt=0, lt=1, allow_inf_nan=False)
+    max_cannibalization_candidates: int = Field(default=3, ge=1, le=10)
 
     @model_validator(mode="after")
     def validate_shift_bounds(self) -> AuditPolicy:
         if self.severe_shift_lower_ratio >= self.severe_shift_upper_ratio:
             raise ValueError("severe shift lower ratio must be below the upper ratio")
         return self
+
+    @property
+    def cross_sku_diagnostics_enabled(self) -> bool:
+        """Keep v1.0.0 artifacts reproducible while enabling v1.1.0 screening."""
+        return self.version == "1.1.0"
 
 
 DEFAULT_AUDIT_POLICY = AuditPolicy()
@@ -83,6 +90,30 @@ class WindowSummary(BaseModel):
     total_units: float
     mean_units: float | None
     promotion_weeks: int
+
+
+class SubstitutionCandidate(BaseModel):
+    """A descriptive same-store category neighbor, never a causal substitution finding."""
+
+    upc: str
+    description: str | None
+    category: str
+    pre_mean_units: float
+    during_mean_units: float
+    during_to_pre_ratio: float
+    estimated_units_decline: float
+    pre_weeks: int
+    during_weeks: int
+
+
+class CannibalizationSummary(BaseModel):
+    """Transparent cross-SKU screening output with explicit observational limitations."""
+
+    status: Literal["not_assessed", "no_candidates", "candidates_detected"]
+    category: str | None
+    eligible_neighbor_count: int
+    candidates: list[SubstitutionCandidate]
+    limitation: str
 
 
 class ContributionAssumption(BaseModel):
@@ -139,6 +170,7 @@ class PromotionAuditResult(BaseModel):
     post_window: WindowSummary
     pre_to_reference_ratio: float | None
     post_to_pre_ratio: float | None
+    cannibalization: CannibalizationSummary
     recommendation: AuditRecommendation
     recommendation_scope: str
     recommendation_rationale: str
@@ -241,6 +273,121 @@ def _window_summary(frame: pd.DataFrame, requested_weeks: int) -> WindowSummary:
 
 def _warning(code: str, severity: WarningSeverity, message: str) -> AuditWarning:
     return AuditWarning(code=code, severity=severity, message=message)
+
+
+def _cannibalization_summary(
+    panel: pd.DataFrame,
+    *,
+    store_id: str,
+    focal_upc: str,
+    event_start: pd.Timestamp,
+    event_end: pd.Timestamp,
+    policy: AuditPolicy,
+) -> CannibalizationSummary:
+    """Screen same-store, same-category neighbors without making a substitution claim.
+
+    A neighbor is only eligible when it appears in every requested pre and during week and has no
+    promotion flag in either comparison window. This intentionally favors abstention over filling
+    missing rows with zero or treating concurrent promotions as a clean comparison.
+    """
+    limitation = (
+        "Same-store category co-movement is observational screening only; it does not identify "
+        "cannibalization, incremental demand, or a causal treatment effect."
+    )
+    if not policy.cross_sku_diagnostics_enabled:
+        return CannibalizationSummary(
+            status="not_assessed",
+            category=None,
+            eligible_neighbor_count=0,
+            candidates=[],
+            limitation="Cross-SKU diagnostics are not enabled by policy version 1.0.0.",
+        )
+    if "category" not in panel.columns:
+        return CannibalizationSummary(
+            status="not_assessed",
+            category=None,
+            eligible_neighbor_count=0,
+            candidates=[],
+            limitation="The panel has no category column, so same-category neighbor screening is unavailable.",
+        )
+
+    focal_rows = panel[
+        panel["store_id"].eq(store_id)
+        & panel["upc"].eq(focal_upc)
+        & panel["week_end_date"].between(event_start, event_end)
+    ]
+    categories = focal_rows["category"].dropna().astype(str).str.strip()
+    categories = categories[categories.ne("")]
+    if categories.empty:
+        return CannibalizationSummary(
+            status="not_assessed",
+            category=None,
+            eligible_neighbor_count=0,
+            candidates=[],
+            limitation="The focal SKU has no usable category value for same-category neighbor screening.",
+        )
+    category = categories.mode().iat[0]
+    pre_start = event_start - pd.Timedelta(weeks=policy.pre_window_weeks)
+    pre_dates = set(pd.date_range(pre_start, periods=policy.pre_window_weeks, freq="7D"))
+    during_dates = set(pd.date_range(event_start, end=event_end, freq="7D"))
+    neighbors = panel[
+        panel["store_id"].eq(store_id)
+        & panel["category"].astype(str).str.strip().eq(category)
+        & panel["upc"].ne(focal_upc)
+        & panel["week_end_date"].isin(pre_dates | during_dates)
+    ].copy()
+    if neighbors.empty:
+        return CannibalizationSummary(
+            status="no_candidates",
+            category=category,
+            eligible_neighbor_count=0,
+            candidates=[],
+            limitation=limitation,
+        )
+
+    candidates: list[SubstitutionCandidate] = []
+    eligible_neighbor_count = 0
+    for upc, neighbor in neighbors.groupby("upc", sort=True):
+        pre = neighbor[neighbor["week_end_date"].isin(pre_dates)]
+        during = neighbor[neighbor["week_end_date"].isin(during_dates)]
+        if (
+            set(pre["week_end_date"]) != pre_dates
+            or set(during["week_end_date"]) != during_dates
+            or pre["promotion_flag"].eq(1).any()
+            or during["promotion_flag"].eq(1).any()
+        ):
+            continue
+        pre_mean = float(pre["units"].mean())
+        during_mean = float(during["units"].mean())
+        if pre_mean <= 0:
+            continue
+        eligible_neighbor_count += 1
+        ratio = during_mean / pre_mean
+        if ratio >= policy.cannibalization_ratio_threshold:
+            continue
+        descriptions = neighbor.get("description", pd.Series(dtype="object")).dropna()
+        candidates.append(
+            SubstitutionCandidate(
+                upc=str(upc),
+                description=str(descriptions.iloc[0]) if not descriptions.empty else None,
+                category=category,
+                pre_mean_units=pre_mean,
+                during_mean_units=during_mean,
+                during_to_pre_ratio=ratio,
+                estimated_units_decline=(pre_mean - during_mean) * len(during_dates),
+                pre_weeks=len(pre_dates),
+                during_weeks=len(during_dates),
+            )
+        )
+    candidates.sort(key=lambda item: (-item.estimated_units_decline, item.upc))
+    selected = candidates[: policy.max_cannibalization_candidates]
+    return CannibalizationSummary(
+        status="candidates_detected" if selected else "no_candidates",
+        category=category,
+        eligible_neighbor_count=eligible_neighbor_count,
+        candidates=selected,
+        limitation=limitation,
+    )
 
 
 def _baseline_interval(history: pd.DataFrame, duration_weeks: int) -> EstimateInterval:
@@ -438,6 +585,33 @@ def audit_promotion_event(
                 )
             )
 
+    cannibalization = _cannibalization_summary(
+        prepared,
+        store_id=store_key,
+        focal_upc=upc_key,
+        event_start=event_start,
+        event_end=event_end,
+        policy=policy,
+    )
+    if cannibalization.status == "not_assessed":
+        warnings.append(
+            _warning(
+                "CANNIBALIZATION_UNAVAILABLE",
+                WarningSeverity.INFO,
+                cannibalization.limitation,
+            )
+        )
+    elif cannibalization.status == "candidates_detected":
+        warnings.append(
+            _warning(
+                "CANNIBALIZATION_CANDIDATE",
+                WarningSeverity.BLOCKING,
+                f"{len(cannibalization.candidates)} same-store category neighbor(s) declined by the "
+                "predeclared screening rule; investigate with a controlled design before treating "
+                "focal-SKU demand as incremental.",
+            )
+        )
+
     contribution_sensitivity = None
     if contribution_assumption is not None:
         amount = contribution_assumption.amount_per_incremental_unit
@@ -473,6 +647,7 @@ def audit_promotion_event(
         post_window=_window_summary(post, policy.post_window_weeks),
         pre_to_reference_ratio=pre_ratio,
         post_to_pre_ratio=post_ratio,
+        cannibalization=cannibalization,
         recommendation=recommendation,
         recommendation_scope="observational screening for experiment prioritization; never a rollout or financial approval",
         recommendation_rationale=rationale,
@@ -481,11 +656,15 @@ def audit_promotion_event(
             "The last observed non-promotion units are a usable short-horizon baseline.",
             "The 90th percentile of pre-event one-week residuals is a useful audit interval.",
             "No unobserved distribution or assortment change invalidates the comparison.",
+            "Same-category neighbor declines are descriptive candidates, not identified substitution effects.",
         ],
         evidence_refs=[
             "docs/data-acquisition.md",
             "reports/phase-02/forecast-evaluation.json",
             "docs/evaluation-protocol.md",
         ],
-        claim_language="observed-minus-baseline estimate; causal treatment effect and financial impact not identified",
+        claim_language=(
+            "observed-minus-baseline estimate; causal treatment effect, cross-SKU substitution, "
+            "and financial impact not identified"
+        ),
     )

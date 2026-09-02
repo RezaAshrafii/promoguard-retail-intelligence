@@ -37,13 +37,21 @@
   interval.
 - Screening thresholds are emitted as typed `AuditPolicy` metadata. Policy v1.0.0 uses four-week
   pre/post windows, a post-to-pre ratio below 0.8 for a blocking forward-buy warning, and a
-  recent-pre to older-history ratio outside 0.5–1.5 for severe shift. These are conservative
-  screening rules, not learned causal or financial decision thresholds.
+  recent-pre to older-history ratio outside 0.5–1.5 for severe shift. Policy v1.1.0 adds an
+  opt-in same-store, same-category neighbor screen: a neighbor must have complete pre/during
+  windows and no promotion in either window, and is reported only when its during-to-pre ratio is
+  below 0.8. A detected neighbor is a blocking *candidate* for investigation, not identified
+  cannibalization. These are conservative screening rules, not learned causal or financial
+  decision thresholds.
 - Full promotion economics remain unavailable. An optional contribution assumption must include an
   amount per incremental unit, ISO currency, and source. Its sensitivity output never changes the
   screening recommendation and is not promotion profit or gross-margin impact.
 - Missing inventory emits `STOCKOUT_UNOBSERVABLE`; observed zero inventory emits a blocking
   `STOCKOUT_RISK` warning.
+- The cross-SKU screen never fills an absent neighbor week with zero, never uses a concurrently
+  promoted neighbor as a comparator, and ranks at most three candidates by observed unit decline.
+  It does not estimate a substitution effect because assortment changes, category demand shifts,
+  price changes, and unobserved confounders remain possible.
 - A positive units-difference interval returns `candidate_for_controlled_test`; a negative interval
   returns `deprioritize_and_investigate`; blockers or an interval crossing zero return
   `needs_more_evidence`. The output never approves rollout, identifies causal effect, or estimates

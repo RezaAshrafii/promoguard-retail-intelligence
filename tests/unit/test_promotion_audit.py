@@ -34,6 +34,26 @@ def audit_fixture(*, promotion_units: float = 30, post_units: float = 10) -> pd.
     )
 
 
+def category_neighbor_fixture(
+    *,
+    neighbor_during_units: float = 3,
+    neighbor_promoted_during: bool = False,
+) -> pd.DataFrame:
+    """Clearly labeled synthetic fixture for cross-SKU diagnostic edge cases only."""
+    focal = audit_fixture()
+    focal["category"] = "SNACKS"
+    focal["description"] = "FOCAL SKU"
+    neighbor = focal.copy()
+    neighbor["upc"] = "20"
+    neighbor["description"] = "NEIGHBOR SKU"
+    neighbor["units"] = 10.0
+    neighbor["promotion_flag"] = 0
+    neighbor.loc[12:13, "units"] = neighbor_during_units
+    if neighbor_promoted_during:
+        neighbor.loc[12:13, "promotion_flag"] = 1
+    return pd.concat([focal, neighbor], ignore_index=True)
+
+
 def contribution_assumption(amount: float = 1.0) -> ContributionAssumption:
     return ContributionAssumption(
         amount_per_incremental_unit=amount,
@@ -76,7 +96,7 @@ def test_positive_interval_is_only_a_candidate_for_controlled_test() -> None:
     assert sensitivity.status == "sensitivity_only"
     assert result.recommendation == AuditRecommendation.CANDIDATE_FOR_CONTROLLED_TEST
     assert "never a rollout or financial approval" in result.recommendation_scope
-    assert result.policy.version == "1.0.0"
+    assert result.policy.version == "1.1.0"
 
 
 def test_negative_interval_deprioritizes_but_does_not_claim_rejection() -> None:
@@ -169,6 +189,39 @@ def test_missing_inventory_emits_stockout_unobservable_warning() -> None:
     assert any(warning.code == "STOCKOUT_UNOBSERVABLE" for warning in result.warnings)
 
 
+def test_same_category_neighbor_decline_is_a_blocking_candidate_not_a_causal_claim() -> None:
+    result = run_audit(category_neighbor_fixture())
+
+    assert result.cannibalization.status == "candidates_detected"
+    assert result.cannibalization.category == "SNACKS"
+    assert result.cannibalization.eligible_neighbor_count == 1
+    candidate = result.cannibalization.candidates[0]
+    assert candidate.upc == "20"
+    assert candidate.during_to_pre_ratio == 0.3
+    assert candidate.estimated_units_decline == 14
+    assert any(warning.code == "CANNIBALIZATION_CANDIDATE" for warning in result.warnings)
+    assert result.recommendation == AuditRecommendation.NEEDS_MORE_EVIDENCE
+    assert "does not identify cannibalization" in result.cannibalization.limitation
+
+
+def test_concurrently_promoted_neighbor_is_excluded_from_substitution_screening() -> None:
+    result = run_audit(category_neighbor_fixture(neighbor_promoted_during=True))
+
+    assert result.cannibalization.status == "no_candidates"
+    assert result.cannibalization.eligible_neighbor_count == 0
+    assert not any(warning.code == "CANNIBALIZATION_CANDIDATE" for warning in result.warnings)
+
+
+def test_policy_v1_preserves_legacy_no_cross_sku_diagnostic_behavior() -> None:
+    result = run_audit(
+        category_neighbor_fixture(),
+        policy=AuditPolicy(audit_min_history_weeks=8, version="1.0.0"),
+    )
+
+    assert result.cannibalization.status == "not_assessed"
+    assert any(warning.code == "CANNIBALIZATION_UNAVAILABLE" for warning in result.warnings)
+
+
 def test_audit_domain_rejects_blank_grain_identifier() -> None:
     panel = audit_fixture()
     panel.loc[0, "upc"] = "   "
@@ -199,5 +252,6 @@ def test_typed_payload_never_uses_unsupported_causal_wording() -> None:
     assert "margin_scenario" not in payload
     assert "unit_margin" not in serialized
     assert payload["claim_language"] == (
-        "observed-minus-baseline estimate; causal treatment effect and financial impact not identified"
+        "observed-minus-baseline estimate; causal treatment effect, cross-SKU substitution, "
+        "and financial impact not identified"
     )

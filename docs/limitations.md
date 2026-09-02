@@ -14,5 +14,6 @@
 - The public phase-3 audit has no unit cost or inventory observations. An optional contribution
   sensitivity is assumption-driven, not measured financial impact, and stockout-censored demand
   cannot be ruled out.
-- The current audit examines one SKU/store episode at a time; cross-SKU cannibalization is deferred
-  to phase 7.
+- Policy v1.1.0 adds a same-store, same-category co-movement screen, but it is not a causal
+  cannibalization estimator. It excludes missing and concurrently promoted neighbors and reports
+  only candidates for controlled follow-up.
