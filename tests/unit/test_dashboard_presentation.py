@@ -10,6 +10,7 @@ from apps.dashboard.presentation import (
     cannibalization_presentation,
     claim_boundary_copy,
     demo_mode_requested,
+    randomized_benchmark_presentation,
     recommendation_presentation,
     warning_presentation_records,
 )
@@ -108,3 +109,20 @@ def test_cannibalization_presentation_preserves_not_assessed_boundary() -> None:
     assert "انجام نشد" in presentation.title
     assert cannibalization_candidate_records(_result()) == []
     assert "علت فنی" in cannibalization_limitation_copy(_result())
+
+
+def test_randomized_benchmark_presentation_reads_persisted_values_without_reestimating() -> None:
+    payload = {
+        "rows_read": 100,
+        "outcome_effects": {
+            "visit": {"intention_to_treat_risk_difference": 0.012},
+            "conversion": {"intention_to_treat_risk_difference": 0.002},
+        },
+    }
+
+    presentation = randomized_benchmark_presentation(payload)
+
+    assert presentation.rows_read == 100
+    assert presentation.visit_itt == 0.012
+    assert presentation.conversion_itt == 0.002
+    assert "بازار ایران" in presentation.limitation

@@ -31,6 +31,17 @@ class CannibalizationPresentation:
     style: str
 
 
+@dataclass(frozen=True)
+class RandomizedBenchmarkPresentation:
+    """Reviewer-facing copy for a persisted external randomized benchmark."""
+
+    title: str
+    visit_itt: float
+    conversion_itt: float
+    rows_read: int
+    limitation: str
+
+
 RECOMMENDATION_PRESENTATIONS = {
     AuditRecommendation.CANDIDATE_FOR_CONTROLLED_TEST: RecommendationPresentation(
         title="این فرضیه ارزش آزمون کنترل‌شده دارد",
@@ -188,6 +199,25 @@ def cannibalization_limitation_copy(result: PromotionAuditResult) -> str:
         "فقط همسایه‌های همان فروشگاه و دسته، با پنجره کامل و بدون پروموشن هم‌زمان بررسی شدند؛ "
         "این مقایسه اثر جایگزینی، تقاضای افزایشی یا رابطه علّی را شناسایی نمی‌کند."
     )
+
+
+def randomized_benchmark_presentation(payload: dict[str, Any]) -> RandomizedBenchmarkPresentation:
+    """Read exact persisted benchmark values; the dashboard performs no causal computation."""
+
+    try:
+        effects = payload["outcome_effects"]
+        return RandomizedBenchmarkPresentation(
+            title="شاهد مستقل آزمایش تصادفی تبلیغات",
+            visit_itt=float(effects["visit"]["intention_to_treat_risk_difference"]),
+            conversion_itt=float(effects["conversion"]["intention_to_treat_risk_difference"]),
+            rows_read=int(payload["rows_read"]),
+            limitation=(
+                "این benchmark مستقلِ Criteo است؛ اثر علّی برای پروموشن فروشگاهی، بازار ایران، سود "
+                "یا اجرای خودکار اثبات نمی‌کند."
+            ),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("گزارش benchmark علّی ناقص یا ناسازگار است.") from error
 
 
 def claim_boundary_copy() -> tuple[str, str]:

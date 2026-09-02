@@ -25,6 +25,7 @@ from apps.dashboard.presentation import (
     cannibalization_presentation,
     claim_boundary_copy,
     demo_mode_requested,
+    randomized_benchmark_presentation,
     recommendation_presentation,
     warning_presentation_records,
 )
@@ -45,6 +46,7 @@ except ImportError:  # pragma: no cover - keeps core/API installs usable
 MAX_UPLOAD_BYTES = 120 * 1024 * 1024
 MAX_PANEL_ROWS = 1_000_000
 DEFAULT_PANEL_PATH = REPOSITORY_ROOT / "data" / "processed" / "breakfast-at-the-frat"
+CAUSAL_BENCHMARK_PATH = REPOSITORY_ROOT / "reports" / "phase-06" / "criteo-uplift-itt-benchmark.json"
 
 
 def _apply_reviewer_style() -> None:
@@ -121,6 +123,10 @@ if st is not None:
     @st.cache_data(show_spinner="در حال انتخاب یک رویداد قابل‌ممیزی...")
     def _representative_event(panel: pd.DataFrame) -> dict[str, Any]:
         return select_representative_event(panel)
+
+    @st.cache_data(show_spinner=False)
+    def _load_causal_benchmark(path: str) -> dict[str, Any]:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def _load_uploaded_panel(name: str, content: bytes) -> pd.DataFrame:
@@ -323,6 +329,28 @@ def _show_audit(result: PromotionAuditResult, *, compact_demo: bool = False) -> 
     )
 
 
+def _show_randomized_benchmark() -> None:
+    """Render persisted external evidence without mixing it into the retail audit."""
+    try:
+        presentation = randomized_benchmark_presentation(
+            _load_causal_benchmark(str(CAUSAL_BENCHMARK_PATH))
+        )
+    except (FileNotFoundError, OSError, ValueError, json.JSONDecodeError):
+        st.info("شاهد benchmark تصادفی در این نسخه محلی در دسترس نیست.")
+        return
+    with st.expander("شاهد مستقل روش علّی — آزمایش تصادفی Criteo", expanded=False):
+        st.success(presentation.title)
+        first, second, third = st.columns(3)
+        first.metric("ردیف‌های واقعی پردازش‌شده", f"{presentation.rows_read:,}")
+        second.metric("ITT برای visit", f"{presentation.visit_itt:+.3%}")
+        third.metric("ITT برای conversion", f"{presentation.conversion_itt:+.3%}")
+        st.caption(
+            "اعداد دقیقاً از گزارش versioned فاز ۶ خوانده می‌شوند و رابط کاربری هیچ برآورد تازه‌ای "
+            "محاسبه نمی‌کند."
+        )
+        st.warning(presentation.limitation)
+
+
 def _demo_workflow() -> None:
     st.sidebar.success("حالت ارائه با داده واقعی فعال است")
     st.sidebar.caption("بدون API خارجی، بدون LLM و بدون داده مصنوعی")
@@ -393,6 +421,7 @@ def _demo_workflow() -> None:
 
     _step(3, "نتیجه، عدم‌قطعیت و مرز تصمیم")
     _show_audit(result, compact_demo=True)
+    _show_randomized_benchmark()
 
 
 def main() -> None:
