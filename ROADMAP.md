@@ -346,13 +346,17 @@ Plain-language goal: Reza verifies eligibility, completes the official form and 
 outside Git, records the 110–118 second demo, and checks every final link without authentication.
 Repository development remains frozen unless this packaging pass finds a factual or technical defect.
 
-## Phase 6 — PAUSED — Real-experiment causal benchmarking
+## Phase 6 — ACTIVE — Real-experiment causal benchmarking
 
 Plain-language goal: use a real public randomized marketing experiment to benchmark treatment-effect methods, then test retail observational analyses with explicit refusal rules.
 
 Deliverables and gate:
 
-- Criteo Uplift v2.1 adapter and a reproducible treatment-effect benchmark.
+- Criteo Uplift v2.1 adapter and a reproducible treatment-effect benchmark. **Phase 6.1 complete
+  on 2026-09-02:** the official 13,979,592-row source was streamed in 56 chunks; strict schema
+  checks, treatment-arm counts, feature SMD diagnostics, and aggregate visit/conversion ITT risk
+  differences with 95% intervals are in `reports/phase-06/`. The benchmark is external to retail
+  and does not condition on post-treatment exposure.
 - At least one transparent panel/DiD-style estimator for the retail observational track and one doubly robust method if justified.
 - Pre-trend, overlap, placebo, missingness, sensitivity, and coverage diagnostics.
 - Statistical tests use documented splits and confidence intervals, not a single lucky run.

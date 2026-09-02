@@ -18,12 +18,14 @@ readiness from public observational data.
 - audits one promotion using pre/during/post windows, uncertainty, forward-buy, and a versioned policy;
 - screens complete, non-concurrently-promoted same-store category neighbors for descriptive
   cross-SKU substitution candidates; it never labels the result causal;
+- streams and validates the public Criteo randomized-advertising benchmark, reporting aggregate
+  intention-to-treat effects with balance diagnostics while keeping it separate from retail;
 - serves typed local FastAPI endpoints and a Persian Streamlit dashboard;
 - preserves an explicit abstention result when the evidence is insufficient.
 
-Planned causal benchmarking, deeper substitution validation, constrained optimization, monitoring,
-and an optional evidence-grounded LLM explanation layer are listed in [ROADMAP.md](ROADMAP.md);
-they are not current capabilities.
+Deeper substitution validation, constrained optimization, monitoring, and an optional
+evidence-grounded LLM explanation layer are listed in [ROADMAP.md](ROADMAP.md); they are not current
+capabilities. The Criteo benchmark is documented in [docs/causal-benchmark.md](docs/causal-benchmark.md).
 
 ## Evidence snapshot
 
@@ -35,6 +37,7 @@ they are not current capabilities.
 | Representative audit | -57 units, interval [-127, 13] | observed minus baseline; not causal lift |
 | Audit recommendation | `needs_more_evidence` | blocking forward-buy warning; do not roll out |
 | Cross-SKU screen | 1 eligible neighbor, 0 candidates | no observed decline crossed the policy threshold; not no-effect proof |
+| Criteo randomized ITT benchmark | visit +1.034pp; conversion +0.115pp | external advertising RCT; not a retail causal claim |
 
 Release Gate 5.1 passed 67 tests; the current Demo Mode release passes **73 tests**. Phase 7.1 adds
 four checked cross-SKU/presentation cases; the current development suite passes **77 tests**. Command evidence
