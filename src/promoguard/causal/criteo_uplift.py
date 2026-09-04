@@ -13,7 +13,9 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
+from sklearn.linear_model import LogisticRegression
 
 CRITEO_UPLIFT_V21_SOURCE_URL = (
     "https://criteostorage.blob.core.windows.net/criteo-research-datasets/"
@@ -27,6 +29,8 @@ OUTCOME_COLUMNS = ("visit", "conversion")
 POST_TREATMENT_COLUMNS = ("exposure",)
 REQUIRED_COLUMNS = (*FEATURE_COLUMNS, TREATMENT_COLUMN, *OUTCOME_COLUMNS, *POST_TREATMENT_COLUMNS)
 NORMAL_95_Z = 1.959963984540054
+DEFAULT_SPLIT_SEED = 20260905
+DEFAULT_TRAIN_CAP_PER_STRATUM = 100_000
 
 
 def sha256_file(path: Path) -> str:
@@ -226,3 +230,162 @@ def evaluate_criteo_uplift(input_path: str | Path, *, chunksize: int = 250_000) 
         "raw_data_committed_to_git": False,
     }
     return result
+
+
+def _split_bucket(row_start: int, size: int, seed: int) -> pd.Series:
+    """Create a deterministic row split without using a mutable RNG or target-derived sampling."""
+    positions = pd.Series(range(row_start, row_start + size), dtype="int64")
+    return ((positions * 1_103_515_245 + seed) % 100).astype("int16")
+
+
+def _fit_logistic(frame: pd.DataFrame, features: list[str]) -> LogisticRegression:
+    model = LogisticRegression(max_iter=1000, solver="lbfgs", random_state=DEFAULT_SPLIT_SEED)
+    model.fit(frame[features], frame["visit"])
+    return model
+
+
+def _fit_learner(frame: pd.DataFrame, learner: str) -> tuple[LogisticRegression, LogisticRegression | None]:
+    features = list(FEATURE_COLUMNS)
+    if learner == "s_learner":
+        return _fit_logistic(frame, features + [TREATMENT_COLUMN]), None
+    if learner == "t_learner":
+        return (
+            _fit_logistic(frame.loc[frame[TREATMENT_COLUMN].eq(1)], features),
+            _fit_logistic(frame.loc[frame[TREATMENT_COLUMN].eq(0)], features),
+        )
+    raise ValueError(f"unknown uplift learner: {learner}")
+
+
+def _uplift_scores(
+    frame: pd.DataFrame,
+    learner: str,
+    models: tuple[LogisticRegression, LogisticRegression | None],
+) -> pd.Series:
+    features = list(FEATURE_COLUMNS)
+    if learner == "s_learner":
+        model = models[0]
+        treated = frame[features].assign(treatment=1)
+        control = frame[features].assign(treatment=0)
+        return pd.Series(model.predict_proba(treated)[:, 1] - model.predict_proba(control)[:, 1])
+    if learner == "t_learner":
+        treated_model, control_model = models
+        assert control_model is not None
+        return pd.Series(
+            treated_model.predict_proba(frame[features])[:, 1]
+            - control_model.predict_proba(frame[features])[:, 1]
+        )
+    raise ValueError(f"unknown uplift learner: {learner}")
+
+
+def _qini_curve(frame: pd.DataFrame, score: pd.Series) -> dict[str, Any]:
+    ranked = frame.assign(_score=score.to_numpy()).sort_values("_score", ascending=False)
+    treated = ranked["treatment"].eq(1)
+    control = ~treated
+    treated_cumulative = treated.cumsum()
+    control_cumulative = control.cumsum()
+    treated_successes = (treated & ranked["visit"].eq(1)).cumsum()
+    control_successes = (control & ranked["visit"].eq(1)).cumsum()
+    control_count = control_cumulative.to_numpy(dtype="float64")
+    control_rate = np.divide(
+        control_successes.to_numpy(dtype="float64"),
+        control_count,
+        out=np.zeros(len(ranked), dtype="float64"),
+        where=control_count != 0,
+    )
+    qini = pd.Series(
+        treated_successes.to_numpy(dtype="float64")
+        - treated_cumulative.to_numpy(dtype="float64") * control_rate
+    )
+    x = pd.Series(range(1, len(ranked) + 1), dtype="float64") / len(ranked)
+    area = float((qini.shift(1, fill_value=0) + qini).mul(x.diff().fillna(x.iloc[0])).sum())
+    points = []
+    for fraction in (0.10, 0.20, 0.30):
+        index = min(len(ranked) - 1, max(0, math.ceil(len(ranked) * fraction) - 1))
+        points.append({"fraction": fraction, "qini": float(qini.iloc[index])})
+    return {"auuc": area, "qini_at": points, "n": len(ranked), "qini_final": float(qini.iloc[-1])}
+
+
+def evaluate_uplift_models(
+    input_path: str | Path,
+    *,
+    chunksize: int = 250_000,
+    train_cap_per_stratum: int = DEFAULT_TRAIN_CAP_PER_STRATUM,
+) -> dict[str, Any]:
+    """Train transparent S/T learners on real Criteo rows and score a locked real test split."""
+    if train_cap_per_stratum <= 0:
+        raise ValueError("train_cap_per_stratum must be positive.")
+    path = Path(input_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Criteo Uplift source not found: {path}")
+    train_parts: list[pd.DataFrame] = []
+    validation_parts: list[pd.DataFrame] = []
+    test_parts: list[pd.DataFrame] = []
+    counts = {"train": 0, "validation": 0, "test": 0}
+    training_counts = {"00": 0, "01": 0, "10": 0, "11": 0}
+    row_start = 0
+    for chunk in pd.read_csv(path, compression="infer", chunksize=chunksize):
+        _require_valid_chunk(chunk)
+        buckets = _split_bucket(row_start, len(chunk), DEFAULT_SPLIT_SEED)
+        row_start += len(chunk)
+        chunk = chunk.reset_index(drop=True)
+        split = pd.Series("train", index=chunk.index)
+        split.loc[buckets >= 70] = "validation"
+        split.loc[buckets >= 85] = "test"
+        for name, destination in (("train", train_parts), ("validation", validation_parts), ("test", test_parts)):
+            selected = chunk.loc[split.eq(name)].copy()
+            counts[name] += len(selected)
+            if name == "train":
+                selected["_stratum"] = selected["treatment"].astype(str) + selected["visit"].astype(str)
+                parts = []
+                for stratum, stratum_frame in selected.groupby("_stratum", sort=True):
+                    remaining = max(train_cap_per_stratum - training_counts[stratum], 0)
+                    part = stratum_frame.head(remaining)
+                    training_counts[stratum] += len(part)
+                    parts.append(part)
+                selected = pd.concat(parts, ignore_index=False) if parts else selected.head(0)
+                selected = selected.drop(columns="_stratum")
+            destination.append(selected)
+    train = pd.concat(train_parts, ignore_index=True)
+    validation = pd.concat(validation_parts, ignore_index=True)
+    test = pd.concat(test_parts, ignore_index=True)
+    results: dict[str, Any] = {}
+    for learner in ("s_learner", "t_learner"):
+        models = _fit_learner(train, learner)
+        validation_curve = _qini_curve(validation, _uplift_scores(validation, learner, models))
+        test_curve = _qini_curve(test, _uplift_scores(test, learner, models))
+        results[learner] = {"validation": validation_curve, "test": test_curve}
+    random_curves = []
+    for seed in (DEFAULT_SPLIT_SEED, DEFAULT_SPLIT_SEED + 1, DEFAULT_SPLIT_SEED + 2, DEFAULT_SPLIT_SEED + 3, DEFAULT_SPLIT_SEED + 4):
+        random_scores = pd.Series(np.random.default_rng(seed).random(len(test)), index=test.index)
+        random_curves.append(_qini_curve(test, random_scores))
+    random_curve = {
+        "auuc": float(np.mean([curve["auuc"] for curve in random_curves])),
+        "qini_at": [
+            {"fraction": fraction, "qini": float(np.mean([curve["qini_at"][index]["qini"] for curve in random_curves]))}
+            for index, fraction in enumerate((0.10, 0.20, 0.30))
+        ],
+        "n": len(test),
+        "qini_final": float(np.mean([curve["qini_final"] for curve in random_curves])),
+        "permutations": 5,
+        "seeds": [DEFAULT_SPLIT_SEED + offset for offset in range(5)],
+    }
+    return {
+        "benchmark": "criteo-uplift-v2.1-uplift-ranking",
+        "outcome": "visit",
+        "learners": results,
+        "random_ranking_baseline": random_curve,
+        "split": {"seed": DEFAULT_SPLIT_SEED, "row_counts": counts, "ratios": {"train": 0.70, "validation": 0.15, "test": 0.15}},
+        "training": {
+            "cap_per_treatment_visit_stratum": train_cap_per_stratum,
+            "rows_used": len(train),
+            "rows_by_treatment_visit_stratum": training_counts,
+        },
+        "features": list(FEATURE_COLUMNS),
+        "boundaries": [
+            "Scores use only pre-treatment features f0-f11.",
+            "Exposure is excluded because it is post-treatment.",
+            "Qini/AUUC ranks policy value on this randomized benchmark; it is not individual counterfactual truth.",
+            "This does not identify causal retail promotion impact or Iranian market impact.",
+        ],
+        "source": {"filename": path.name, "sha256": sha256_file(path), "raw_data_committed_to_git": False},
+    }

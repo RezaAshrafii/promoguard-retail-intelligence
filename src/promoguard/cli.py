@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from promoguard.causal.criteo_uplift import evaluate_criteo_uplift
+from promoguard.causal.criteo_uplift import evaluate_criteo_uplift, evaluate_uplift_models
 from promoguard.data.dunnhumby import build_panel, load_dataset, validate_transactions
 from promoguard.forecasting.evaluation import evaluate_backtest
 from promoguard.insights.promotion_audit import (
@@ -30,6 +30,7 @@ def main() -> None:
             "forecast-evaluate",
             "promotion-audit",
             "causal-benchmark",
+            "uplift-benchmark",
         ],
         nargs="?",
         default="health",
@@ -171,6 +172,15 @@ def main() -> None:
         result = evaluate_criteo_uplift(args.input, chunksize=args.chunksize)
         args.output.mkdir(parents=True, exist_ok=True)
         (args.output / "criteo-uplift-itt-benchmark.json").write_text(
+            json.dumps(result, indent=2), encoding="utf-8"
+        )
+        print(json.dumps(result, indent=2))
+    elif args.command == "uplift-benchmark":
+        if args.input is None or args.output is None:
+            parser.error("uplift-benchmark requires --input and --output")
+        result = evaluate_uplift_models(args.input, chunksize=args.chunksize)
+        args.output.mkdir(parents=True, exist_ok=True)
+        (args.output / "criteo-uplift-model-ranking.json").write_text(
             json.dumps(result, indent=2), encoding="utf-8"
         )
         print(json.dumps(result, indent=2))
