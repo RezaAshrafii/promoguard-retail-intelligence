@@ -1,6 +1,6 @@
 # PromoGuard active development roadmap
 
-Last updated: 2026-08-31
+Last updated: 2026-09-05
 Roadmap owner: Reza  
 Execution rule: exactly one phase or release gate is `ACTIVE`.
 
@@ -15,8 +15,8 @@ The roadmap has two speeds:
 
 The official deadline remains 2026-09-04, but the internal send deadline is **2026-09-02 at 15:00
 Tehran time**. The Park sprint does not change the single-active-gate rule: Release Gate 5.1 and
-reviewer Demo Mode are closed, final submission evidence refresh is ACTIVE, and Phase 6 remains
-PAUSED.
+reviewer Demo Mode and submission evidence refresh are closed; the professional-track Phase 6.2
+benchmark is ACTIVE.
 
 Execution documents:
 
@@ -69,8 +69,8 @@ The first submission implements the center path with a documented public retail 
 | 5 | Park submission evidence package | 2026-09-03/04 | DONE |
 | 5.1 | Foundation correctness release | before Demo Mode | DONE |
 | 5.2 | Reviewer-focused real-data Demo Mode | immediately after 5.1 | DONE |
-| 5.3 | Final submission evidence refresh | before recording/submission | ACTIVE |
-| 6 | Real-experiment causal benchmarking | after correctness gate | PAUSED |
+| 5.3 | Final submission evidence refresh | before recording/submission | DONE |
+| 6 | Real-experiment causal benchmarking | after correctness gate | ACTIVE |
 | 7 | Cannibalization, forward-buy, uncertainty, abstention | 2026-09-15 to 09-24 | PENDING |
 | 8 | Constrained profit optimization | 2026-09-25 to 10-04 | PENDING |
 | 9 | Production data, monitoring, and optional verified LLM layer | 2026-10-05 to 10-19 | PENDING |
@@ -340,11 +340,11 @@ Completion evidence on 2026-08-31:
 - machine-readable reports: `reports/phase-05/submission-quality-report.json` and
   `reports/phase-05/submission-claim-audit.json`.
 
-## Work package 5.4 — ACTIVE — Owner-only form, PDFs, and final video
+## Work package 5.4 — DONE — Owner-only form, PDFs, and final video
 
 Plain-language goal: Reza verifies eligibility, completes the official form and private attachments
 outside Git, records the 110–118 second demo, and checks every final link without authentication.
-Repository development remains frozen unless this packaging pass finds a factual or technical defect.
+Submission packaging is closed; professional-track development continues in Phase 6.
 
 ## Phase 6 — ACTIVE — Real-experiment causal benchmarking
 
@@ -358,11 +358,18 @@ Deliverables and gate:
   differences with 95% intervals are in `reports/phase-06/`. The benchmark is external to retail
   and does not condition on post-treatment exposure.
 - At least one transparent panel/DiD-style estimator for the retail observational track and one doubly robust method if justified.
+- Phase 6.2 methodology is defined in `docs/phase-06-2-uplift-methodology.md`: S-Learner and
+  T-Learner on pre-treatment features, deterministic 70/15/15 split, complete real test evaluation,
+  Qini/AUUC against random ranking, and a no-promotion gate when neither learner beats random.
+- **Phase 6.2 execution completed on 2026-09-05:** the complete 2,096,939-row real test set was
+  evaluated. S-Learner AUUC was 12,363.49, T-Learner AUUC was 13,653.10, and the five-permutation
+  random baseline was 18,319.62. The gate did not pass, so no learner is promoted; the negative
+  result is preserved in `reports/phase-06/criteo-uplift-model-ranking.json`.
 - Pre-trend, overlap, placebo, missingness, sensitivity, and coverage diagnostics.
 - Statistical tests use documented splits and confidence intervals, not a single lucky run.
 - Gate: Criteo results use the dataset’s treatment/outcome definitions; retail outputs abstain when the public data cannot identify a causal effect.
 
-## Phase 7 — ACTIVE — Cannibalization and uncertainty
+## Phase 7 — DONE — Cannibalization and uncertainty
 
 Plain-language goal: detect when one SKU’s apparent win is another SKU’s loss or demand borrowed from next week.
 
@@ -383,6 +390,8 @@ Deliverables and gate:
 - During-promotion substitution and post-promotion dip diagnostics.
 - Prediction/effect intervals, data-shift checks, and an explicit abstention policy.
 - Gate: documented public-data cases and, if necessary, separately labeled validation fixtures detect substitution and forward-buy behavior at documented error rates.
+
+Phase 7.1 was completed on 2026-09-02 and remains covered by its existing reports and tests.
 
 ## Phase 8 — PENDING — Profit optimization
 

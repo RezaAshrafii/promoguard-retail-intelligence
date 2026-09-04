@@ -1,0 +1,161 @@
+{
+  "benchmark": "criteo-uplift-v2.1-uplift-ranking",
+  "outcome": "visit",
+  "learners": {
+    "s_learner": {
+      "validation": {
+        "auuc": 13117.846193621714,
+        "qini_at": [
+          {
+            "fraction": 0.1,
+            "qini": 1637.9548595701517
+          },
+          {
+            "fraction": 0.2,
+            "qini": 2914.757046089717
+          },
+          {
+            "fraction": 0.3,
+            "qini": 4095.5425516301493
+          }
+        ],
+        "n": 2096938,
+        "qini_final": 18474.82160615502
+      },
+      "test": {
+        "auuc": 12363.48801157013,
+        "qini_at": [
+          {
+            "fraction": 0.1,
+            "qini": 1134.9785201373707
+          },
+          {
+            "fraction": 0.2,
+            "qini": 2803.9468843195737
+          },
+          {
+            "fraction": 0.3,
+            "qini": 4071.8246852546235
+          }
+        ],
+        "n": 2096939,
+        "qini_final": 18194.45006358491
+      }
+    },
+    "t_learner": {
+      "validation": {
+        "auuc": 14575.875895039433,
+        "qini_at": [
+          {
+            "fraction": 0.1,
+            "qini": 1850.5805214723923
+          },
+          {
+            "fraction": 0.2,
+            "qini": 2779.101549542719
+          },
+          {
+            "fraction": 0.3,
+            "qini": 4046.9164112683156
+          }
+        ],
+        "n": 2096938,
+        "qini_final": 18474.82160615502
+      },
+      "test": {
+        "auuc": 13653.098101087271,
+        "qini_at": [
+          {
+            "fraction": 0.1,
+            "qini": 1845.3862611897657
+          },
+          {
+            "fraction": 0.2,
+            "qini": 2712.9657813934346
+          },
+          {
+            "fraction": 0.3,
+            "qini": 4162.155738049232
+          }
+        ],
+        "n": 2096939,
+        "qini_final": 18194.45006358491
+      }
+    }
+  },
+  "random_ranking_baseline": {
+    "auuc": 18319.6214109373,
+    "qini_at": [
+      {
+        "fraction": 0.1,
+        "qini": 1865.4464518157806
+      },
+      {
+        "fraction": 0.2,
+        "qini": 3666.711989049395
+      },
+      {
+        "fraction": 0.3,
+        "qini": 5598.229042437179
+      }
+    ],
+    "n": 2096939,
+    "qini_final": 18194.45006358491,
+    "permutations": 5,
+    "seeds": [
+      20260905,
+      20260906,
+      20260907,
+      20260908,
+      20260909
+    ]
+  },
+  "split": {
+    "seed": 20260905,
+    "row_counts": {
+      "train": 9785715,
+      "validation": 2096938,
+      "test": 2096939
+    },
+    "ratios": {
+      "train": 0.7,
+      "validation": 0.15,
+      "test": 0.15
+    }
+  },
+  "training": {
+    "cap_per_treatment_visit_stratum": 100000,
+    "rows_used": 356058,
+    "rows_by_treatment_visit_stratum": {
+      "00": 100000,
+      "01": 56058,
+      "10": 100000,
+      "11": 100000
+    }
+  },
+  "features": [
+    "f0",
+    "f1",
+    "f2",
+    "f3",
+    "f4",
+    "f5",
+    "f6",
+    "f7",
+    "f8",
+    "f9",
+    "f10",
+    "f11"
+  ],
+  "boundaries": [
+    "Scores use only pre-treatment features f0-f11.",
+    "Exposure is excluded because it is post-treatment.",
+    "Qini/AUUC ranks policy value on this randomized benchmark; it is not individual counterfactual truth.",
+    "This does not identify causal retail promotion impact or Iranian market impact."
+  ],
+  "source": {
+    "filename": "criteo-uplift-v2.1.csv.gz",
+    "sha256": "2716e1bf0fd157a93b5bf86924d9088419dfbac2022c6cd90030220634f616dc",
+    "raw_data_committed_to_git": false
+  }
+}
