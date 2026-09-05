@@ -11,6 +11,7 @@ from promoguard.causal.criteo_uplift import (
     _poisson_bootstrap_qini,
     _qini_curve,
     _split_bucket,
+    _uplift_scores,
     summarize_criteo_uplift_chunks,
     validate_criteo_uplift_frame,
 )
@@ -137,3 +138,15 @@ def test_logistic_learner_scales_features_and_reports_convergence() -> None:
     assert diagnostics["scaled"] is True
     assert diagnostics["pipelines"] == 1
     assert diagnostics["all_converged"] is True
+
+
+def test_histogram_uplift_learner_produces_finite_scores() -> None:
+    frame = pd.concat([criteo_test_fixture()] * 60, ignore_index=True)
+    models = _fit_learner(frame, "s_learner_hist_gb")
+
+    scores = _uplift_scores(frame, "s_learner_hist_gb", models)
+    diagnostics = _model_diagnostics(models)
+
+    assert scores.notna().all()
+    assert diagnostics["algorithm"] == "histogram gradient boosting"
+    assert diagnostics["training_completed"] is True

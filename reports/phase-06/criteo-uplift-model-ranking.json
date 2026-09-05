@@ -95,14 +95,59 @@
         "n": 2097295,
         "qini_final": 17982.873659140765
       }
+    },
+    "s_learner_hist_gb": {
+      "validation": {
+        "raw_auqc": 15621.786656040862,
+        "random_line_auqc": 9313.180129266431,
+        "qini_coefficient": 6308.606526774431,
+        "qini_at": [
+          {
+            "fraction": 0.1,
+            "qini": 10576.806855566167
+          },
+          {
+            "fraction": 0.2,
+            "qini": 14104.922025308013
+          },
+          {
+            "fraction": 0.3,
+            "qini": 15520.926574948848
+          }
+        ],
+        "n": 2096515,
+        "qini_final": 18626.360258532863
+      },
+      "test": {
+        "raw_auqc": 15545.162287917874,
+        "random_line_auqc": 8991.436829570383,
+        "qini_coefficient": 6553.725458347491,
+        "qini_at": [
+          {
+            "fraction": 0.1,
+            "qini": 11430.077080106996
+          },
+          {
+            "fraction": 0.2,
+            "qini": 14135.192427602073
+          },
+          {
+            "fraction": 0.3,
+            "qini": 15493.910603227065
+          }
+        ],
+        "n": 2097295,
+        "qini_final": 17982.873659140765
+      }
     }
   },
   "selection": {
     "criterion": "highest validation Qini coefficient; test is not used for selection",
-    "selected_learner": "t_learner"
+    "selected_learner": "s_learner_hist_gb"
   },
   "convergence": {
     "s_learner": {
+      "algorithm": "scaled logistic regression",
       "pipelines": 1,
       "iterations": [
         18
@@ -112,6 +157,7 @@
       "scaled": true
     },
     "t_learner": {
+      "algorithm": "scaled logistic regression",
       "pipelines": 2,
       "iterations": [
         20,
@@ -120,16 +166,28 @@
       "max_iter": 1000,
       "all_converged": true,
       "scaled": true
+    },
+    "s_learner_hist_gb": {
+      "algorithm": "histogram gradient boosting",
+      "pipelines": 1,
+      "iterations": [
+        100
+      ],
+      "max_iter": 100,
+      "training_completed": true,
+      "scaled": false,
+      "early_stopped": false,
+      "hit_iteration_budget": true
     }
   },
   "selected_model_uncertainty": {
     "method": "Poisson(1) multiplier bootstrap conditional on the frozen ranking",
     "replicates": 50,
     "seed": 20263905,
-    "standard_error": 273.0595581313632,
+    "standard_error": 336.0787709642551,
     "confidence_level": 0.95,
-    "ci_lower": 6236.361059189794,
-    "ci_upper": 7221.654123977556
+    "ci_lower": 5953.787898662527,
+    "ci_upper": 7153.860482480762
   },
   "covariate_balance": {
     "train": {
@@ -492,7 +550,8 @@
   ],
   "gate": {
     "finite_model_metrics": true,
-    "all_models_converged": true,
+    "all_logistic_models_converged": true,
+    "nonlinear_training_completed": true,
     "selected_model_ci_above_zero": true,
     "covariate_balance_acceptable": true,
     "randomization_auc_acceptable": true,

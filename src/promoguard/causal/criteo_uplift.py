@@ -15,6 +15,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import brier_score_loss, roc_auc_score
 from sklearn.pipeline import Pipeline
@@ -267,7 +268,20 @@ def _fit_logistic(frame: pd.DataFrame, features: list[str]) -> Pipeline:
     return model
 
 
-def _fit_learner(frame: pd.DataFrame, learner: str) -> tuple[Pipeline, Pipeline | None]:
+def _fit_hist_gradient(frame: pd.DataFrame, features: list[str]) -> HistGradientBoostingClassifier:
+    model = HistGradientBoostingClassifier(
+        learning_rate=0.05,
+        max_iter=100,
+        max_leaf_nodes=31,
+        min_samples_leaf=100,
+        l2_regularization=1.0,
+        random_state=DEFAULT_SPLIT_SEED,
+    )
+    model.fit(frame[features], frame["visit"])
+    return model
+
+
+def _fit_learner(frame: pd.DataFrame, learner: str) -> tuple[Any, Any | None]:
     features = list(FEATURE_COLUMNS)
     if learner == "s_learner":
         return _fit_logistic(frame, features + [TREATMENT_COLUMN]), None
@@ -276,16 +290,18 @@ def _fit_learner(frame: pd.DataFrame, learner: str) -> tuple[Pipeline, Pipeline 
             _fit_logistic(frame.loc[frame[TREATMENT_COLUMN].eq(1)], features),
             _fit_logistic(frame.loc[frame[TREATMENT_COLUMN].eq(0)], features),
         )
+    if learner == "s_learner_hist_gb":
+        return _fit_hist_gradient(frame, features + [TREATMENT_COLUMN]), None
     raise ValueError(f"unknown uplift learner: {learner}")
 
 
 def _uplift_scores(
     frame: pd.DataFrame,
     learner: str,
-    models: tuple[Pipeline, Pipeline | None],
+    models: tuple[Any, Any | None],
 ) -> pd.Series:
     features = list(FEATURE_COLUMNS)
-    if learner == "s_learner":
+    if learner in {"s_learner", "s_learner_hist_gb"}:
         model = models[0]
         treated = frame[features].assign(treatment=1)
         control = frame[features].assign(treatment=0)
@@ -300,16 +316,28 @@ def _uplift_scores(
     raise ValueError(f"unknown uplift learner: {learner}")
 
 
-def _model_diagnostics(models: tuple[Pipeline, Pipeline | None]) -> dict[str, Any]:
-    iterations = [
-        int(model.named_steps["logistic"].n_iter_.max()) for model in models if model is not None
-    ]
+def _model_diagnostics(models: tuple[Any, Any | None]) -> dict[str, Any]:
+    fitted_models = [model for model in models if model is not None]
+    if all(isinstance(model, Pipeline) for model in fitted_models):
+        iterations = [int(model.named_steps["logistic"].n_iter_.max()) for model in fitted_models]
+        return {
+            "algorithm": "scaled logistic regression",
+            "pipelines": len(iterations),
+            "iterations": iterations,
+            "max_iter": LOGISTIC_MAX_ITER,
+            "all_converged": all(iteration < LOGISTIC_MAX_ITER for iteration in iterations),
+            "scaled": True,
+        }
+    iterations = [int(model.n_iter_) for model in fitted_models]
     return {
+        "algorithm": "histogram gradient boosting",
         "pipelines": len(iterations),
         "iterations": iterations,
-        "max_iter": LOGISTIC_MAX_ITER,
-        "all_converged": all(iteration < LOGISTIC_MAX_ITER for iteration in iterations),
-        "scaled": True,
+        "max_iter": 100,
+        "training_completed": True,
+        "scaled": False,
+        "early_stopped": all(iteration < 100 for iteration in iterations),
+        "hit_iteration_budget": any(iteration == 100 for iteration in iterations),
     }
 
 
@@ -515,7 +543,7 @@ def evaluate_uplift_models(
     results: dict[str, Any] = {}
     scores: dict[str, dict[str, pd.Series]] = {}
     convergence: dict[str, Any] = {}
-    for learner in ("s_learner", "t_learner"):
+    for learner in ("s_learner", "t_learner", "s_learner_hist_gb"):
         models = _fit_learner(train, learner)
         validation_score = _uplift_scores(validation, learner, models)
         test_score = _uplift_scores(test, learner, models)
@@ -611,9 +639,14 @@ def evaluate_uplift_models(
                 for name in results
                 for split in ("validation", "test")
             ),
-            "all_models_converged": all(
-                diagnostic["all_converged"] for diagnostic in convergence.values()
+            "all_logistic_models_converged": all(
+                diagnostic["all_converged"]
+                for diagnostic in convergence.values()
+                if diagnostic["algorithm"] == "scaled logistic regression"
             ),
+            "nonlinear_training_completed": convergence["s_learner_hist_gb"][
+                "training_completed"
+            ],
             "selected_model_ci_above_zero": selected_uncertainty["ci_lower"] > 0,
             "covariate_balance_acceptable": all(
                 split_balance["maximum_absolute_smd"] < 0.1

@@ -384,6 +384,11 @@ Deliverables and gate:
 - **Phase 6.5 overlap audit completed on 2026-09-05:** test propensity ROC-AUC is 0.5086, estimated
   common support is 100%, and maximum absolute test SMD is 0.0481. All declared overlap and balance
   gates pass; these diagnostics support the benchmark design but do not establish transportability.
+- **Phase 6.6 nonlinear comparison completed on 2026-09-05:** a fixed-configuration histogram-
+  gradient-boosting S-Learner won validation with Qini coefficient 6,308.61 and achieved 6,553.73 on
+  test with frozen-ranking 95% interval [5,953.79, 7,153.86]. T-Learner's higher test-only value is
+  not used for post-hoc reselection. Boosting reached its 100-iteration budget and is not labelled
+  converged.
 - Pre-trend, overlap, placebo, missingness, sensitivity, and coverage diagnostics.
 - Statistical tests use documented splits and confidence intervals, not a single lucky run.
 - Gate: Criteo results use the dataset’s treatment/outcome definitions; retail outputs abstain when the public data cannot identify a causal effect.

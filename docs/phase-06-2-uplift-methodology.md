@@ -95,5 +95,13 @@ used by the outcome learners. The audit gate requires maximum absolute SMD below
 ROC-AUC below 0.55, and at least 99% of estimated probabilities inside [0.05, 0.95]. These are declared
 engineering thresholds, not universal proof of randomization.
 
+## Phase 6.6 nonlinear benchmark
+
+A histogram-gradient-boosting S-Learner adds explicit nonlinearities and treatment-feature
+interactions without adding a third-party runtime. It uses fixed hyperparameters and competes with
+the two logistic baselines on validation Qini coefficient. The report distinguishes logistic
+convergence from boosting completion; reaching the boosting iteration budget is recorded and is not
+mislabelled as convergence.
+
 No threshold for automatic targeting is introduced. A future policy requires cost, capacity, treatment
 harm, fairness, calibration, and a fresh holdout review.
