@@ -166,6 +166,19 @@ def test_upload_rejects_non_finite_units_without_serialization_failure(
     assert response.json()["non_finite_units_rows"] == 1
 
 
+def test_upload_rejects_columns_that_collide_after_trimming(client: TestClient) -> None:
+    content = b"week_end_date,store_id,upc,units, units ,promotion_flag\n2024-01-01,1,2,3,4,0\n"
+
+    response = client.post(
+        "/v1/panels/validate-upload",
+        files={"file": ("weekly_panel.csv", content, "text/csv")},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["valid"] is False
+    assert response.json()["duplicate_column_names"] == ["units"]
+
+
 def test_auto_audit_without_an_eligible_event_returns_422(
     client: TestClient, tmp_path: Path
 ) -> None:

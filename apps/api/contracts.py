@@ -48,6 +48,7 @@ class PanelQualityResponse(BaseModel):
     rows: int
     columns: list[str]
     missing_required_columns: list[str]
+    duplicate_column_names: list[str]
     max_rows: int
     oversized_row_count: bool
     empty: bool

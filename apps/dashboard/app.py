@@ -157,6 +157,7 @@ def _show_quality_report(report: dict[str, Any]) -> None:
     )
     problems = {
         "ستون‌های ضروریِ غایب": ", ".join(report["missing_required_columns"]) or "—",
+        "نام ستون تکراری": ", ".join(report["duplicate_column_names"]) or "—",
         "تاریخ نامعتبر": report["date_parse_errors"],
         "شناسه فروشگاه خالی": report["missing_store_id_rows"],
         "شناسه کالا خالی": report["missing_upc_rows"],

@@ -15,5 +15,10 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev,dashboard]"
       - run: ruff check .
-      - run: pytest -q
+      - run: pytest --cov=promoguard --cov=apps --cov-fail-under=70 -q
+      - run: python -m compileall -q src apps demo
+      - run: python -m pip check
+      - run: python -m bandit -r src apps -q
+      - run: python -m pip_audit --progress-spinner off
+      - run: python -m pip wheel --no-deps . --wheel-dir dist
 

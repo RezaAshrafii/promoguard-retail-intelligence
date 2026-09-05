@@ -316,7 +316,8 @@ def _uplift_scores(
         return pd.Series(model.predict_proba(treated)[:, 1] - model.predict_proba(control)[:, 1])
     if learner == "t_learner":
         treated_model, control_model = models
-        assert control_model is not None
+        if control_model is None:
+            raise RuntimeError("T-Learner requires separate treated and control models.")
         return pd.Series(
             treated_model.predict_proba(frame[features])[:, 1]
             - control_model.predict_proba(frame[features])[:, 1]

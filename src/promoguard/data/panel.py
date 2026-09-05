@@ -51,7 +51,11 @@ def load_weekly_panel(input_path: str | Path, *, max_bytes: int | None = None) -
 
 def validate_canonical_panel(frame: pd.DataFrame, *, max_rows: int = 1_000_000) -> dict[str, Any]:
     """Return a compact quality report for the application-facing weekly panel."""
-    columns = {str(column).strip() for column in frame.columns}
+    normalized_columns = [str(column).strip() for column in frame.columns]
+    columns = set(normalized_columns)
+    duplicate_column_names = sorted(
+        {column for column in normalized_columns if normalized_columns.count(column) > 1}
+    )
     missing_columns = sorted(REQUIRED_CANONICAL_COLUMNS - columns)
     report: dict[str, Any] = {
         "dataset": "canonical-weekly-panel",
@@ -59,6 +63,7 @@ def validate_canonical_panel(frame: pd.DataFrame, *, max_rows: int = 1_000_000) 
         "rows": len(frame),
         "columns": sorted(columns),
         "missing_required_columns": missing_columns,
+        "duplicate_column_names": duplicate_column_names,
         "max_rows": max_rows,
         "oversized_row_count": len(frame) > max_rows,
         "empty": frame.empty,
@@ -76,7 +81,7 @@ def validate_canonical_panel(frame: pd.DataFrame, *, max_rows: int = 1_000_000) 
         "date_max": None,
         "warnings": [],
     }
-    if missing_columns:
+    if missing_columns or duplicate_column_names:
         report["valid"] = False
         return report
 

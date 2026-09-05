@@ -70,6 +70,16 @@ def test_duplicate_grain_is_checked_after_date_normalization() -> None:
     assert report["valid"] is False
 
 
+def test_duplicate_column_names_after_trimming_are_rejected_cleanly() -> None:
+    panel = canonical_panel()
+    panel[" units "] = panel["units"]
+
+    report = validate_canonical_panel(panel)
+
+    assert report["duplicate_column_names"] == ["units"]
+    assert report["valid"] is False
+
+
 def test_row_safety_limit_is_enforced() -> None:
     report = validate_canonical_panel(canonical_panel(), max_rows=1)
     assert report["oversized_row_count"] is True
