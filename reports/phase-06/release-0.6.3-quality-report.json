@@ -1,0 +1,20 @@
+{
+  "release": "0.6.3",
+  "phase": "6",
+  "date": "2026-09-05",
+  "source_artifact": "criteo-uplift-model-ranking.json",
+  "selected_learner": "s_learner_hist_gb",
+  "selected_test_qini_coefficient": 6553.725458347491,
+  "selected_test_incremental_rate_at_20_percent": 0.0336986271068259,
+  "final_audit_qini_coefficient": 869.5811684854079,
+  "final_audit_bootstrap_95_ci": [698.6471677242695, 1015.2262941291518],
+  "quality_commands": {
+    "ruff": "passed",
+    "pytest": "90 passed",
+    "compileall": "passed",
+    "git_diff_check": "passed",
+    "github_ci": "pending_for_this_commit"
+  },
+  "promotion_allowed": false,
+  "open_boundary": "The parent development test was previously observed; this is not a pristine publication holdout."
+}
