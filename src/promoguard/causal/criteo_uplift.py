@@ -30,7 +30,7 @@ POST_TREATMENT_COLUMNS = ("exposure",)
 REQUIRED_COLUMNS = (*FEATURE_COLUMNS, TREATMENT_COLUMN, *OUTCOME_COLUMNS, *POST_TREATMENT_COLUMNS)
 NORMAL_95_Z = 1.959963984540054
 DEFAULT_SPLIT_SEED = 20260905
-DEFAULT_TRAIN_CAP_PER_STRATUM = 100_000
+DEFAULT_TRAIN_SAMPLE_MODULUS = 20
 
 
 def sha256_file(path: Path) -> str:
@@ -232,10 +232,16 @@ def evaluate_criteo_uplift(input_path: str | Path, *, chunksize: int = 250_000) 
     return result
 
 
-def _split_bucket(row_start: int, size: int, seed: int) -> pd.Series:
-    """Create a deterministic row split without using a mutable RNG or target-derived sampling."""
-    positions = pd.Series(range(row_start, row_start + size), dtype="int64")
-    return ((positions * 1_103_515_245 + seed) % 100).astype("int16")
+def _stable_row_hash(frame: pd.DataFrame, seed: int) -> pd.Series:
+    """Hash pre-treatment features only, so assignment is stable under row reordering."""
+    keys = frame[list(FEATURE_COLUMNS)].copy()
+    keys["_seed"] = seed
+    return pd.util.hash_pandas_object(keys, index=False).astype("uint64")
+
+
+def _split_bucket(frame: pd.DataFrame, seed: int) -> pd.Series:
+    """Assign deterministic buckets without using outcomes, treatment, or source row position."""
+    return (_stable_row_hash(frame, seed) % 100).astype("int16")
 
 
 def _fit_logistic(frame: pd.DataFrame, features: list[str]) -> LogisticRegression:
@@ -278,7 +284,14 @@ def _uplift_scores(
 
 
 def _qini_curve(frame: pd.DataFrame, score: pd.Series) -> dict[str, Any]:
-    ranked = frame.assign(_score=score.to_numpy()).sort_values("_score", ascending=False)
+    ranked = (
+        frame.assign(
+            _score=score.to_numpy(),
+            _tie_breaker=_stable_row_hash(frame, DEFAULT_SPLIT_SEED + 2_000).to_numpy(),
+        )
+        .sort_values(["_score", "_tie_breaker"], ascending=[False, True], kind="mergesort")
+        .reset_index(drop=True)
+    )
     treated = ranked["treatment"].eq(1)
     control = ~treated
     treated_cumulative = treated.cumsum()
@@ -297,12 +310,23 @@ def _qini_curve(frame: pd.DataFrame, score: pd.Series) -> dict[str, Any]:
         - treated_cumulative.to_numpy(dtype="float64") * control_rate
     )
     x = pd.Series(range(1, len(ranked) + 1), dtype="float64") / len(ranked)
-    area = float((qini.shift(1, fill_value=0) + qini).mul(x.diff().fillna(x.iloc[0])).sum())
+    raw_auqc = float(
+        0.5 * (qini.shift(1, fill_value=0) + qini).mul(x.diff().fillna(x.iloc[0])).sum()
+    )
+    random_line_auqc = 0.5 * float(qini.iloc[-1])
+    qini_coefficient = raw_auqc - random_line_auqc
     points = []
     for fraction in (0.10, 0.20, 0.30):
         index = min(len(ranked) - 1, max(0, math.ceil(len(ranked) * fraction) - 1))
         points.append({"fraction": fraction, "qini": float(qini.iloc[index])})
-    return {"auuc": area, "qini_at": points, "n": len(ranked), "qini_final": float(qini.iloc[-1])}
+    return {
+        "raw_auqc": raw_auqc,
+        "random_line_auqc": random_line_auqc,
+        "qini_coefficient": qini_coefficient,
+        "qini_at": points,
+        "n": len(ranked),
+        "qini_final": float(qini.iloc[-1]),
+    }
 
 
 def _split_diagnostics(frame: pd.DataFrame) -> dict[str, Any]:
@@ -328,11 +352,11 @@ def evaluate_uplift_models(
     input_path: str | Path,
     *,
     chunksize: int = 250_000,
-    train_cap_per_stratum: int = DEFAULT_TRAIN_CAP_PER_STRATUM,
+    train_sample_modulus: int = DEFAULT_TRAIN_SAMPLE_MODULUS,
 ) -> dict[str, Any]:
     """Train transparent S/T learners on real Criteo rows and score a locked real test split."""
-    if train_cap_per_stratum <= 0:
-        raise ValueError("train_cap_per_stratum must be positive.")
+    if train_sample_modulus <= 0:
+        raise ValueError("train_sample_modulus must be positive.")
     path = Path(input_path)
     if not path.is_file():
         raise FileNotFoundError(f"Criteo Uplift source not found: {path}")
@@ -340,13 +364,10 @@ def evaluate_uplift_models(
     validation_parts: list[pd.DataFrame] = []
     test_parts: list[pd.DataFrame] = []
     counts = {"train": 0, "validation": 0, "test": 0}
-    training_counts = {"00": 0, "01": 0, "10": 0, "11": 0}
-    row_start = 0
     for chunk in pd.read_csv(path, compression="infer", chunksize=chunksize):
         _require_valid_chunk(chunk)
-        buckets = _split_bucket(row_start, len(chunk), DEFAULT_SPLIT_SEED)
-        row_start += len(chunk)
         chunk = chunk.reset_index(drop=True)
+        buckets = _split_bucket(chunk, DEFAULT_SPLIT_SEED).reset_index(drop=True)
         split = pd.Series("train", index=chunk.index)
         split.loc[buckets >= 70] = "validation"
         split.loc[buckets >= 85] = "test"
@@ -354,15 +375,8 @@ def evaluate_uplift_models(
             selected = chunk.loc[split.eq(name)].copy()
             counts[name] += len(selected)
             if name == "train":
-                selected["_stratum"] = selected["treatment"].astype(str) + selected["visit"].astype(str)
-                parts = []
-                for stratum, stratum_frame in selected.groupby("_stratum", sort=True):
-                    remaining = max(train_cap_per_stratum - training_counts[stratum], 0)
-                    part = stratum_frame.head(remaining)
-                    training_counts[stratum] += len(part)
-                    parts.append(part)
-                selected = pd.concat(parts, ignore_index=False) if parts else selected.head(0)
-                selected = selected.drop(columns="_stratum")
+                sample_hash = _stable_row_hash(selected, DEFAULT_SPLIT_SEED + 1_000)
+                selected = selected.loc[sample_hash.mod(train_sample_modulus).eq(0)]
             destination.append(selected)
     train = pd.concat(train_parts, ignore_index=True)
     validation = pd.concat(validation_parts, ignore_index=True)
@@ -373,13 +387,21 @@ def evaluate_uplift_models(
         validation_curve = _qini_curve(validation, _uplift_scores(validation, learner, models))
         test_curve = _qini_curve(test, _uplift_scores(test, learner, models))
         results[learner] = {"validation": validation_curve, "test": test_curve}
-    selected_learner = max(results, key=lambda name: results[name]["validation"]["auuc"])
+    selected_learner = max(
+        results, key=lambda name: results[name]["validation"]["qini_coefficient"]
+    )
     random_curves = []
     for seed in (DEFAULT_SPLIT_SEED, DEFAULT_SPLIT_SEED + 1, DEFAULT_SPLIT_SEED + 2, DEFAULT_SPLIT_SEED + 3, DEFAULT_SPLIT_SEED + 4):
         random_scores = pd.Series(np.random.default_rng(seed).random(len(test)), index=test.index)
         random_curves.append(_qini_curve(test, random_scores))
     random_curve = {
-        "auuc": float(np.mean([curve["auuc"] for curve in random_curves])),
+        "raw_auqc": float(np.mean([curve["raw_auqc"] for curve in random_curves])),
+        "random_line_auqc": float(
+            np.mean([curve["random_line_auqc"] for curve in random_curves])
+        ),
+        "qini_coefficient": float(
+            np.mean([curve["qini_coefficient"] for curve in random_curves])
+        ),
         "qini_at": [
             {"fraction": fraction, "qini": float(np.mean([curve["qini_at"][index]["qini"] for curve in random_curves]))}
             for index, fraction in enumerate((0.10, 0.20, 0.30))
@@ -389,25 +411,42 @@ def evaluate_uplift_models(
         "permutations": 5,
         "seeds": [DEFAULT_SPLIT_SEED + offset for offset in range(5)],
     }
+    selected_beats_random = (
+        results[selected_learner]["test"]["qini_coefficient"]
+        > random_curve["qini_coefficient"]
+    )
     return {
         "benchmark": "criteo-uplift-v2.1-uplift-ranking",
         "outcome": "visit",
+        "metric": {
+            "curve": "Radcliffe-style cumulative Qini with local prefix arm ratio",
+            "raw_area": "trapezoidal AUQC over population fraction",
+            "qini_coefficient": "raw AUQC minus triangular random-targeting line area",
+            "normalized": False,
+        },
         "learners": results,
         "selection": {
-            "criterion": "highest validation AUUC; test is not used for selection",
+            "criterion": "highest validation Qini coefficient; test is not used for selection",
             "selected_learner": selected_learner,
         },
         "random_ranking_baseline": random_curve,
-        "split": {"seed": DEFAULT_SPLIT_SEED, "row_counts": counts, "ratios": {"train": 0.70, "validation": 0.15, "test": 0.15}},
+        "split": {
+            "method": "stable hash of pre-treatment features; independent of source row order",
+            "seed": DEFAULT_SPLIT_SEED,
+            "row_counts": counts,
+            "ratios": {"train": 0.70, "validation": 0.15, "test": 0.15},
+        },
         "coverage": {
             "train": _split_diagnostics(train),
             "validation": _split_diagnostics(validation),
             "test": _split_diagnostics(test),
         },
         "training": {
-            "cap_per_treatment_visit_stratum": train_cap_per_stratum,
+            "sampling": "deterministic pre-treatment-feature hash; independent of treatment and outcome",
+            "sample_modulus": train_sample_modulus,
+            "expected_fraction": 1 / train_sample_modulus,
             "rows_used": len(train),
-            "rows_by_treatment_visit_stratum": training_counts,
+            "rows_by_treatment_visit_stratum": _split_diagnostics(train)["strata"],
         },
         "features": list(FEATURE_COLUMNS),
         "boundaries": [
@@ -418,16 +457,18 @@ def evaluate_uplift_models(
         ],
         "gate": {
             "finite_model_metrics": all(
-                math.isfinite(results[name][split]["auuc"])
+                math.isfinite(results[name][split]["qini_coefficient"])
                 for name in results
                 for split in ("validation", "test")
             ),
             "test_rows_match_split": len(test) == counts["test"],
-            "beats_random_baseline": any(
-                results[name]["test"]["auuc"] > random_curve["auuc"] for name in results
-            ),
+            "selected_model_beats_random_baseline": selected_beats_random,
             "promotion_allowed": False,
-            "reason": "No automatic promotion; the locked test learner must beat random and pass a future policy review.",
+            "reason": (
+                "Ranking screen passed, but uncertainty and policy review are still required."
+                if selected_beats_random
+                else "Ranking screen failed; no learner may be promoted."
+            ),
         },
         "source": {"filename": path.name, "sha256": sha256_file(path), "raw_data_committed_to_git": False},
     }

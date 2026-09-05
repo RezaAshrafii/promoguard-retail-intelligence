@@ -18,21 +18,20 @@ are not features; `exposure` is post-treatment and is forbidden from the feature
 
 ## Data split
 
-The full publisher file is read in chunks. A deterministic arithmetic hash of the canonical row
-position assigns each row to one of:
+The full publisher file is read in chunks. A deterministic hash of pre-treatment features `f0`–`f11`
+assigns each row to one of:
 
 ```text
 train 70% | validation 15% | test 15%
 ```
 
-The test set is untouched until scores and model choices are frozen. The resulting treatment/outcome
-counts are reported so arm balance and class coverage can be checked explicitly. Because this split
-is tied to the publisher file's canonical row order, the source SHA-256 is recorded alongside the
-fixed seed; changing either invalidates exact reproduction.
+The assignment is independent of outcome, treatment, chunk size, and source row order. Identical
+feature vectors intentionally remain in the same split. Treatment/outcome counts are reported so arm
+balance and class coverage can be checked explicitly. The source SHA-256 and fixed seed are recorded.
 
-To keep local execution reproducible, training uses a predeclared cap per arm/outcome stratum from
-the real source. The cap is a computational constraint, not a claim that the data was synthesized.
-The test metrics use the complete held-out real rows.
+To keep local execution reproducible, training retains approximately one in twenty train rows using
+a second deterministic pre-treatment-feature hash. Sampling never reads treatment or outcome and
+therefore preserves source prevalence in expectation. Test metrics use every held-out row.
 
 ## Primary metric: Qini/AUUC
 
@@ -44,11 +43,13 @@ Qini(prefix) = treated_successes
 ```
 
 The cumulative Qini curve shows the incremental conversions/visits obtained by targeting the highest
-scored prefixes relative to withholding treatment from those prefixes. `AUUC` is the trapezoidal area
-under the cumulative Qini curve after normalizing x by the test population size. We report:
+scored prefixes relative to withholding treatment from those prefixes. `raw AUQC` is the trapezoidal
+area under the cumulative Qini curve with population fraction on x. The reported `Qini coefficient`
+is raw AUQC minus the triangular random-targeting line area; it is not normalized by a perfect curve.
+We report:
 
-- model AUUC;
-- random-ranking AUUC baseline;
+- model raw AUQC and Qini coefficient;
+- random-ranking Qini coefficient baseline;
 - Qini at 10%, 20%, and 30% of the ranked population;
 - arm counts and treatment fraction.
 
@@ -62,12 +63,12 @@ one observed outcome and the true counterfactual outcome is unavailable.
 The phase passes only when:
 
 1. no post-treatment column enters training;
-2. every split and cap is deterministic and recorded;
+2. every split and train sample is deterministic, outcome-independent, and recorded;
 3. the complete real test set is evaluated exactly once after model selection;
 4. both learners produce finite scores and preserve test-arm accounting;
 5. Qini curves report every ranked prefix and use an explicit zero-treatment-control convention;
-6. at least one learner beats the five-permutation random baseline AUUC in the locked test report;
-   otherwise the result is retained as a negative benchmark and no model is promoted;
+6. the validation-selected learner beats the five-permutation random Qini-coefficient baseline in the
+   test report; otherwise the result is retained as a negative benchmark and no model is promoted;
 7. the report states that Criteo evidence does not identify retail or Iranian impact.
 
 ## Phase 6.3 extension

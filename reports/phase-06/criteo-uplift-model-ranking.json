@@ -1,110 +1,126 @@
 {
   "benchmark": "criteo-uplift-v2.1-uplift-ranking",
   "outcome": "visit",
+  "metric": {
+    "curve": "Radcliffe-style cumulative Qini with local prefix arm ratio",
+    "raw_area": "trapezoidal AUQC over population fraction",
+    "qini_coefficient": "raw AUQC minus triangular random-targeting line area",
+    "normalized": false
+  },
   "learners": {
     "s_learner": {
       "validation": {
-        "auuc": 13117.846193621714,
+        "raw_auqc": 15272.8171014077,
+        "random_line_auqc": 9313.180129266431,
+        "qini_coefficient": 5959.636972141268,
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 1637.9548595701517
+            "qini": 8980.872043268406
           },
           {
             "fraction": 0.2,
-            "qini": 2914.757046089717
+            "qini": 13501.091132922971
           },
           {
             "fraction": 0.3,
-            "qini": 4095.5425516301493
+            "qini": 15437.194167348047
           }
         ],
-        "n": 2096938,
-        "qini_final": 18474.82160615502
+        "n": 2096515,
+        "qini_final": 18626.360258532863
       },
       "test": {
-        "auuc": 12363.48801157013,
+        "raw_auqc": 14860.580786322142,
+        "random_line_auqc": 8991.436829570383,
+        "qini_coefficient": 5869.143956751759,
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 1134.9785201373707
+            "qini": 9027.016980613225
           },
           {
             "fraction": 0.2,
-            "qini": 2803.9468843195737
+            "qini": 13516.998278687162
           },
           {
             "fraction": 0.3,
-            "qini": 4071.8246852546235
+            "qini": 15196.954045877952
           }
         ],
-        "n": 2096939,
-        "qini_final": 18194.45006358491
+        "n": 2097295,
+        "qini_final": 17982.873659140765
       }
     },
     "t_learner": {
       "validation": {
-        "auuc": 14575.875895039433,
+        "raw_auqc": 13369.800786070293,
+        "random_line_auqc": 9313.180129266431,
+        "qini_coefficient": 4056.6206568038615,
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 1850.5805214723923
+            "qini": 8958.88552142169
           },
           {
             "fraction": 0.2,
-            "qini": 2779.101549542719
+            "qini": 11950.428915742756
           },
           {
             "fraction": 0.3,
-            "qini": 4046.9164112683156
+            "qini": 13455.285166337948
           }
         ],
-        "n": 2096938,
-        "qini_final": 18474.82160615502
+        "n": 2096515,
+        "qini_final": 18626.360258532863
       },
       "test": {
-        "auuc": 13653.098101087271,
+        "raw_auqc": 13289.88009459728,
+        "random_line_auqc": 8991.436829570383,
+        "qini_coefficient": 4298.443265026897,
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 1845.3862611897657
+            "qini": 9627.367533669167
           },
           {
             "fraction": 0.2,
-            "qini": 2712.9657813934346
+            "qini": 12418.2915593847
           },
           {
             "fraction": 0.3,
-            "qini": 4162.155738049232
+            "qini": 13476.184879784741
           }
         ],
-        "n": 2096939,
-        "qini_final": 18194.45006358491
+        "n": 2097295,
+        "qini_final": 17982.873659140765
       }
     }
   },
   "selection": {
-    "criterion": "highest validation AUUC; test is not used for selection",
-    "selected_learner": "t_learner"
+    "criterion": "highest validation Qini coefficient; test is not used for selection",
+    "selected_learner": "s_learner"
   },
   "random_ranking_baseline": {
-    "auuc": 18319.6214109373,
+    "raw_auqc": 8990.98651714462,
+    "random_line_auqc": 8991.436829570383,
+    "qini_coefficient": -0.4503124257615127,
     "qini_at": [
       {
         "fraction": 0.1,
-        "qini": 1865.4464518157806
+        "qini": 1759.9733000618787
       },
       {
         "fraction": 0.2,
-        "qini": 3666.711989049395
+        "qini": 3558.5269730696773
       },
       {
         "fraction": 0.3,
-        "qini": 5598.229042437179
+        "qini": 5391.42690822218
       }
     ],
-    "n": 2096939,
-    "qini_final": 18194.45006358491,
+    "n": 2097295,
+    "qini_final": 17982.873659140765,
     "permutations": 5,
     "seeds": [
       20260905,
@@ -115,11 +131,12 @@
     ]
   },
   "split": {
+    "method": "stable hash of pre-treatment features; independent of source row order",
     "seed": 20260905,
     "row_counts": {
-      "train": 9785715,
-      "validation": 2096938,
-      "test": 2096939
+      "train": 9785782,
+      "validation": 2096515,
+      "test": 2097295
     },
     "ratios": {
       "train": 0.7,
@@ -129,50 +146,52 @@
   },
   "coverage": {
     "train": {
-      "rows": 356058,
-      "treatment_fraction": 0.5617062388711952,
+      "rows": 503320,
+      "treatment_fraction": 0.8496284669792578,
       "strata": {
-        "00": 100000,
-        "01": 56058,
-        "10": 100000,
-        "11": 100000
+        "00": 72733,
+        "01": 2952,
+        "10": 406656,
+        "11": 20979
       },
       "both_treatment_arms_present": true,
       "both_outcome_classes_present": true
     },
     "validation": {
-      "rows": 2096938,
-      "treatment_fraction": 0.8500003338200748,
+      "rows": 2096515,
+      "treatment_fraction": 0.8501894811150886,
       "strata": {
-        "00": 302516,
-        "01": 12024,
-        "10": 1695787,
-        "11": 86611
+        "00": 302026,
+        "01": 12054,
+        "10": 1695401,
+        "11": 87034
       },
       "both_treatment_arms_present": true,
       "both_outcome_classes_present": true
     },
     "test": {
-      "rows": 2096939,
-      "treatment_fraction": 0.8500004053527547,
+      "rows": 2097295,
+      "treatment_fraction": 0.8502494880310114,
       "strata": {
-        "00": 302517,
-        "01": 12023,
-        "10": 1696074,
-        "11": 86325
+        "00": 302055,
+        "01": 12016,
+        "10": 1697017,
+        "11": 86207
       },
       "both_treatment_arms_present": true,
       "both_outcome_classes_present": true
     }
   },
   "training": {
-    "cap_per_treatment_visit_stratum": 100000,
-    "rows_used": 356058,
+    "sampling": "deterministic pre-treatment-feature hash; independent of treatment and outcome",
+    "sample_modulus": 20,
+    "expected_fraction": 0.05,
+    "rows_used": 503320,
     "rows_by_treatment_visit_stratum": {
-      "00": 100000,
-      "01": 56058,
-      "10": 100000,
-      "11": 100000
+      "00": 72733,
+      "01": 2952,
+      "10": 406656,
+      "11": 20979
     }
   },
   "features": [
@@ -198,9 +217,9 @@
   "gate": {
     "finite_model_metrics": true,
     "test_rows_match_split": true,
-    "beats_random_baseline": false,
+    "selected_model_beats_random_baseline": true,
     "promotion_allowed": false,
-    "reason": "No automatic promotion; the locked test learner must beat random and pass a future policy review."
+    "reason": "Ranking screen passed, but uncertainty and policy review are still required."
   },
   "source": {
     "filename": "criteo-uplift-v2.1.csv.gz",

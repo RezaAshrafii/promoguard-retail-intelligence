@@ -372,6 +372,11 @@ Deliverables and gate:
 - **Main-review stop point:** development is paused after the Phase 6.3 audit. The review packet is
   `docs/phase-06-main-review-checklist-fa.md`; the next implementation decision must follow the
   reviewer’s answers on Qini convention, uncertainty, split design, and nonlinear learners.
+- **Phase 6.4 correctness repair in progress on 2026-09-05:** row-order splitting, outcome-dependent
+  train sampling, trapezoid scaling, ambiguous metric names, and the any-learner test gate were
+  replaced. The corrected full test run selects S-Learner on validation and reports a test Qini
+  coefficient of 5,869.14 versus a five-permutation random baseline of -0.45. Promotion remains
+  disabled until uncertainty and convergence gates pass.
 - Pre-trend, overlap, placebo, missingness, sensitivity, and coverage diagnostics.
 - Statistical tests use documented splits and confidence intervals, not a single lucky run.
 - Gate: Criteo results use the dataset’s treatment/outcome definitions; retail outputs abstain when the public data cannot identify a causal effect.

@@ -19,10 +19,13 @@ def test_phase_06_report_is_locked_and_conservative() -> None:
     assert report["gate"]["promotion_allowed"] is False
 
 
-def test_phase_06_report_preserves_negative_gate_result() -> None:
+def test_phase_06_report_gate_matches_selected_model_comparison() -> None:
     report = json.loads(REPORT.read_text(encoding="utf-8"))
-    baseline = report["random_ranking_baseline"]["auuc"]
-    model_auucs = [result["test"]["auuc"] for result in report["learners"].values()]
+    baseline = report["random_ranking_baseline"]["qini_coefficient"]
+    selected = report["selection"]["selected_learner"]
+    selected_qini = report["learners"][selected]["test"]["qini_coefficient"]
 
-    assert report["gate"]["beats_random_baseline"] is False
-    assert all(auuc < baseline for auuc in model_auucs)
+    expected = selected_qini > baseline
+
+    assert report["gate"]["selected_model_beats_random_baseline"] is expected
+    assert report["gate"]["promotion_allowed"] is False

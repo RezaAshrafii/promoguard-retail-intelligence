@@ -4,7 +4,10 @@ import pandas as pd
 import pytest
 
 from promoguard.causal.criteo_uplift import (
+    DEFAULT_SPLIT_SEED,
     FEATURE_COLUMNS,
+    _qini_curve,
+    _split_bucket,
     summarize_criteo_uplift_chunks,
     validate_criteo_uplift_frame,
 )
@@ -83,3 +86,28 @@ def test_summary_refuses_invalid_chunk_before_aggregation() -> None:
 
     with pytest.raises(ValueError, match="contract failed"):
         summarize_criteo_uplift_chunks([frame])
+
+
+def test_feature_hash_split_is_invariant_to_row_order() -> None:
+    frame = criteo_test_fixture().reset_index(names="row_id")
+    original = dict(zip(frame["row_id"], _split_bucket(frame, DEFAULT_SPLIT_SEED), strict=True))
+    shuffled = frame.sample(frac=1, random_state=42).reset_index(drop=True)
+    reordered = dict(
+        zip(shuffled["row_id"], _split_bucket(shuffled, DEFAULT_SPLIT_SEED), strict=True)
+    )
+
+    assert original == reordered
+
+
+def test_qini_area_uses_trapezoids_and_reports_random_line_separately() -> None:
+    frame = criteo_test_fixture()
+    frame["treatment"] = [1, 0, 1, 0]
+    frame["visit"] = [1, 0, 0, 1]
+    scores = pd.Series([4.0, 3.0, 2.0, 1.0])
+
+    result = _qini_curve(frame, scores)
+
+    assert result["qini_final"] == pytest.approx(0.0)
+    assert result["raw_auqc"] == pytest.approx(0.75)
+    assert result["random_line_auqc"] == pytest.approx(0.0)
+    assert result["qini_coefficient"] == pytest.approx(0.75)
