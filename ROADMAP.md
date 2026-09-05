@@ -369,6 +369,9 @@ Deliverables and gate:
   (`T-Learner` selected), test coverage is reported by treatment/outcome stratum, and a machine-
   readable gate confirms finite metrics, complete test accounting, no random-baseline win, and
   `promotion_allowed=false`.
+- **Main-review stop point:** development is paused after the Phase 6.3 audit. The review packet is
+  `docs/phase-06-main-review-checklist-fa.md`; the next implementation decision must follow the
+  reviewer’s answers on Qini convention, uncertainty, split design, and nonlinear learners.
 - Pre-trend, overlap, placebo, missingness, sensitivity, and coverage diagnostics.
 - Statistical tests use documented splits and confidence intervals, not a single lucky run.
 - Gate: Criteo results use the dataset’s treatment/outcome definitions; retail outputs abstain when the public data cannot identify a causal effect.
