@@ -24,6 +24,8 @@
 | S-Learner غیرخطی Qini coefficient | 6,553.73 |
 | مدل منتخب روی validation | `s_learner_hist_gb` |
 | فاصلهٔ اطمینان ۹۵٪ مدل منتخب | [5,953.79, 7,153.86] |
+| final audit subset | 224,078 rows; Qini 869.58 |
+| final audit subset CI 95% | [698.65, 1,015.23] |
 | random baseline Qini coefficient | -0.45 |
 | propensity test ROC-AUC | 0.5086 |
 | common support | 100% |
@@ -46,11 +48,12 @@ T-Learner در test عدد بالاتری دارد، اما روی validation ب
 ## محدودیت‌های باز
 
 1. test در طول توسعه چند بار مشاهده شده و برای مقاله نباید final untouched holdout نامیده شود.
-2. bootstrap فعلی ranking را ثابت نگه می‌دارد و uncertainty ناشی از refit مدل را اندازه نمی‌گیرد.
-3. پنج random permutation برای sanity check است، نه فاصلهٔ اطمینان baseline.
-4. تنظیمات boosting فقط یک configuration ثابت است و tuning گسترده انجام نشده است.
-5. معیار Qini نرمال‌شده با perfect curve گزارش نشده؛ convention دقیق فعلی داخل artifact ثبت شده است.
-6. دیتاست به بازار ایران، SKU، قیمت، هزینه یا موجودی مربوط نیست.
+2. final audit subset از parent development test جداست، اما parent test قبلاً در توسعه مشاهده شده است.
+3. bootstrap فعلی ranking را ثابت نگه می‌دارد و uncertainty ناشی از refit مدل را اندازه نمی‌گیرد.
+4. پنج random permutation برای sanity check است، نه فاصلهٔ اطمینان baseline.
+5. تنظیمات boosting فقط یک configuration ثابت است و tuning گسترده انجام نشده است.
+6. معیار Qini نرمال‌شده با perfect curve گزارش نشده؛ convention دقیق فعلی داخل artifact ثبت شده است.
+7. دیتاست به بازار ایران، SKU، قیمت، هزینه یا موجودی مربوط نیست.
 
 ## پرسش‌های بازبین سطح بالا
 

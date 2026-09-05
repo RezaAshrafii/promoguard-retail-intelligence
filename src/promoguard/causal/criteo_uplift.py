@@ -583,6 +583,15 @@ def evaluate_uplift_models(
     selected_uncertainty = _poisson_bootstrap_qini(
         test, scores[selected_learner]["test"]
     )
+    audit_mask = _stable_row_hash(test, DEFAULT_SPLIT_SEED + 5_000).mod(10).eq(0)
+    final_audit = test.loc[audit_mask].reset_index(drop=True)
+    final_audit_score = scores[selected_learner]["test"].loc[audit_mask].reset_index(drop=True)
+    final_audit_curve = _qini_curve(final_audit, final_audit_score)
+    final_audit_uncertainty = _poisson_bootstrap_qini(
+        final_audit,
+        final_audit_score,
+        seed=DEFAULT_SPLIT_SEED + 6_000,
+    )
     balance = {
         "train": _frame_balance(train),
         "validation": _frame_balance(validation),
@@ -605,6 +614,15 @@ def evaluate_uplift_models(
         },
         "convergence": convergence,
         "selected_model_uncertainty": selected_uncertainty,
+        "final_audit_holdout": {
+            "method": "independent feature-hash subset of development test; learner and hyperparameters frozen",
+            "seed": DEFAULT_SPLIT_SEED + 5_000,
+            "rows": len(final_audit),
+            "selected_learner": selected_learner,
+            "curve": final_audit_curve,
+            "uncertainty": final_audit_uncertainty,
+            "publication_status": "not a pristine publication holdout because the parent development test was previously observed",
+        },
         "covariate_balance": balance,
         "randomization_diagnostics": randomization,
         "random_ranking_baseline": random_curve,

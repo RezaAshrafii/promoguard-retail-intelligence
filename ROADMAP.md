@@ -384,6 +384,9 @@ Deliverables and gate:
 - **Release Gate 6.7 — REVIEW READY on 2026-09-05:** version 0.6.0 freezes the corrected real-data
   artifact, 90-test suite, quality report, and Persian main-review checklist. Development pauses here
   for an independent high-capability review. `promotion_allowed=false` remains mandatory.
+- Final audit subset completed after model freeze: 224,078 rows, Qini coefficient 869.58, and
+  fixed-ranking bootstrap 95% interval [698.65, 1,015.23]. It is explicitly not a pristine paper
+  holdout because its parent development test was previously observed.
 - Pre-trend, overlap, placebo, missingness, sensitivity, and coverage diagnostics.
 - Statistical tests use documented splits and confidence intervals, not a single lucky run.
 - Gate: Criteo results use the dataset’s treatment/outcome definitions; retail outputs abstain when the public data cannot identify a causal effect.

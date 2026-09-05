@@ -7,6 +7,12 @@
   "selected_learner": "s_learner_hist_gb",
   "selected_test_qini_coefficient": 6553.725458347491,
   "selected_fixed_ranking_bootstrap_95_ci": [5953.787898662527, 7153.860482480762],
+  "final_audit_subset": {
+    "rows": 224078,
+    "qini_coefficient": 869.5811684854079,
+    "bootstrap_95_ci": [698.6471677242695, 1015.2262941291518],
+    "publication_status": "not a pristine publication holdout"
+  },
   "propensity_test_roc_auc": 0.5085875936823478,
   "common_support_fraction": 1.0,
   "maximum_absolute_test_smd": 0.0480103032274927,

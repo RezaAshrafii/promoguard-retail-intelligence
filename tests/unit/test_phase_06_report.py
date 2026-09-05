@@ -27,6 +27,9 @@ def test_phase_06_report_is_locked_and_conservative() -> None:
     assert report["gate"]["randomization_auc_acceptable"] is True
     assert report["gate"]["common_support_acceptable"] is True
     assert report["gate"]["promotion_allowed"] is False
+    assert report["final_audit_holdout"]["rows"] > 0
+    assert report["final_audit_holdout"]["selected_learner"] == report["selection"]["selected_learner"]
+    assert report["final_audit_holdout"]["publication_status"].startswith("not a pristine")
 
 
 def test_phase_06_report_gate_matches_selected_model_comparison() -> None:
