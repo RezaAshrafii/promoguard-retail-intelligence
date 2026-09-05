@@ -58,7 +58,7 @@ def _load_valid_panel(input_path: str) -> pd.DataFrame:
             detail=f"Local input must remain under the configured data root: {LOCAL_DATA_ROOT}",
         ) from error
     try:
-        panel = load_weekly_panel(resolved_input)
+        panel = load_weekly_panel(resolved_input, max_bytes=MAX_UPLOAD_BYTES)
     except FileNotFoundError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except ValueError as error:
@@ -124,15 +124,15 @@ def list_promotions(request: PromotionListRequest) -> dict[str, object]:
 @app.post("/v1/audits", response_model=PromotionAuditResult)
 def create_audit(request: AuditRequest) -> PromotionAuditResult:
     panel = _load_valid_panel(request.input_path)
-    if request.store_id is None:
-        selection = select_representative_event(panel)
-    else:
-        selection = {
-            "store_id": request.store_id,
-            "upc": request.upc,
-            "start_date": request.start_date,
-        }
     try:
+        if request.store_id is None:
+            selection = select_representative_event(panel)
+        else:
+            selection = {
+                "store_id": request.store_id,
+                "upc": request.upc,
+                "start_date": request.start_date,
+            }
         return audit_promotion_event(
             panel,
             store_id=str(selection["store_id"]),

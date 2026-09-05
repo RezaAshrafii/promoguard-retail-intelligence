@@ -6,6 +6,7 @@ from datetime import date
 from enum import StrEnum
 from typing import Any, Literal
 
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -190,8 +191,10 @@ def prepare_audit_panel(panel: pd.DataFrame) -> pd.DataFrame:
     result["week_end_date"] = pd.to_datetime(result["week_end_date"], errors="coerce")
     if result["week_end_date"].isna().any():
         raise ValueError("Audit panel contains invalid week_end_date values.")
-    if result["units"].isna().any() or (result["units"] < 0).any():
-        raise ValueError("Audit panel units must be present and non-negative.")
+    result["units"] = pd.to_numeric(result["units"], errors="coerce")
+    if result["units"].isna().any() or (~np.isfinite(result["units"])).any() or (result["units"] < 0).any():
+        raise ValueError("Audit panel units must be finite, present, and non-negative.")
+    result["promotion_flag"] = pd.to_numeric(result["promotion_flag"], errors="coerce")
     if not result["promotion_flag"].isin([0, 1]).all():
         raise ValueError("Audit panel promotion_flag must contain only 0 or 1.")
     if result.duplicated(GROUP_COLUMNS + ["week_end_date"]).any():

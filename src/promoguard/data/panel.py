@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from promoguard.data.grain import (
@@ -67,6 +68,7 @@ def validate_canonical_panel(frame: pd.DataFrame, *, max_rows: int = 1_000_000) 
         "duplicate_grain_rows": None,
         "negative_units_rows": None,
         "missing_units_rows": None,
+        "non_finite_units_rows": None,
         "invalid_promotion_rows": None,
         "promotion_rows": None,
         "series": None,
@@ -86,6 +88,10 @@ def validate_canonical_panel(frame: pd.DataFrame, *, max_rows: int = 1_000_000) 
     parsed_dates = pd.to_datetime(raw_dates, errors="coerce", format="mixed")
     units = pd.to_numeric(working["units"], errors="coerce")
     promotions = pd.to_numeric(working["promotion_flag"], errors="coerce")
+    working["week_end_date"] = parsed_dates
+    working["units"] = units
+    working["promotion_flag"] = promotions
+    non_finite_units = units.notna() & ~np.isfinite(units)
     report.update(
         {
             "date_parse_errors": int(parsed_dates.isna().sum()),
@@ -94,6 +100,7 @@ def validate_canonical_panel(frame: pd.DataFrame, *, max_rows: int = 1_000_000) 
             "duplicate_grain_rows": int(working.duplicated(CANONICAL_GRAIN).sum()),
             "negative_units_rows": int((units < 0).sum()),
             "missing_units_rows": int(units.isna().sum()),
+            "non_finite_units_rows": int(non_finite_units.sum()),
             "invalid_promotion_rows": int((~promotions.isin([0, 1])).sum()),
             "promotion_rows": int(promotions.eq(1).sum()),
             "series": int(working[["store_id", "upc"]].drop_duplicates().shape[0]),
@@ -112,6 +119,7 @@ def validate_canonical_panel(frame: pd.DataFrame, *, max_rows: int = 1_000_000) 
         report["duplicate_grain_rows"],
         report["negative_units_rows"],
         report["missing_units_rows"],
+        report["non_finite_units_rows"],
         report["invalid_promotion_rows"],
     ]
     report["valid"] = not any(fatal_values)

@@ -48,6 +48,21 @@ def test_quality_report_flags_duplicate_grain() -> None:
     assert report["valid"] is False
 
 
+def test_quality_report_rejects_non_finite_or_missing_units() -> None:
+    infinite = valid_frame()
+    infinite["UNITS"] = infinite["UNITS"].astype("float64")
+    infinite.loc[0, "UNITS"] = float("inf")
+    infinite_report = validate_transactions(infinite)
+    assert infinite_report["numeric_non_finite_values"]["UNITS"] == 1
+    assert infinite_report["valid"] is False
+
+    missing = valid_frame()
+    missing.loc[0, "UNITS"] = None
+    missing_report = validate_transactions(missing)
+    assert missing_report["numeric_missing_values"]["UNITS"] == 1
+    assert missing_report["valid"] is False
+
+
 @pytest.mark.parametrize(
     ("column", "value"),
     [("STORE_NUM", None), ("STORE_NUM", "   "), ("UPC", None), ("UPC", "")],

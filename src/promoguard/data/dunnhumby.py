@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from promoguard.data.grain import missing_identifier_counts
@@ -108,6 +109,16 @@ def validate_transactions(frame: pd.DataFrame) -> dict[str, Any]:
         working["WEEK_END_DATE"] = parsed_dates
 
     numeric_parse_errors = _non_numeric_counts(working, NUMERIC_COLUMNS)
+    numeric_non_finite_values = {
+        column: int(
+            (
+                pd.to_numeric(working[column], errors="coerce").notna()
+                & ~np.isfinite(pd.to_numeric(working[column], errors="coerce"))
+            ).sum()
+        )
+        for column in NUMERIC_COLUMNS
+        if column in working
+    }
     missing_grain_identifiers = missing_identifier_counts(working, ["STORE_NUM", "UPC"])
     grain_identifier_parse_errors = _non_numeric_counts(working, ["STORE_NUM", "UPC"])
     numeric_missing_values = {
@@ -163,11 +174,13 @@ def validate_transactions(frame: pd.DataFrame) -> dict[str, Any]:
         duplicate_rows or 0,
         promotion_flag_conflicts,
         *numeric_parse_errors.values(),
+        *numeric_non_finite_values.values(),
         *missing_grain_identifiers.values(),
         *grain_identifier_parse_errors.values(),
         *negative_values.values(),
         *invalid_promotion_values.values(),
         *missing_promotion_values.values(),
+        numeric_missing_values.get("UNITS", 0),
     ]
     warnings = []
     if any(numeric_missing_values.values()):
@@ -189,6 +202,7 @@ def validate_transactions(frame: pd.DataFrame) -> dict[str, Any]:
         "date_missing_values": date_missing_values,
         "global_week_gaps": global_week_gaps,
         "numeric_parse_errors": numeric_parse_errors,
+        "numeric_non_finite_values": numeric_non_finite_values,
         "missing_grain_identifiers": missing_grain_identifiers,
         "grain_identifier_parse_errors": grain_identifier_parse_errors,
         "numeric_missing_values": numeric_missing_values,

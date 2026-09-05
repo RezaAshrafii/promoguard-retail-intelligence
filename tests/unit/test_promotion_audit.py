@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 import pandas as pd
+import pytest
 
 from promoguard.insights.promotion_audit import (
     AuditPolicy,
@@ -232,6 +233,17 @@ def test_audit_domain_rejects_blank_grain_identifier() -> None:
         assert "upc=1" in str(error)
     else:
         raise AssertionError("Blank UPC must be rejected before audit logic.")
+
+
+def test_audit_domain_normalizes_numeric_strings_and_rejects_infinity() -> None:
+    panel = audit_fixture()
+    panel["units"] = panel["units"].astype(str)
+    panel["promotion_flag"] = panel["promotion_flag"].astype(str)
+    assert run_audit(panel).observed_units == 60
+
+    panel.loc[0, "units"] = "inf"
+    with pytest.raises(ValueError, match="finite"):
+        run_audit(panel)
 
 
 def test_post_event_values_do_not_change_during_event_estimate() -> None:

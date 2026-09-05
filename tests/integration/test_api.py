@@ -92,6 +92,19 @@ def test_missing_local_panel_returns_not_found(client: TestClient, tmp_path: Pat
     assert response.status_code == 404
 
 
+def test_oversized_local_panel_is_rejected_before_loading(
+    client: TestClient,
+    panel_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(api_module, "MAX_UPLOAD_BYTES", 1)
+
+    response = client.post("/v1/panels/validate", json={"input_path": str(panel_path)})
+
+    assert response.status_code == 400
+    assert "limit is 1 bytes" in response.json()["detail"]
+
+
 def test_local_path_outside_configured_data_root_is_forbidden(
     client: TestClient, tmp_path: Path
 ) -> None:
@@ -134,6 +147,37 @@ def test_csv_upload_returns_quality_report(client: TestClient) -> None:
     )
     assert response.status_code == 200
     assert response.json()["valid"] is True
+
+
+def test_upload_rejects_non_finite_units_without_serialization_failure(
+    client: TestClient,
+) -> None:
+    panel = realistic_panel()
+    panel.loc[0, "units"] = float("inf")
+    content = panel.to_csv(index=False).encode("utf-8")
+
+    response = client.post(
+        "/v1/panels/validate-upload",
+        files={"file": ("weekly_panel.csv", content, "text/csv")},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["valid"] is False
+    assert response.json()["non_finite_units_rows"] == 1
+
+
+def test_auto_audit_without_an_eligible_event_returns_422(
+    client: TestClient, tmp_path: Path
+) -> None:
+    panel = realistic_panel()
+    panel["promotion_flag"] = 0
+    path = tmp_path / "no-events.csv"
+    panel.to_csv(path, index=False)
+
+    response = client.post("/v1/audits", json={"input_path": str(path)})
+
+    assert response.status_code == 422
+    assert "No promotion episode" in response.json()["detail"]
 
 
 def test_malformed_upload_is_reported_without_analysis(client: TestClient) -> None:

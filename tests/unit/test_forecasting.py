@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 from promoguard.forecasting.evaluation import (
     TimeSplit,
@@ -96,6 +97,28 @@ def test_forecast_domain_rejects_blank_grain_identifier() -> None:
         assert "store_id=1" in str(error)
     else:
         raise AssertionError("Missing store_id must be rejected before forecasting.")
+
+
+def test_forecast_domain_normalizes_numeric_strings_and_rejects_infinity() -> None:
+    panel = panel_fixture()
+    panel["units"] = panel["units"].astype(str)
+    panel["promotion_flag"] = panel["promotion_flag"].astype(str)
+    prepared = prepare_panel(panel)
+    assert prepared["units"].dtype.kind in "fi"
+
+    panel.loc[0, "units"] = "inf"
+    with pytest.raises(ValueError, match="finite"):
+        prepare_panel(panel)
+
+
+def test_forecast_refuses_non_positive_seasonal_period() -> None:
+    panel = panel_fixture()
+    split = make_rolling_splits(
+        panel["week_end_date"].unique(), min_train_weeks=8, horizon=2, max_folds=1
+    )[0]
+
+    with pytest.raises(ValueError, match="seasonal_period must be positive"):
+        forecast_split(panel, split, seasonal_period=0)
 
 
 def test_backtest_returns_baselines_and_segment_metrics() -> None:

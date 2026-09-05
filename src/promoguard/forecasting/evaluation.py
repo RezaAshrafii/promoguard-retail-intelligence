@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from promoguard.data.grain import normalize_required_identifiers
@@ -36,8 +37,10 @@ def prepare_panel(panel: pd.DataFrame) -> pd.DataFrame:
     result["week_end_date"] = pd.to_datetime(result["week_end_date"], errors="coerce")
     if result["week_end_date"].isna().any():
         raise ValueError("Forecast panel contains invalid week_end_date values.")
-    if result["units"].isna().any() or (result["units"] < 0).any():
-        raise ValueError("Forecast panel units must be present and non-negative.")
+    result["units"] = pd.to_numeric(result["units"], errors="coerce")
+    if result["units"].isna().any() or (~np.isfinite(result["units"])).any() or (result["units"] < 0).any():
+        raise ValueError("Forecast panel units must be finite, present, and non-negative.")
+    result["promotion_flag"] = pd.to_numeric(result["promotion_flag"], errors="coerce")
     if not result["promotion_flag"].isin([0, 1]).all():
         raise ValueError("Forecast panel promotion_flag must contain only 0 or 1.")
     if result.duplicated(GROUP_COLUMNS + ["week_end_date"]).any():
@@ -183,6 +186,8 @@ def forecast_split(
     exclude_promotions: bool = True,
 ) -> pd.DataFrame:
     """Forecast one test window using only rows available at the split cutoff."""
+    if seasonal_period < 1:
+        raise ValueError("seasonal_period must be positive.")
     prepared = prepare_panel(panel)
     history = prepared[prepared["week_end_date"] <= split.train_end].copy()
     if exclude_promotions:

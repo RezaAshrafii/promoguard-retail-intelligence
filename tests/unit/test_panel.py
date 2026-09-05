@@ -33,6 +33,7 @@ def test_valid_panel_returns_application_metrics() -> None:
         (lambda frame: frame.drop(columns="units"), "missing_required_columns"),
         (lambda frame: frame.assign(week_end_date=["bad-date", "2024-01-14"]), "date_parse_errors"),
         (lambda frame: frame.assign(units=[-1, 2]), "negative_units_rows"),
+        (lambda frame: frame.assign(units=[float("inf"), 2]), "non_finite_units_rows"),
         (lambda frame: frame.assign(promotion_flag=[0, 2]), "invalid_promotion_rows"),
         (lambda frame: frame.assign(store_id=[None, "1"]), "missing_store_id_rows"),
         (lambda frame: frame.assign(store_id=["   ", "1"]), "missing_store_id_rows"),
@@ -59,6 +60,16 @@ def test_duplicate_grain_is_checked_after_identifier_normalization() -> None:
     assert report["valid"] is False
 
 
+def test_duplicate_grain_is_checked_after_date_normalization() -> None:
+    panel = canonical_panel()
+    panel.loc[1, "week_end_date"] = "2024-01-07T00:00:00"
+
+    report = validate_canonical_panel(panel)
+
+    assert report["duplicate_grain_rows"] == 1
+    assert report["valid"] is False
+
+
 def test_row_safety_limit_is_enforced() -> None:
     report = validate_canonical_panel(canonical_panel(), max_rows=1)
     assert report["oversized_row_count"] is True
@@ -74,3 +85,11 @@ def test_loader_resolves_processed_directory(tmp_path) -> None:
 def test_loader_rejects_missing_panel(tmp_path) -> None:
     with pytest.raises(FileNotFoundError, match="Weekly panel not found"):
         load_weekly_panel(tmp_path)
+
+
+def test_loader_rejects_a_local_file_above_its_byte_limit(tmp_path) -> None:
+    path = tmp_path / "weekly_panel.csv"
+    canonical_panel().to_csv(path, index=False)
+
+    with pytest.raises(ValueError, match="limit is 1 bytes"):
+        load_weekly_panel(path, max_bytes=1)
