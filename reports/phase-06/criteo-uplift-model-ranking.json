@@ -10,42 +10,42 @@
   "learners": {
     "s_learner": {
       "validation": {
-        "raw_auqc": 15272.8171014077,
+        "raw_auqc": 15252.432085815886,
         "random_line_auqc": 9313.180129266431,
-        "qini_coefficient": 5959.636972141268,
+        "qini_coefficient": 5939.251956549455,
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 8980.872043268406
+            "qini": 8926.11899876898
           },
           {
             "fraction": 0.2,
-            "qini": 13501.091132922971
+            "qini": 13457.140460657698
           },
           {
             "fraction": 0.3,
-            "qini": 15437.194167348047
+            "qini": 15362.209432192481
           }
         ],
         "n": 2096515,
         "qini_final": 18626.360258532863
       },
       "test": {
-        "raw_auqc": 14860.580786322142,
+        "raw_auqc": 14844.32779993236,
         "random_line_auqc": 8991.436829570383,
-        "qini_coefficient": 5869.143956751759,
+        "qini_coefficient": 5852.890970361977,
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 9027.016980613225
+            "qini": 9065.581017088734
           },
           {
             "fraction": 0.2,
-            "qini": 13516.998278687162
+            "qini": 13473.4631828192
           },
           {
             "fraction": 0.3,
-            "qini": 15196.954045877952
+            "qini": 15170.15987720176
           }
         ],
         "n": 2097295,
@@ -54,42 +54,42 @@
     },
     "t_learner": {
       "validation": {
-        "raw_auqc": 13369.800786070293,
+        "raw_auqc": 15409.655077803003,
         "random_line_auqc": 9313.180129266431,
-        "qini_coefficient": 4056.6206568038615,
+        "qini_coefficient": 6096.474948536572,
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 8958.88552142169
+            "qini": 11578.802026141479
           },
           {
             "fraction": 0.2,
-            "qini": 11950.428915742756
+            "qini": 13869.382410685816
           },
           {
             "fraction": 0.3,
-            "qini": 13455.285166337948
+            "qini": 15294.77877275557
           }
         ],
         "n": 2096515,
         "qini_final": 18626.360258532863
       },
       "test": {
-        "raw_auqc": 13289.88009459728,
+        "raw_auqc": 15702.82153291678,
         "random_line_auqc": 8991.436829570383,
-        "qini_coefficient": 4298.443265026897,
+        "qini_coefficient": 6711.384703346397,
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 9627.367533669167
+            "qini": 11855.10304150085
           },
           {
             "fraction": 0.2,
-            "qini": 12418.2915593847
+            "qini": 14413.743002715113
           },
           {
             "fraction": 0.3,
-            "qini": 13476.184879784741
+            "qini": 15777.412595965885
           }
         ],
         "n": 2097295,
@@ -99,7 +99,37 @@
   },
   "selection": {
     "criterion": "highest validation Qini coefficient; test is not used for selection",
-    "selected_learner": "s_learner"
+    "selected_learner": "t_learner"
+  },
+  "convergence": {
+    "s_learner": {
+      "pipelines": 1,
+      "iterations": [
+        18
+      ],
+      "max_iter": 1000,
+      "all_converged": true,
+      "scaled": true
+    },
+    "t_learner": {
+      "pipelines": 2,
+      "iterations": [
+        20,
+        18
+      ],
+      "max_iter": 1000,
+      "all_converged": true,
+      "scaled": true
+    }
+  },
+  "selected_model_uncertainty": {
+    "method": "Poisson(1) multiplier bootstrap conditional on the frozen ranking",
+    "replicates": 50,
+    "seed": 20263905,
+    "standard_error": 273.0595581313632,
+    "confidence_level": 0.95,
+    "ci_lower": 6236.361059189794,
+    "ci_upper": 7221.654123977556
   },
   "random_ranking_baseline": {
     "raw_auqc": 8990.98651714462,
@@ -216,6 +246,8 @@
   ],
   "gate": {
     "finite_model_metrics": true,
+    "all_models_converged": true,
+    "selected_model_ci_above_zero": true,
     "test_rows_match_split": true,
     "selected_model_beats_random_baseline": true,
     "promotion_allowed": false,

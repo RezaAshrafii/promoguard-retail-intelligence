@@ -79,5 +79,13 @@ coverage for train, validation, and test, plus an explicit machine-readable gate
 passes, `promotion_allowed` remains false until cost, capacity, harm, fairness, calibration, and a
 fresh holdout review are completed.
 
+## Phase 6.4 uncertainty and convergence repair
+
+Every logistic model now runs after `StandardScaler`, and the report records solver iteration counts.
+Reaching `max_iter` fails the convergence gate. For the validation-selected learner, the test ranking
+is frozen and evaluated with 50 reproducible Poisson(1) multiplier-bootstrap replicates. The reported
+95% percentile interval is conditional on that frozen ranking: it measures test-population evaluation
+noise, not model-refit uncertainty, transportability, or business-policy uncertainty.
+
 No threshold for automatic targeting is introduced. A future policy requires cost, capacity, treatment
 harm, fairness, calibration, and a fresh holdout review.

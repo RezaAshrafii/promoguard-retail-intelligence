@@ -52,9 +52,11 @@ AUUC مدل‌ها، AUUC انتخاب تصادفی، Qini در ۱۰/۲۰/۳۰ �
 ## نتیجهٔ اجرای واقعی فعلی
 
 پس از اصلاح split، sampling و فرمول مساحت، اجرای ۵ سپتامبر ۲۰۲۶ روی کل test واقعی با ۲٬۰۹۷٬۲۹۵
-ردیف انجام شد. Qini coefficient مدل S برابر ۵٬۸۶۹٫۱۴ و مدل T برابر ۴٬۲۹۸٫۴۴ بود؛ baseline پنج
-permutation برابر منفی ۰٫۴۵ شد. S-Learner با validation انتخاب شد و ranking screen را گذراند؛ اما
-`promotion_allowed` همچنان false است تا confidence interval و بازبینی سیاست تکمیل شوند.
+ردیف انجام شد. بعد از استانداردسازی ویژگی‌ها، Qini coefficient مدل S برابر ۵٬۸۵۲٫۸۹ و مدل T برابر
+۶٬۷۱۱٫۳۸ بود؛ baseline پنج permutation برابر منفی ۰٫۴۵ شد. T-Learner با validation انتخاب شد.
+فاصلهٔ اطمینان bootstrap برای مدل منتخب از ۶٬۲۳۶٫۳۶ تا ۷٬۲۲۱٫۶۵ است و کاملاً بالاتر از صفر قرار
+دارد. هر سه مدل logistic نیز با ۱۸ تا ۲۰ iteration، بسیار قبل از سقف ۱۰۰۰، همگرا شدند. با وجود این،
+`promotion_allowed` همچنان false است چون این فاصله فقط عدم‌قطعیت ارزیابی روی همین test را می‌سنجد.
 
 گزارش کامل در `reports/phase-06/criteo-uplift-model-ranking.json` است.
 

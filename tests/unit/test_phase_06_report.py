@@ -16,6 +16,8 @@ def test_phase_06_report_is_locked_and_conservative() -> None:
     assert report["coverage"]["test"]["both_treatment_arms_present"] is True
     assert report["coverage"]["test"]["both_outcome_classes_present"] is True
     assert report["gate"]["test_rows_match_split"] is True
+    assert report["gate"]["all_models_converged"] is True
+    assert report["gate"]["selected_model_ci_above_zero"] is True
     assert report["gate"]["promotion_allowed"] is False
 
 

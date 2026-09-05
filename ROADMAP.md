@@ -377,6 +377,10 @@ Deliverables and gate:
   replaced. The corrected full test run selects S-Learner on validation and reports a test Qini
   coefficient of 5,869.14 versus a five-permutation random baseline of -0.45. Promotion remains
   disabled until uncertainty and convergence gates pass.
+- **Phase 6.4 uncertainty gate completed on 2026-09-05:** standardized logistic pipelines converged
+  in 18–20 iterations. Validation selected T-Learner; its test Qini coefficient is 6,711.38 and the
+  frozen-ranking Poisson-bootstrap 95% interval is [6,236.36, 7,221.65]. This establishes ranking
+  signal on this benchmark only; policy promotion remains disabled.
 - Pre-trend, overlap, placebo, missingness, sensitivity, and coverage diagnostics.
 - Statistical tests use documented splits and confidence intervals, not a single lucky run.
 - Gate: Criteo results use the dataset’s treatment/outcome definitions; retail outputs abstain when the public data cannot identify a causal effect.

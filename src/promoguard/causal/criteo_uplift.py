@@ -16,6 +16,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 CRITEO_UPLIFT_V21_SOURCE_URL = (
     "https://criteostorage.blob.core.windows.net/criteo-research-datasets/"
@@ -31,6 +33,8 @@ REQUIRED_COLUMNS = (*FEATURE_COLUMNS, TREATMENT_COLUMN, *OUTCOME_COLUMNS, *POST_
 NORMAL_95_Z = 1.959963984540054
 DEFAULT_SPLIT_SEED = 20260905
 DEFAULT_TRAIN_SAMPLE_MODULUS = 20
+DEFAULT_BOOTSTRAP_REPLICATES = 50
+LOGISTIC_MAX_ITER = 1_000
 
 
 def sha256_file(path: Path) -> str:
@@ -244,13 +248,25 @@ def _split_bucket(frame: pd.DataFrame, seed: int) -> pd.Series:
     return (_stable_row_hash(frame, seed) % 100).astype("int16")
 
 
-def _fit_logistic(frame: pd.DataFrame, features: list[str]) -> LogisticRegression:
-    model = LogisticRegression(max_iter=1000, solver="lbfgs", random_state=DEFAULT_SPLIT_SEED)
+def _fit_logistic(frame: pd.DataFrame, features: list[str]) -> Pipeline:
+    model = Pipeline(
+        [
+            ("scale", StandardScaler()),
+            (
+                "logistic",
+                LogisticRegression(
+                    max_iter=LOGISTIC_MAX_ITER,
+                    solver="lbfgs",
+                    random_state=DEFAULT_SPLIT_SEED,
+                ),
+            ),
+        ]
+    )
     model.fit(frame[features], frame["visit"])
     return model
 
 
-def _fit_learner(frame: pd.DataFrame, learner: str) -> tuple[LogisticRegression, LogisticRegression | None]:
+def _fit_learner(frame: pd.DataFrame, learner: str) -> tuple[Pipeline, Pipeline | None]:
     features = list(FEATURE_COLUMNS)
     if learner == "s_learner":
         return _fit_logistic(frame, features + [TREATMENT_COLUMN]), None
@@ -265,7 +281,7 @@ def _fit_learner(frame: pd.DataFrame, learner: str) -> tuple[LogisticRegression,
 def _uplift_scores(
     frame: pd.DataFrame,
     learner: str,
-    models: tuple[LogisticRegression, LogisticRegression | None],
+    models: tuple[Pipeline, Pipeline | None],
 ) -> pd.Series:
     features = list(FEATURE_COLUMNS)
     if learner == "s_learner":
@@ -281,6 +297,19 @@ def _uplift_scores(
             - control_model.predict_proba(frame[features])[:, 1]
         )
     raise ValueError(f"unknown uplift learner: {learner}")
+
+
+def _model_diagnostics(models: tuple[Pipeline, Pipeline | None]) -> dict[str, Any]:
+    iterations = [
+        int(model.named_steps["logistic"].n_iter_.max()) for model in models if model is not None
+    ]
+    return {
+        "pipelines": len(iterations),
+        "iterations": iterations,
+        "max_iter": LOGISTIC_MAX_ITER,
+        "all_converged": all(iteration < LOGISTIC_MAX_ITER for iteration in iterations),
+        "scaled": True,
+    }
 
 
 def _qini_curve(frame: pd.DataFrame, score: pd.Series) -> dict[str, Any]:
@@ -326,6 +355,60 @@ def _qini_curve(frame: pd.DataFrame, score: pd.Series) -> dict[str, Any]:
         "qini_at": points,
         "n": len(ranked),
         "qini_final": float(qini.iloc[-1]),
+    }
+
+
+def _poisson_bootstrap_qini(
+    frame: pd.DataFrame,
+    score: pd.Series,
+    *,
+    replicates: int = DEFAULT_BOOTSTRAP_REPLICATES,
+    seed: int = DEFAULT_SPLIT_SEED + 3_000,
+) -> dict[str, Any]:
+    """Estimate fixed-ranking Qini uncertainty with reproducible Poisson multiplier weights."""
+    if replicates < 2:
+        raise ValueError("replicates must be at least 2.")
+    ranked = (
+        frame.assign(
+            _score=score.to_numpy(),
+            _tie_breaker=_stable_row_hash(frame, DEFAULT_SPLIT_SEED + 2_000).to_numpy(),
+        )
+        .sort_values(["_score", "_tie_breaker"], ascending=[False, True], kind="mergesort")
+        .reset_index(drop=True)
+    )
+    treatment = ranked[TREATMENT_COLUMN].to_numpy(dtype="float64")
+    outcome = ranked["visit"].to_numpy(dtype="float64")
+    rng = np.random.default_rng(seed)
+    estimates = []
+    for _ in range(replicates):
+        weights = rng.poisson(1.0, len(ranked)).astype("float64")
+        treated = weights * treatment
+        control = weights * (1.0 - treatment)
+        treated_count = np.cumsum(treated)
+        control_count = np.cumsum(control)
+        treated_successes = np.cumsum(treated * outcome)
+        control_successes = np.cumsum(control * outcome)
+        control_rate = np.divide(
+            control_successes,
+            control_count,
+            out=np.zeros(len(ranked), dtype="float64"),
+            where=control_count != 0,
+        )
+        qini = treated_successes - treated_count * control_rate
+        population = np.cumsum(weights)
+        x = population / population[-1]
+        dx = np.diff(np.concatenate(([0.0], x)))
+        raw_auqc = float(0.5 * np.sum((np.concatenate(([0.0], qini[:-1])) + qini) * dx))
+        estimates.append(raw_auqc - 0.5 * float(qini[-1]))
+    lower, upper = np.percentile(estimates, [2.5, 97.5])
+    return {
+        "method": "Poisson(1) multiplier bootstrap conditional on the frozen ranking",
+        "replicates": replicates,
+        "seed": seed,
+        "standard_error": float(np.std(estimates, ddof=1)),
+        "confidence_level": 0.95,
+        "ci_lower": float(lower),
+        "ci_upper": float(upper),
     }
 
 
@@ -382,10 +465,16 @@ def evaluate_uplift_models(
     validation = pd.concat(validation_parts, ignore_index=True)
     test = pd.concat(test_parts, ignore_index=True)
     results: dict[str, Any] = {}
+    scores: dict[str, dict[str, pd.Series]] = {}
+    convergence: dict[str, Any] = {}
     for learner in ("s_learner", "t_learner"):
         models = _fit_learner(train, learner)
-        validation_curve = _qini_curve(validation, _uplift_scores(validation, learner, models))
-        test_curve = _qini_curve(test, _uplift_scores(test, learner, models))
+        validation_score = _uplift_scores(validation, learner, models)
+        test_score = _uplift_scores(test, learner, models)
+        scores[learner] = {"validation": validation_score, "test": test_score}
+        convergence[learner] = _model_diagnostics(models)
+        validation_curve = _qini_curve(validation, validation_score)
+        test_curve = _qini_curve(test, test_score)
         results[learner] = {"validation": validation_curve, "test": test_curve}
     selected_learner = max(
         results, key=lambda name: results[name]["validation"]["qini_coefficient"]
@@ -415,6 +504,9 @@ def evaluate_uplift_models(
         results[selected_learner]["test"]["qini_coefficient"]
         > random_curve["qini_coefficient"]
     )
+    selected_uncertainty = _poisson_bootstrap_qini(
+        test, scores[selected_learner]["test"]
+    )
     return {
         "benchmark": "criteo-uplift-v2.1-uplift-ranking",
         "outcome": "visit",
@@ -429,6 +521,8 @@ def evaluate_uplift_models(
             "criterion": "highest validation Qini coefficient; test is not used for selection",
             "selected_learner": selected_learner,
         },
+        "convergence": convergence,
+        "selected_model_uncertainty": selected_uncertainty,
         "random_ranking_baseline": random_curve,
         "split": {
             "method": "stable hash of pre-treatment features; independent of source row order",
@@ -461,6 +555,10 @@ def evaluate_uplift_models(
                 for name in results
                 for split in ("validation", "test")
             ),
+            "all_models_converged": all(
+                diagnostic["all_converged"] for diagnostic in convergence.values()
+            ),
+            "selected_model_ci_above_zero": selected_uncertainty["ci_lower"] > 0,
             "test_rows_match_split": len(test) == counts["test"],
             "selected_model_beats_random_baseline": selected_beats_random,
             "promotion_allowed": False,

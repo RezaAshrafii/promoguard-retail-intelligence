@@ -6,6 +6,9 @@ import pytest
 from promoguard.causal.criteo_uplift import (
     DEFAULT_SPLIT_SEED,
     FEATURE_COLUMNS,
+    _fit_learner,
+    _model_diagnostics,
+    _poisson_bootstrap_qini,
     _qini_curve,
     _split_bucket,
     summarize_criteo_uplift_chunks,
@@ -111,3 +114,26 @@ def test_qini_area_uses_trapezoids_and_reports_random_line_separately() -> None:
     assert result["raw_auqc"] == pytest.approx(0.75)
     assert result["random_line_auqc"] == pytest.approx(0.0)
     assert result["qini_coefficient"] == pytest.approx(0.75)
+
+
+def test_poisson_bootstrap_is_reproducible_for_a_frozen_ranking() -> None:
+    frame = pd.concat([criteo_test_fixture()] * 20, ignore_index=True)
+    scores = pd.Series(range(len(frame)), dtype="float64")
+
+    first = _poisson_bootstrap_qini(frame, scores, replicates=10, seed=7)
+    second = _poisson_bootstrap_qini(frame, scores, replicates=10, seed=7)
+
+    assert first == second
+    assert first["ci_lower"] <= first["ci_upper"]
+    assert first["standard_error"] >= 0
+
+
+def test_logistic_learner_scales_features_and_reports_convergence() -> None:
+    frame = pd.concat([criteo_test_fixture()] * 30, ignore_index=True)
+    models = _fit_learner(frame, "s_learner")
+
+    diagnostics = _model_diagnostics(models)
+
+    assert diagnostics["scaled"] is True
+    assert diagnostics["pipelines"] == 1
+    assert diagnostics["all_converged"] is True
