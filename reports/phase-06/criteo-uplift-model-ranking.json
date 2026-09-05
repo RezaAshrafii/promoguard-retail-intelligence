@@ -1,38 +1,52 @@
 {
+  "artifact_schema_version": "1.1.0",
   "benchmark": "criteo-uplift-v2.1-uplift-ranking",
   "outcome": "visit",
   "metric": {
     "curve": "Radcliffe-style cumulative Qini with local prefix arm ratio",
     "raw_area": "trapezoidal AUQC over population fraction",
     "qini_coefficient": "raw AUQC minus triangular random-targeting line area",
+    "qini_per_ranked_row": "cumulative Qini divided by prefix population; not an ATE",
+    "difference_in_means_incremental_rate": "prefix treated response rate minus prefix control response rate",
+    "ipw_incremental_rate": "Horvitz-Thompson/IPW prefix ATE using the observed randomized treatment fraction",
+    "zero_arm_prefix_convention": "Qini is zero until both arms appear in a ranked prefix",
     "normalized": false
   },
   "learners": {
     "s_learner": {
       "validation": {
-        "raw_auqc": 15252.432085815886,
+        "raw_auqc": 15252.432080092101,
         "random_line_auqc": 9313.180129266431,
-        "qini_coefficient": 5939.251956549455,
+        "qini_coefficient": 5939.25195082567,
         "qini_at": [
           {
             "fraction": 0.1,
             "prefix_rows": 209652,
+            "treated_rows": 180408,
+            "control_rows": 29244,
             "qini": 8926.11899876898,
-            "incremental_rate": 0.04257588288577729,
+            "qini_per_ranked_row": 0.04257588288577729,
+            "difference_in_means_incremental_rate": 0.04947740121706897,
             "ipw_incremental_rate": 0.07502506178984278
           },
           {
             "fraction": 0.2,
             "prefix_rows": 419303,
+            "treated_rows": 359215,
+            "control_rows": 60088,
             "qini": 13457.140460657698,
-            "incremental_rate": 0.03209407149640641,
+            "qini_per_ranked_row": 0.03209407149640641,
+            "difference_in_means_incremental_rate": 0.03746263508110101,
             "ipw_incremental_rate": 0.04705282329123445
           },
           {
             "fraction": 0.3,
             "prefix_rows": 628955,
+            "treated_rows": 537269,
+            "control_rows": 91686,
             "qini": 15362.209432192481,
-            "incremental_rate": 0.024424973856941246,
+            "qini_per_ranked_row": 0.024424973856941246,
+            "difference_in_means_incremental_rate": 0.02859314315955784,
             "ipw_incremental_rate": 0.032687597558774026
           }
         ],
@@ -40,29 +54,38 @@
         "qini_final": 18626.360258532863
       },
       "test": {
-        "raw_auqc": 14844.32779993236,
+        "raw_auqc": 14844.327781813783,
         "random_line_auqc": 8991.436829570383,
-        "qini_coefficient": 5852.890970361977,
+        "qini_coefficient": 5852.8909522434005,
         "qini_at": [
           {
             "fraction": 0.1,
             "prefix_rows": 209730,
+            "treated_rows": 180588,
+            "control_rows": 29142,
             "qini": 9065.581017088734,
-            "incremental_rate": 0.0432250084255411,
+            "qini_per_ranked_row": 0.0432250084255411,
+            "difference_in_means_incremental_rate": 0.050200351170004286,
             "ipw_incremental_rate": 0.07670890783842961
           },
           {
             "fraction": 0.2,
             "prefix_rows": 419459,
+            "treated_rows": 359066,
+            "control_rows": 60393,
             "qini": 13473.4631828192,
-            "incremental_rate": 0.032121049215344526,
+            "qini_per_ranked_row": 0.032121049215344526,
+            "difference_in_means_incremental_rate": 0.03752363961728262,
             "ipw_incremental_rate": 0.045978526303847966
           },
           {
             "fraction": 0.3,
             "prefix_rows": 629189,
+            "treated_rows": 537331,
+            "control_rows": 91858,
             "qini": 15170.15987720176,
-            "incremental_rate": 0.02411065653913492,
+            "qini_per_ranked_row": 0.02411065653913492,
+            "difference_in_means_incremental_rate": 0.028232430061175998,
             "ipw_incremental_rate": 0.032023503765060926
           }
         ],
@@ -79,22 +102,31 @@
           {
             "fraction": 0.1,
             "prefix_rows": 209652,
+            "treated_rows": 181421,
+            "control_rows": 28231,
             "qini": 11578.802026141479,
-            "incremental_rate": 0.05522867430857554,
+            "qini_per_ranked_row": 0.05522867430857554,
+            "difference_in_means_incremental_rate": 0.06382283212054546,
             "ipw_incremental_rate": 0.08716653280807847
           },
           {
             "fraction": 0.2,
             "prefix_rows": 419303,
+            "treated_rows": 359710,
+            "control_rows": 59593,
             "qini": 13869.382410685816,
-            "incremental_rate": 0.033077231526332546,
+            "qini_per_ranked_row": 0.033077231526332546,
+            "difference_in_means_incremental_rate": 0.03855712215586393,
             "ipw_incremental_rate": 0.04621434351078516
           },
           {
             "fraction": 0.3,
             "prefix_rows": 628955,
+            "treated_rows": 537384,
+            "control_rows": 91571,
             "qini": 15294.77877275557,
-            "incremental_rate": 0.024317763230685137,
+            "qini_per_ranked_row": 0.024317763230685137,
+            "difference_in_means_incremental_rate": 0.028461544766415766,
             "ipw_incremental_rate": 0.031467916481484275
           }
         ],
@@ -102,29 +134,38 @@
         "qini_final": 18626.360258532863
       },
       "test": {
-        "raw_auqc": 15702.82153291678,
+        "raw_auqc": 15702.821476653831,
         "random_line_auqc": 8991.436829570383,
-        "qini_coefficient": 6711.384703346397,
+        "qini_coefficient": 6711.384647083449,
         "qini_at": [
           {
             "fraction": 0.1,
             "prefix_rows": 209730,
+            "treated_rows": 181586,
+            "control_rows": 28144,
             "qini": 11855.10304150085,
-            "incremental_rate": 0.0565255473299044,
+            "qini_per_ranked_row": 0.0565255473299044,
+            "difference_in_means_incremental_rate": 0.0652864375089536,
             "ipw_incremental_rate": 0.08911976902069862
           },
           {
             "fraction": 0.2,
             "prefix_rows": 419459,
+            "treated_rows": 359793,
+            "control_rows": 59666,
             "qini": 14413.743002715113,
-            "incremental_rate": 0.03436269814860359,
+            "qini_per_ranked_row": 0.03436269814860359,
+            "difference_in_means_incremental_rate": 0.04006121020340894,
             "ipw_incremental_rate": 0.04744305634566183
           },
           {
             "fraction": 0.3,
             "prefix_rows": 629189,
+            "treated_rows": 537620,
+            "control_rows": 91569,
             "qini": 15777.412595965885,
-            "incremental_rate": 0.025075792164144454,
+            "qini_per_ranked_row": 0.025075792164144454,
+            "difference_in_means_incremental_rate": 0.029346773922037658,
             "ipw_incremental_rate": 0.032303470805712824
           }
         ],
@@ -134,29 +175,38 @@
     },
     "s_learner_hist_gb": {
       "validation": {
-        "raw_auqc": 15621.786656040862,
+        "raw_auqc": 15621.786605957746,
         "random_line_auqc": 9313.180129266431,
-        "qini_coefficient": 6308.606526774431,
+        "qini_coefficient": 6308.606476691315,
         "qini_at": [
           {
             "fraction": 0.1,
             "prefix_rows": 209652,
+            "treated_rows": 181383,
+            "control_rows": 28269,
             "qini": 10576.806855566167,
-            "incremental_rate": 0.0504493487091283,
+            "qini_per_ranked_row": 0.0504493487091283,
+            "difference_in_means_incremental_rate": 0.05831200749555453,
             "ipw_incremental_rate": 0.08313374621434534
           },
           {
             "fraction": 0.2,
             "prefix_rows": 419303,
+            "treated_rows": 359322,
+            "control_rows": 59981,
             "qini": 14104.922025308013,
-            "incremental_rate": 0.033638972354855586,
+            "qini_per_ranked_row": 0.033638972354855586,
+            "difference_in_means_incremental_rate": 0.039254267830269265,
             "ipw_incremental_rate": 0.047182928352194495
           },
           {
             "fraction": 0.3,
             "prefix_rows": 628955,
+            "treated_rows": 537079,
+            "control_rows": 91876,
             "qini": 15520.926574948848,
-            "incremental_rate": 0.024677324411045063,
+            "qini_per_ranked_row": 0.024677324411045063,
+            "difference_in_means_incremental_rate": 0.028898777600592927,
             "ipw_incremental_rate": 0.03212473865388399
           }
         ],
@@ -164,29 +214,38 @@
         "qini_final": 18626.360258532863
       },
       "test": {
-        "raw_auqc": 15545.162287917874,
+        "raw_auqc": 15545.162195417772,
         "random_line_auqc": 8991.436829570383,
-        "qini_coefficient": 6553.725458347491,
+        "qini_coefficient": 6553.725365847389,
         "qini_at": [
           {
             "fraction": 0.1,
             "prefix_rows": 209730,
+            "treated_rows": 181318,
+            "control_rows": 28412,
             "qini": 11430.077080106996,
-            "incremental_rate": 0.05449900863065368,
+            "qini_per_ranked_row": 0.05449900863065368,
+            "difference_in_means_incremental_rate": 0.06303884379988195,
             "ipw_incremental_rate": 0.0863824841167664
           },
           {
             "fraction": 0.2,
             "prefix_rows": 419459,
+            "treated_rows": 359478,
+            "control_rows": 59981,
             "qini": 14135.192427602073,
-            "incremental_rate": 0.03369862710682587,
+            "qini_per_ranked_row": 0.03369862710682587,
+            "difference_in_means_incremental_rate": 0.03932143949727681,
             "ipw_incremental_rate": 0.047200036934501824
           },
           {
             "fraction": 0.3,
             "prefix_rows": 629189,
+            "treated_rows": 537217,
+            "control_rows": 91972,
             "qini": 15493.910603227065,
-            "incremental_rate": 0.024625208964598976,
+            "qini_per_ranked_row": 0.024625208964598976,
+            "difference_in_means_incremental_rate": 0.028841065348317468,
             "ipw_incremental_rate": 0.03190348224375484
           }
         ],
@@ -237,41 +296,52 @@
   "selected_model_uncertainty": {
     "method": "Poisson(1) multiplier bootstrap conditional on the frozen ranking",
     "replicates": 50,
+    "draws_attempted": 50,
+    "invalid_draws_skipped": 0,
     "seed": 20263905,
-    "standard_error": 336.0787709642551,
+    "standard_error": 336.0787941721908,
     "confidence_level": 0.95,
-    "ci_lower": 5953.787898662527,
-    "ci_upper": 7153.860482480762
+    "ci_lower": 5953.787776181353,
+    "ci_upper": 7153.860366647536
   },
-  "final_audit_holdout": {
+  "post_freeze_audit_subset": {
     "method": "independent feature-hash subset of development test; learner and hyperparameters frozen",
     "seed": 20265905,
     "rows": 224078,
     "selected_learner": "s_learner_hist_gb",
     "curve": {
-      "raw_auqc": 1941.1280509794128,
+      "raw_auqc": 1941.1279885011686,
       "random_line_auqc": 1071.5468824940049,
-      "qini_coefficient": 869.5811684854079,
+      "qini_coefficient": 869.5811060071637,
       "qini_at": [
         {
           "fraction": 0.1,
           "prefix_rows": 22408,
+          "treated_rows": 19416,
+          "control_rows": 2992,
           "qini": 1541.4144385026739,
-          "incremental_rate": 0.06878857722700259,
+          "qini_per_ranked_row": 0.06878857722700259,
+          "difference_in_means_incremental_rate": 0.07938887713755016,
           "ipw_incremental_rate": 0.10321521807969725
         },
         {
           "fraction": 0.2,
           "prefix_rows": 44816,
+          "treated_rows": 38467,
+          "control_rows": 6349,
           "qini": 1800.2992597259408,
-          "incremental_rate": 0.04017090458153206,
+          "qini_per_ranked_row": 0.04017090458153206,
+          "difference_in_means_incremental_rate": 0.04680113499170564,
           "ipw_incremental_rate": 0.05493029689487109
         },
         {
           "fraction": 0.3,
           "prefix_rows": 67224,
+          "treated_rows": 57422,
+          "control_rows": 9802,
           "qini": 1992.4044072638235,
-          "incremental_rate": 0.02963829000451957,
+          "qini_per_ranked_row": 0.02963829000451957,
+          "difference_in_means_incremental_rate": 0.03469757945149635,
           "ipw_incremental_rate": 0.037231615162512964
         }
       ],
@@ -281,11 +351,13 @@
     "uncertainty": {
       "method": "Poisson(1) multiplier bootstrap conditional on the frozen ranking",
       "replicates": 50,
+      "draws_attempted": 50,
+      "invalid_draws_skipped": 0,
       "seed": 20266905,
-      "standard_error": 88.86136232813918,
+      "standard_error": 88.86134059299285,
       "confidence_level": 0.95,
-      "ci_lower": 698.6471677242695,
-      "ci_upper": 1015.2262941291518
+      "ci_lower": 698.6470881926831,
+      "ci_upper": 1015.2262258781394
     },
     "publication_status": "not a pristine publication holdout because the parent development test was previously observed"
   },
@@ -536,26 +608,45 @@
     "converged": true
   },
   "random_ranking_baseline": {
-    "raw_auqc": 8990.98651714462,
+    "raw_auqc": 8990.986516381734,
     "random_line_auqc": 8991.436829570383,
-    "qini_coefficient": -0.4503124257615127,
+    "qini_coefficient": -0.45031318864894276,
     "qini_at": [
       {
         "fraction": 0.1,
-        "qini": 1759.9733000618787
+        "prefix_rows": 209730.0,
+        "treated_rows": 178374.2,
+        "control_rows": 31355.8,
+        "qini": 1759.9733000618787,
+        "qini_per_ranked_row": 0.00839161445697744,
+        "difference_in_means_incremental_rate": 0.009866558855670046,
+        "ipw_incremental_rate": 0.009941412158402774
       },
       {
         "fraction": 0.2,
-        "qini": 3558.5269730696773
+        "prefix_rows": 419459.0,
+        "treated_rows": 356656.8,
+        "control_rows": 62802.2,
+        "qini": 3558.5269730696773,
+        "qini_per_ranked_row": 0.008483610968103383,
+        "difference_in_means_incremental_rate": 0.00997726953206041,
+        "ipw_incremental_rate": 0.009984547490723434
       },
       {
         "fraction": 0.3,
-        "qini": 5391.42690822218
+        "prefix_rows": 629189.0,
+        "treated_rows": 535023.6,
+        "control_rows": 94165.4,
+        "qini": 5391.42690822218,
+        "qini_per_ranked_row": 0.008568851184973324,
+        "difference_in_means_incremental_rate": 0.010077015480598705,
+        "ipw_incremental_rate": 0.010104731549367484
       }
     ],
     "n": 2097295,
     "qini_final": 17982.873659140765,
     "permutations": 5,
+    "role": "deterministic calibration sanity check; not an inferential interval",
     "seeds": [
       20260905,
       20260906,
@@ -657,11 +748,14 @@
     "randomization_auc_acceptable": true,
     "common_support_acceptable": true,
     "test_rows_match_split": true,
-    "selected_model_beats_random_baseline": true,
+    "selected_model_beats_random_baseline_mean": true,
     "promotion_allowed": false,
-    "reason": "Ranking screen passed, but uncertainty and policy review are still required."
+    "reason": "Benchmark ranking gates passed; business-policy promotion remains disabled."
   },
   "source": {
+    "dataset_page": "https://ailab.criteo.com/criteo-uplift-prediction-dataset/",
+    "download_url": "https://criteostorage.blob.core.windows.net/criteo-research-datasets/criteo-uplift-v2.1.csv.gz",
+    "license": "CC BY-NC-SA 4.0",
     "filename": "criteo-uplift-v2.1.csv.gz",
     "sha256": "2716e1bf0fd157a93b5bf86924d9088419dfbac2022c6cd90030220634f616dc",
     "raw_data_committed_to_git": false
