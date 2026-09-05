@@ -112,19 +112,19 @@ def _step(number: int, title: str) -> None:
 
 if st is not None:
 
-    @st.cache_data(show_spinner="در حال بارگذاری پنل واقعی فروش...")
+    @st.cache_data(show_spinner="در حال بارگذاری پنل واقعی فروش...", max_entries=8)
     def _load_local_panel(path: str) -> pd.DataFrame:
         return load_weekly_panel(path, max_bytes=MAX_UPLOAD_BYTES)
 
-    @st.cache_data(show_spinner="در حال شناسایی دوره‌های پروموشن...")
+    @st.cache_data(show_spinner="در حال شناسایی دوره‌های پروموشن...", max_entries=8)
     def _episodes(panel: pd.DataFrame) -> pd.DataFrame:
         return detect_promotion_episodes(panel)
 
-    @st.cache_data(show_spinner="در حال انتخاب یک رویداد قابل‌ممیزی...")
+    @st.cache_data(show_spinner="در حال انتخاب یک رویداد قابل‌ممیزی...", max_entries=8)
     def _representative_event(panel: pd.DataFrame) -> dict[str, Any]:
         return select_representative_event(panel)
 
-    @st.cache_data(show_spinner=False)
+    @st.cache_data(show_spinner=False, max_entries=2)
     def _load_causal_benchmark(path: str) -> dict[str, Any]:
         return json.loads(Path(path).read_text(encoding="utf-8"))
 
@@ -162,6 +162,7 @@ def _show_quality_report(report: dict[str, Any]) -> None:
         "شناسه کالا خالی": report["missing_upc_rows"],
         "فروش منفی": report["negative_units_rows"],
         "فروش خالی": report["missing_units_rows"],
+        "فروش غیرمتناهی": report["non_finite_units_rows"],
         "پرچم پروموشن نامعتبر": report["invalid_promotion_rows"],
         "بیش از سقف ردیف": report["oversized_row_count"],
     }
@@ -529,6 +530,7 @@ def main() -> None:
     )
     include_contribution = st.checkbox("تحلیل حساسیت سهم فرضی هر واحد را نمایش بده")
     contribution_assumption = None
+    contribution_input_valid = True
     if include_contribution:
         contribution_amount = st.number_input(
             "سهم فرضی هر واحد افزوده‌شده", value=1.0, step=0.1
@@ -544,8 +546,9 @@ def main() -> None:
                 source=contribution_source,
             )
         except ValueError as error:
+            contribution_input_valid = False
             st.error(str(error))
-    if st.button("اجرای ممیزی", type="primary"):
+    if st.button("اجرای ممیزی", type="primary", disabled=not contribution_input_valid):
         try:
             result = audit_promotion_event(
                 panel,
