@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "promoguard-ai"
-version = "0.6.3"
+dynamic = ["version"]
 description = "Evidence-aware retail promotion auditing and experiment prioritization"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.11,<3.13"
 dependencies = [
   "fastapi>=0.115,<1",
+  "numpy>=1.26,<3",
   "pandas>=2.2,<3",
   "scikit-learn>=1.5,<2",
   "pydantic>=2.8,<3",
@@ -40,6 +41,9 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "promoguard.__version__"}
 
 [tool.pytest.ini_options]
 pythonpath = [".", "src"]

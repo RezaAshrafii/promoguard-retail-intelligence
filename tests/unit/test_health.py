@@ -1,3 +1,5 @@
+from importlib.metadata import version
+
 from fastapi.testclient import TestClient
 
 from apps.api.main import app
@@ -8,5 +10,6 @@ def test_health_endpoint() -> None:
     response = TestClient(app).get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
-    assert response.json()["version"] == __version__ == "0.5.2"
+    assert response.json()["version"] == __version__
+    assert version("promoguard-ai") == __version__
 
