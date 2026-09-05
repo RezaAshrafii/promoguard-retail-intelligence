@@ -51,6 +51,7 @@ We report:
 - model raw AUQC and Qini coefficient;
 - random-ranking Qini coefficient baseline;
 - Qini at 10%, 20%, and 30% of the ranked population;
+- incremental rate per targeted row and an IPW cross-check at the same budgets;
 - arm counts and treatment fraction.
 
 The random baseline is the mean of five deterministic seeded random permutations used as a reproducible
@@ -94,6 +95,13 @@ propensity diagnostic is trained only to test whether those features predict tre
 used by the outcome learners. The audit gate requires maximum absolute SMD below 0.1, test propensity
 ROC-AUC below 0.55, and at least 99% of estimated probabilities inside [0.05, 0.95]. These are declared
 engineering thresholds, not universal proof of randomization.
+
+## Policy-value interpretation
+
+At 10%, 20%, and 30% of the ranking, the report divides cumulative Qini by the prefix size to show
+incremental visits per targeted row. It also reports an inverse-propensity-weighted rate using the
+randomized treatment fraction as a cross-check. These are benchmark response rates, not profit,
+revenue, ROI, or a recommendation to spend a budget.
 
 ## Phase 6.6 nonlinear benchmark
 

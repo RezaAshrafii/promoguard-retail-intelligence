@@ -374,9 +374,26 @@ def _qini_curve(frame: pd.DataFrame, score: pd.Series) -> dict[str, Any]:
     random_line_auqc = 0.5 * float(qini.iloc[-1])
     qini_coefficient = raw_auqc - random_line_auqc
     points = []
+    treatment_probability = float(ranked[TREATMENT_COLUMN].mean())
+    treated_indicator = ranked[TREATMENT_COLUMN].to_numpy(dtype="float64")
+    outcomes = ranked["visit"].to_numpy(dtype="float64")
+    ipw_contribution = (
+        treated_indicator * outcomes / treatment_probability
+        - (1.0 - treated_indicator) * outcomes / (1.0 - treatment_probability)
+    )
+    ipw_cumulative = np.cumsum(ipw_contribution)
     for fraction in (0.10, 0.20, 0.30):
         index = min(len(ranked) - 1, max(0, math.ceil(len(ranked) * fraction) - 1))
-        points.append({"fraction": fraction, "qini": float(qini.iloc[index])})
+        prefix_rows = index + 1
+        points.append(
+            {
+                "fraction": fraction,
+                "prefix_rows": prefix_rows,
+                "qini": float(qini.iloc[index]),
+                "incremental_rate": float(qini.iloc[index] / prefix_rows),
+                "ipw_incremental_rate": float(ipw_cumulative[index] / prefix_rows),
+            }
+        )
     return {
         "raw_auqc": raw_auqc,
         "random_line_auqc": random_line_auqc,

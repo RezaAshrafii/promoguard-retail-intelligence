@@ -387,6 +387,9 @@ Deliverables and gate:
 - Final audit subset completed after model freeze: 224,078 rows, Qini coefficient 869.58, and
   fixed-ranking bootstrap 95% interval [698.65, 1,015.23]. It is explicitly not a pristine paper
   holdout because its parent development test was previously observed.
+- Policy-value view added after the audit: at 20% of the selected ranking, cumulative Qini is
+  14,135.19 and the incremental-rate view is approximately 0.0337 per targeted row. This remains a
+  benchmark response estimate, not profit, ROI, or a spending recommendation.
 - Pre-trend, overlap, placebo, missingness, sensitivity, and coverage diagnostics.
 - Statistical tests use documented splits and confidence intervals, not a single lucky run.
 - Gate: Criteo results use the dataset’s treatment/outcome definitions; retail outputs abstain when the public data cannot identify a causal effect.

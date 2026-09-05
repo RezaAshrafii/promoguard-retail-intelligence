@@ -26,6 +26,7 @@
 | فاصلهٔ اطمینان ۹۵٪ مدل منتخب | [5,953.79, 7,153.86] |
 | final audit subset | 224,078 rows; Qini 869.58 |
 | final audit subset CI 95% | [698.65, 1,015.23] |
+| final audit incremental rate at 20% | حدود 0.0402 visit به‌ازای هر ردیف |
 | random baseline Qini coefficient | -0.45 |
 | propensity test ROC-AUC | 0.5086 |
 | common support | 100% |
@@ -43,6 +44,7 @@ T-Learner در test عدد بالاتری دارد، اما روی validation ب
 - کران پایین bootstrap بالاتر از صفر؛
 - balance، propensity AUC و common support؛
 - انتخاب مدل فقط براساس validation؛
+- policy-value و IPW cross-check در budgetهای ۱۰٪، ۲۰٪ و ۳۰٪؛
 - ۹۰ تست، Ruff، compileall و diff check.
 
 ## محدودیت‌های باز

@@ -115,6 +115,9 @@ def test_qini_area_uses_trapezoids_and_reports_random_line_separately() -> None:
     assert result["raw_auqc"] == pytest.approx(0.75)
     assert result["random_line_auqc"] == pytest.approx(0.0)
     assert result["qini_coefficient"] == pytest.approx(0.75)
+    assert result["qini_at"][0]["prefix_rows"] == 1
+    assert result["qini_at"][0]["incremental_rate"] == pytest.approx(1.0)
+    assert "ipw_incremental_rate" in result["qini_at"][0]
 
 
 def test_poisson_bootstrap_is_reproducible_for_a_frozen_ranking() -> None:

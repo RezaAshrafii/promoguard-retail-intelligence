@@ -41,6 +41,7 @@ capabilities. The Criteo benchmark is documented in [docs/causal-benchmark.md](d
 | Cross-SKU screen | 1 eligible neighbor, 0 candidates | no observed decline crossed the policy threshold; not no-effect proof |
 | Criteo randomized ITT benchmark | visit +1.034pp; conversion +0.115pp | external advertising RCT; not a retail causal claim |
 | Criteo selected uplift learner | Qini coefficient 6,553.73; 95% CI [5,953.79, 7,153.86] | nonlinear S-Learner selected on validation; fixed-ranking test uncertainty only |
+| Criteo 20% benchmark policy view | cumulative Qini 14,135.19; per-row incremental rate ~0.0337 | benchmark response rate; not profit, ROI, or spend recommendation |
 
 Release Gate 5.1 passed 67 tests; the current Demo Mode release passes **73 tests**. Later causal,
 cross-SKU, uncertainty, overlap, and metric-correctness checks bring the current suite to **90 tests**. Command evidence
