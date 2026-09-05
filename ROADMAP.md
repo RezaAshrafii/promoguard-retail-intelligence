@@ -361,22 +361,14 @@ Deliverables and gate:
 - Phase 6.2 methodology is defined in `docs/phase-06-2-uplift-methodology.md`: S-Learner and
   T-Learner on pre-treatment features, deterministic 70/15/15 split, complete real test evaluation,
   Qini/AUUC against random ranking, and a no-promotion gate when neither learner beats random.
-- **Phase 6.2 execution completed on 2026-09-05:** the complete 2,096,939-row real test set was
-  evaluated. S-Learner AUUC was 12,363.49, T-Learner AUUC was 13,653.10, and the five-permutation
-  random baseline was 18,319.62. The gate did not pass, so no learner is promoted; the negative
-  result is preserved in `reports/phase-06/criteo-uplift-model-ranking.json`.
-- **Phase 6.3 execution completed on 2026-09-05:** learner selection is frozen on validation AUUC
-  (`T-Learner` selected), test coverage is reported by treatment/outcome stratum, and a machine-
-  readable gate confirms finite metrics, complete test accounting, no random-baseline win, and
-  `promotion_allowed=false`.
-- **Main-review stop point:** development is paused after the Phase 6.3 audit. The review packet is
-  `docs/phase-06-main-review-checklist-fa.md`; the next implementation decision must follow the
-  reviewer’s answers on Qini convention, uncertainty, split design, and nonlinear learners.
-- **Phase 6.4 correctness repair in progress on 2026-09-05:** row-order splitting, outcome-dependent
+- **Superseded Phase 6.2 result:** the initial 2,096,939-row evaluation used an invalid
+  outcome-dependent train sample and an incorrectly scaled area calculation. Its S/T/random numbers
+  are historical only, have been replaced in the tracked report, and must not be cited.
+- **Superseded Phase 6.3 gate:** its model-selection plumbing was retained, but the negative result
+  was invalidated by the Phase 6.4 correctness repair.
+- **Phase 6.4 correctness repair completed on 2026-09-05:** row-order splitting, outcome-dependent
   train sampling, trapezoid scaling, ambiguous metric names, and the any-learner test gate were
-  replaced. The corrected full test run selects S-Learner on validation and reports a test Qini
-  coefficient of 5,869.14 versus a five-permutation random baseline of -0.45. Promotion remains
-  disabled until uncertainty and convergence gates pass.
+  replaced. Corrected outputs supersede every earlier Phase 6.2/6.3 ranking number.
 - **Phase 6.4 uncertainty gate completed on 2026-09-05:** standardized logistic pipelines converged
   in 18–20 iterations. Validation selected T-Learner; its test Qini coefficient is 6,711.38 and the
   frozen-ranking Poisson-bootstrap 95% interval is [6,236.36, 7,221.65]. This establishes ranking
@@ -389,6 +381,9 @@ Deliverables and gate:
   test with frozen-ranking 95% interval [5,953.79, 7,153.86]. T-Learner's higher test-only value is
   not used for post-hoc reselection. Boosting reached its 100-iteration budget and is not labelled
   converged.
+- **Release Gate 6.7 — REVIEW READY on 2026-09-05:** version 0.6.0 freezes the corrected real-data
+  artifact, 90-test suite, quality report, and Persian main-review checklist. Development pauses here
+  for an independent high-capability review. `promotion_allowed=false` remains mandatory.
 - Pre-trend, overlap, placebo, missingness, sensitivity, and coverage diagnostics.
 - Statistical tests use documented splits and confidence intervals, not a single lucky run.
 - Gate: Criteo results use the dataset’s treatment/outcome definitions; retail outputs abstain when the public data cannot identify a causal effect.

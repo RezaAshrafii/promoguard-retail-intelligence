@@ -20,6 +20,8 @@ readiness from public observational data.
   cross-SKU substitution candidates; it never labels the result causal;
 - streams and validates the public Criteo randomized-advertising benchmark, reporting aggregate
   intention-to-treat effects with balance diagnostics while keeping it separate from retail;
+- benchmarks logistic and nonlinear uplift learners on a deterministic real-data split with corrected
+  Qini metrics, convergence, fixed-ranking bootstrap uncertainty, and overlap diagnostics;
 - serves typed local FastAPI endpoints and a Persian Streamlit dashboard;
 - preserves an explicit abstention result when the evidence is insufficient.
 
@@ -38,9 +40,10 @@ capabilities. The Criteo benchmark is documented in [docs/causal-benchmark.md](d
 | Audit recommendation | `needs_more_evidence` | blocking forward-buy warning; do not roll out |
 | Cross-SKU screen | 1 eligible neighbor, 0 candidates | no observed decline crossed the policy threshold; not no-effect proof |
 | Criteo randomized ITT benchmark | visit +1.034pp; conversion +0.115pp | external advertising RCT; not a retail causal claim |
+| Criteo selected uplift learner | Qini coefficient 6,553.73; 95% CI [5,953.79, 7,153.86] | nonlinear S-Learner selected on validation; fixed-ranking test uncertainty only |
 
-Release Gate 5.1 passed 67 tests; the current Demo Mode release passes **73 tests**. Phase 7.1 adds
-four checked cross-SKU/presentation cases; the current development suite passes **83 tests**. Command evidence
+Release Gate 5.1 passed 67 tests; the current Demo Mode release passes **73 tests**. Later causal,
+cross-SKU, uncertainty, overlap, and metric-correctness checks bring the current suite to **90 tests**. Command evidence
 and the one known dependency deprecation warning are recorded in the
 [correctness report](reports/foundation-correctness/release-quality-report.json) and
 [Demo Mode report](reports/phase-05/demo-mode-quality-report.json).

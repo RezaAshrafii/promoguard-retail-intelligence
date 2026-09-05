@@ -1,0 +1,21 @@
+{
+  "release": "0.6.0",
+  "phase": "6",
+  "date": "2026-09-05",
+  "dataset_rows": 13979592,
+  "test_rows": 2097295,
+  "selected_learner": "s_learner_hist_gb",
+  "selected_test_qini_coefficient": 6553.725458347491,
+  "selected_fixed_ranking_bootstrap_95_ci": [5953.787898662527, 7153.860482480762],
+  "propensity_test_roc_auc": 0.5085875936823478,
+  "common_support_fraction": 1.0,
+  "maximum_absolute_test_smd": 0.0480103032274927,
+  "quality_commands": {
+    "ruff": "passed",
+    "pytest": "90 passed",
+    "compileall": "passed",
+    "git_diff_check": "passed"
+  },
+  "promotion_allowed": false,
+  "open_boundary": "Engineering benchmark only; the development test is not a fresh publication holdout."
+}
