@@ -365,6 +365,10 @@ Deliverables and gate:
   evaluated. S-Learner AUUC was 12,363.49, T-Learner AUUC was 13,653.10, and the five-permutation
   random baseline was 18,319.62. The gate did not pass, so no learner is promoted; the negative
   result is preserved in `reports/phase-06/criteo-uplift-model-ranking.json`.
+- **Phase 6.3 execution completed on 2026-09-05:** learner selection is frozen on validation AUUC
+  (`T-Learner` selected), test coverage is reported by treatment/outcome stratum, and a machine-
+  readable gate confirms finite metrics, complete test accounting, no random-baseline win, and
+  `promotion_allowed=false`.
 - Pre-trend, overlap, placebo, missingness, sensitivity, and coverage diagnostics.
 - Statistical tests use documented splits and confidence intervals, not a single lucky run.
 - Gate: Criteo results use the dataset’s treatment/outcome definitions; retail outputs abstain when the public data cannot identify a causal effect.

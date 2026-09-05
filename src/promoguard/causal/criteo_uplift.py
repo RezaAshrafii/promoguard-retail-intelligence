@@ -305,6 +305,25 @@ def _qini_curve(frame: pd.DataFrame, score: pd.Series) -> dict[str, Any]:
     return {"auuc": area, "qini_at": points, "n": len(ranked), "qini_final": float(qini.iloc[-1])}
 
 
+def _split_diagnostics(frame: pd.DataFrame) -> dict[str, Any]:
+    counts = (
+        frame.groupby([TREATMENT_COLUMN, "visit"], observed=True)
+        .size()
+        .rename("rows")
+        .reset_index()
+    )
+    return {
+        "rows": len(frame),
+        "treatment_fraction": float(frame[TREATMENT_COLUMN].mean()),
+        "strata": {
+            f"{int(row.treatment)}{int(row.visit)}": int(row.rows)
+            for row in counts.itertuples(index=False)
+        },
+        "both_treatment_arms_present": bool(frame[TREATMENT_COLUMN].nunique() == 2),
+        "both_outcome_classes_present": bool(frame["visit"].nunique() == 2),
+    }
+
+
 def evaluate_uplift_models(
     input_path: str | Path,
     *,
@@ -354,6 +373,7 @@ def evaluate_uplift_models(
         validation_curve = _qini_curve(validation, _uplift_scores(validation, learner, models))
         test_curve = _qini_curve(test, _uplift_scores(test, learner, models))
         results[learner] = {"validation": validation_curve, "test": test_curve}
+    selected_learner = max(results, key=lambda name: results[name]["validation"]["auuc"])
     random_curves = []
     for seed in (DEFAULT_SPLIT_SEED, DEFAULT_SPLIT_SEED + 1, DEFAULT_SPLIT_SEED + 2, DEFAULT_SPLIT_SEED + 3, DEFAULT_SPLIT_SEED + 4):
         random_scores = pd.Series(np.random.default_rng(seed).random(len(test)), index=test.index)
@@ -373,8 +393,17 @@ def evaluate_uplift_models(
         "benchmark": "criteo-uplift-v2.1-uplift-ranking",
         "outcome": "visit",
         "learners": results,
+        "selection": {
+            "criterion": "highest validation AUUC; test is not used for selection",
+            "selected_learner": selected_learner,
+        },
         "random_ranking_baseline": random_curve,
         "split": {"seed": DEFAULT_SPLIT_SEED, "row_counts": counts, "ratios": {"train": 0.70, "validation": 0.15, "test": 0.15}},
+        "coverage": {
+            "train": _split_diagnostics(train),
+            "validation": _split_diagnostics(validation),
+            "test": _split_diagnostics(test),
+        },
         "training": {
             "cap_per_treatment_visit_stratum": train_cap_per_stratum,
             "rows_used": len(train),
@@ -387,5 +416,18 @@ def evaluate_uplift_models(
             "Qini/AUUC ranks policy value on this randomized benchmark; it is not individual counterfactual truth.",
             "This does not identify causal retail promotion impact or Iranian market impact.",
         ],
+        "gate": {
+            "finite_model_metrics": all(
+                math.isfinite(results[name][split]["auuc"])
+                for name in results
+                for split in ("validation", "test")
+            ),
+            "test_rows_match_split": len(test) == counts["test"],
+            "beats_random_baseline": any(
+                results[name]["test"]["auuc"] > random_curve["auuc"] for name in results
+            ),
+            "promotion_allowed": False,
+            "reason": "No automatic promotion; the locked test learner must beat random and pass a future policy review.",
+        },
         "source": {"filename": path.name, "sha256": sha256_file(path), "raw_data_committed_to_git": False},
     }

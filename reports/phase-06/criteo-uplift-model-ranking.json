@@ -83,6 +83,10 @@
       }
     }
   },
+  "selection": {
+    "criterion": "highest validation AUUC; test is not used for selection",
+    "selected_learner": "t_learner"
+  },
   "random_ranking_baseline": {
     "auuc": 18319.6214109373,
     "qini_at": [
@@ -123,6 +127,44 @@
       "test": 0.15
     }
   },
+  "coverage": {
+    "train": {
+      "rows": 356058,
+      "treatment_fraction": 0.5617062388711952,
+      "strata": {
+        "00": 100000,
+        "01": 56058,
+        "10": 100000,
+        "11": 100000
+      },
+      "both_treatment_arms_present": true,
+      "both_outcome_classes_present": true
+    },
+    "validation": {
+      "rows": 2096938,
+      "treatment_fraction": 0.8500003338200748,
+      "strata": {
+        "00": 302516,
+        "01": 12024,
+        "10": 1695787,
+        "11": 86611
+      },
+      "both_treatment_arms_present": true,
+      "both_outcome_classes_present": true
+    },
+    "test": {
+      "rows": 2096939,
+      "treatment_fraction": 0.8500004053527547,
+      "strata": {
+        "00": 302517,
+        "01": 12023,
+        "10": 1696074,
+        "11": 86325
+      },
+      "both_treatment_arms_present": true,
+      "both_outcome_classes_present": true
+    }
+  },
   "training": {
     "cap_per_treatment_visit_stratum": 100000,
     "rows_used": 356058,
@@ -153,6 +195,13 @@
     "Qini/AUUC ranks policy value on this randomized benchmark; it is not individual counterfactual truth.",
     "This does not identify causal retail promotion impact or Iranian market impact."
   ],
+  "gate": {
+    "finite_model_metrics": true,
+    "test_rows_match_split": true,
+    "beats_random_baseline": false,
+    "promotion_allowed": false,
+    "reason": "No automatic promotion; the locked test learner must beat random and pass a future policy review."
+  },
   "source": {
     "filename": "criteo-uplift-v2.1.csv.gz",
     "sha256": "2716e1bf0fd157a93b5bf86924d9088419dfbac2022c6cd90030220634f616dc",

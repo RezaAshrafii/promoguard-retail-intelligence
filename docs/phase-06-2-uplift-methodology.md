@@ -70,5 +70,13 @@ The phase passes only when:
    otherwise the result is retained as a negative benchmark and no model is promoted;
 7. the report states that Criteo evidence does not identify retail or Iranian impact.
 
+## Phase 6.3 extension
+
+Model selection is now frozen on validation AUUC only. The selected learner is reported, but the
+test set remains locked for the final comparison. The report also includes treatment/outcome stratum
+coverage for train, validation, and test, plus an explicit machine-readable gate. Even when the gate
+passes, `promotion_allowed` remains false until cost, capacity, harm, fairness, calibration, and a
+fresh holdout review are completed.
+
 No threshold for automatic targeting is introduced. A future policy requires cost, capacity, treatment
 harm, fairness, calibration, and a fresh holdout review.
