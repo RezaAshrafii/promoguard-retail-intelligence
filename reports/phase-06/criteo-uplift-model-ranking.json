@@ -16,15 +16,24 @@
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 8926.11899876898
+            "prefix_rows": 209652,
+            "qini": 8926.11899876898,
+            "incremental_rate": 0.04257588288577729,
+            "ipw_incremental_rate": 0.07502506178984278
           },
           {
             "fraction": 0.2,
-            "qini": 13457.140460657698
+            "prefix_rows": 419303,
+            "qini": 13457.140460657698,
+            "incremental_rate": 0.03209407149640641,
+            "ipw_incremental_rate": 0.04705282329123445
           },
           {
             "fraction": 0.3,
-            "qini": 15362.209432192481
+            "prefix_rows": 628955,
+            "qini": 15362.209432192481,
+            "incremental_rate": 0.024424973856941246,
+            "ipw_incremental_rate": 0.032687597558774026
           }
         ],
         "n": 2096515,
@@ -37,15 +46,24 @@
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 9065.581017088734
+            "prefix_rows": 209730,
+            "qini": 9065.581017088734,
+            "incremental_rate": 0.0432250084255411,
+            "ipw_incremental_rate": 0.07670890783842961
           },
           {
             "fraction": 0.2,
-            "qini": 13473.4631828192
+            "prefix_rows": 419459,
+            "qini": 13473.4631828192,
+            "incremental_rate": 0.032121049215344526,
+            "ipw_incremental_rate": 0.045978526303847966
           },
           {
             "fraction": 0.3,
-            "qini": 15170.15987720176
+            "prefix_rows": 629189,
+            "qini": 15170.15987720176,
+            "incremental_rate": 0.02411065653913492,
+            "ipw_incremental_rate": 0.032023503765060926
           }
         ],
         "n": 2097295,
@@ -60,15 +78,24 @@
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 11578.802026141479
+            "prefix_rows": 209652,
+            "qini": 11578.802026141479,
+            "incremental_rate": 0.05522867430857554,
+            "ipw_incremental_rate": 0.08716653280807847
           },
           {
             "fraction": 0.2,
-            "qini": 13869.382410685816
+            "prefix_rows": 419303,
+            "qini": 13869.382410685816,
+            "incremental_rate": 0.033077231526332546,
+            "ipw_incremental_rate": 0.04621434351078516
           },
           {
             "fraction": 0.3,
-            "qini": 15294.77877275557
+            "prefix_rows": 628955,
+            "qini": 15294.77877275557,
+            "incremental_rate": 0.024317763230685137,
+            "ipw_incremental_rate": 0.031467916481484275
           }
         ],
         "n": 2096515,
@@ -81,15 +108,24 @@
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 11855.10304150085
+            "prefix_rows": 209730,
+            "qini": 11855.10304150085,
+            "incremental_rate": 0.0565255473299044,
+            "ipw_incremental_rate": 0.08911976902069862
           },
           {
             "fraction": 0.2,
-            "qini": 14413.743002715113
+            "prefix_rows": 419459,
+            "qini": 14413.743002715113,
+            "incremental_rate": 0.03436269814860359,
+            "ipw_incremental_rate": 0.04744305634566183
           },
           {
             "fraction": 0.3,
-            "qini": 15777.412595965885
+            "prefix_rows": 629189,
+            "qini": 15777.412595965885,
+            "incremental_rate": 0.025075792164144454,
+            "ipw_incremental_rate": 0.032303470805712824
           }
         ],
         "n": 2097295,
@@ -104,15 +140,24 @@
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 10576.806855566167
+            "prefix_rows": 209652,
+            "qini": 10576.806855566167,
+            "incremental_rate": 0.0504493487091283,
+            "ipw_incremental_rate": 0.08313374621434534
           },
           {
             "fraction": 0.2,
-            "qini": 14104.922025308013
+            "prefix_rows": 419303,
+            "qini": 14104.922025308013,
+            "incremental_rate": 0.033638972354855586,
+            "ipw_incremental_rate": 0.047182928352194495
           },
           {
             "fraction": 0.3,
-            "qini": 15520.926574948848
+            "prefix_rows": 628955,
+            "qini": 15520.926574948848,
+            "incremental_rate": 0.024677324411045063,
+            "ipw_incremental_rate": 0.03212473865388399
           }
         ],
         "n": 2096515,
@@ -125,15 +170,24 @@
         "qini_at": [
           {
             "fraction": 0.1,
-            "qini": 11430.077080106996
+            "prefix_rows": 209730,
+            "qini": 11430.077080106996,
+            "incremental_rate": 0.05449900863065368,
+            "ipw_incremental_rate": 0.0863824841167664
           },
           {
             "fraction": 0.2,
-            "qini": 14135.192427602073
+            "prefix_rows": 419459,
+            "qini": 14135.192427602073,
+            "incremental_rate": 0.03369862710682587,
+            "ipw_incremental_rate": 0.047200036934501824
           },
           {
             "fraction": 0.3,
-            "qini": 15493.910603227065
+            "prefix_rows": 629189,
+            "qini": 15493.910603227065,
+            "incremental_rate": 0.024625208964598976,
+            "ipw_incremental_rate": 0.03190348224375484
           }
         ],
         "n": 2097295,
@@ -201,15 +255,24 @@
       "qini_at": [
         {
           "fraction": 0.1,
-          "qini": 1541.4144385026739
+          "prefix_rows": 22408,
+          "qini": 1541.4144385026739,
+          "incremental_rate": 0.06878857722700259,
+          "ipw_incremental_rate": 0.10321521807969725
         },
         {
           "fraction": 0.2,
-          "qini": 1800.2992597259408
+          "prefix_rows": 44816,
+          "qini": 1800.2992597259408,
+          "incremental_rate": 0.04017090458153206,
+          "ipw_incremental_rate": 0.05493029689487109
         },
         {
           "fraction": 0.3,
-          "qini": 1992.4044072638235
+          "prefix_rows": 67224,
+          "qini": 1992.4044072638235,
+          "incremental_rate": 0.02963829000451957,
+          "ipw_incremental_rate": 0.037231615162512964
         }
       ],
       "n": 224078,
