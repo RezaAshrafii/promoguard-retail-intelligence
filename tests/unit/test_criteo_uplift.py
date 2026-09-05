@@ -11,6 +11,7 @@ from promoguard.causal.criteo_uplift import (
     _poisson_bootstrap_qini,
     _qini_curve,
     _split_bucket,
+    _training_sample_mask,
     _uplift_scores,
     summarize_criteo_uplift_chunks,
     validate_criteo_uplift_frame,
@@ -103,6 +104,17 @@ def test_feature_hash_split_is_invariant_to_row_order() -> None:
     assert original == reordered
 
 
+def test_training_sample_is_independent_of_treatment_and_outcome() -> None:
+    frame = pd.concat([criteo_test_fixture()] * 20, ignore_index=True)
+    original = _training_sample_mask(frame, 7)
+    mutated = frame.copy()
+    mutated["treatment"] = 1 - mutated["treatment"]
+    mutated["visit"] = 1 - mutated["visit"]
+    mutated["conversion"] = 1 - mutated["conversion"]
+
+    assert original.equals(_training_sample_mask(mutated, 7))
+
+
 def test_qini_area_uses_trapezoids_and_reports_random_line_separately() -> None:
     frame = criteo_test_fixture()
     frame["treatment"] = [1, 0, 1, 0]
@@ -112,12 +124,47 @@ def test_qini_area_uses_trapezoids_and_reports_random_line_separately() -> None:
     result = _qini_curve(frame, scores)
 
     assert result["qini_final"] == pytest.approx(0.0)
-    assert result["raw_auqc"] == pytest.approx(0.75)
+    assert result["raw_auqc"] == pytest.approx(0.5)
     assert result["random_line_auqc"] == pytest.approx(0.0)
-    assert result["qini_coefficient"] == pytest.approx(0.75)
+    assert result["qini_coefficient"] == pytest.approx(0.5)
     assert result["qini_at"][0]["prefix_rows"] == 1
-    assert result["qini_at"][0]["incremental_rate"] == pytest.approx(1.0)
+    assert result["qini_at"][0]["qini_per_ranked_row"] == pytest.approx(0.0)
+    assert result["qini_at"][0]["difference_in_means_incremental_rate"] is None
     assert "ipw_incremental_rate" in result["qini_at"][0]
+
+
+def test_qini_policy_rates_distinguish_scaled_qini_from_prefix_ate() -> None:
+    frame = pd.concat([criteo_test_fixture(), criteo_test_fixture(), criteo_test_fixture().iloc[:2]], ignore_index=True)
+    frame["treatment"] = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+    frame["visit"] = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    scores = pd.Series(range(10, 0, -1), dtype="float64")
+
+    point = _qini_curve(frame, scores)["qini_at"][1]
+
+    assert point["prefix_rows"] == 2
+    assert point["treated_rows"] == 1
+    assert point["control_rows"] == 1
+    assert point["qini"] == pytest.approx(1.0)
+    assert point["qini_per_ranked_row"] == pytest.approx(0.5)
+    assert point["difference_in_means_incremental_rate"] == pytest.approx(1.0)
+    assert point["ipw_incremental_rate"] == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize("treatment", [0, 1])
+def test_qini_refuses_a_single_treatment_arm(treatment: int) -> None:
+    frame = criteo_test_fixture()
+    frame["treatment"] = treatment
+
+    with pytest.raises(ValueError, match="treated and one control"):
+        _qini_curve(frame, pd.Series(range(len(frame)), dtype="float64"))
+
+
+def test_qini_refuses_non_finite_or_wrong_length_scores() -> None:
+    frame = criteo_test_fixture()
+    with pytest.raises(ValueError, match="length"):
+        _qini_curve(frame, pd.Series([1.0]))
+    with pytest.raises(ValueError, match="finite"):
+        _qini_curve(frame, pd.Series([1.0, 2.0, float("nan"), 4.0]))
 
 
 def test_poisson_bootstrap_is_reproducible_for_a_frozen_ranking() -> None:
@@ -130,6 +177,17 @@ def test_poisson_bootstrap_is_reproducible_for_a_frozen_ranking() -> None:
     assert first == second
     assert first["ci_lower"] <= first["ci_upper"]
     assert first["standard_error"] >= 0
+
+
+def test_poisson_bootstrap_retries_invalid_tiny_two_arm_draws() -> None:
+    frame = criteo_test_fixture().iloc[[0, 2]].reset_index(drop=True)
+    scores = pd.Series([1.0, 0.0])
+
+    result = _poisson_bootstrap_qini(frame, scores, replicates=20, seed=1)
+
+    assert result["replicates"] == 20
+    assert result["invalid_draws_skipped"] > 0
+    assert result["draws_attempted"] == 20 + result["invalid_draws_skipped"]
 
 
 def test_logistic_learner_scales_features_and_reports_convergence() -> None:

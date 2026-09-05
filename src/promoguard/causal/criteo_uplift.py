@@ -250,6 +250,14 @@ def _split_bucket(frame: pd.DataFrame, seed: int) -> pd.Series:
     return (_stable_row_hash(frame, seed) % 100).astype("int16")
 
 
+def _training_sample_mask(frame: pd.DataFrame, modulus: int) -> pd.Series:
+    """Select training rows from pre-treatment features only."""
+    if modulus <= 0:
+        raise ValueError("training sample modulus must be positive.")
+    sample_hash = _stable_row_hash(frame, DEFAULT_SPLIT_SEED + 1_000)
+    return sample_hash.mod(modulus).eq(0)
+
+
 def _fit_logistic(frame: pd.DataFrame, features: list[str]) -> Pipeline:
     model = Pipeline(
         [
@@ -341,7 +349,27 @@ def _model_diagnostics(models: tuple[Any, Any | None]) -> dict[str, Any]:
     }
 
 
+def _require_qini_inputs(frame: pd.DataFrame, score: pd.Series) -> None:
+    """Reject metric inputs for which a two-arm randomized comparison is undefined."""
+    missing = sorted({*FEATURE_COLUMNS, TREATMENT_COLUMN, "visit"} - set(frame.columns))
+    if missing:
+        raise ValueError(f"Qini input is missing required columns: {', '.join(missing)}")
+    if frame.empty:
+        raise ValueError("Qini input must contain at least one row.")
+    if len(score) != len(frame):
+        raise ValueError("Qini score length must match the frame row count.")
+    if not np.isfinite(score.to_numpy(dtype="float64")).all():
+        raise ValueError("Qini scores must all be finite.")
+    if not frame[TREATMENT_COLUMN].isin([0, 1]).all():
+        raise ValueError("Qini treatment must contain only 0 or 1.")
+    if not frame["visit"].isin([0, 1]).all():
+        raise ValueError("Qini outcome must contain only 0 or 1.")
+    if frame[TREATMENT_COLUMN].nunique() != 2:
+        raise ValueError("Qini requires at least one treated and one control row.")
+
+
 def _qini_curve(frame: pd.DataFrame, score: pd.Series) -> dict[str, Any]:
+    _require_qini_inputs(frame, score)
     ranked = (
         frame.assign(
             _score=score.to_numpy(),
@@ -367,6 +395,8 @@ def _qini_curve(frame: pd.DataFrame, score: pd.Series) -> dict[str, Any]:
         treated_successes.to_numpy(dtype="float64")
         - treated_cumulative.to_numpy(dtype="float64") * control_rate
     )
+    both_arms_observed = treated_cumulative.gt(0) & control_cumulative.gt(0)
+    qini = qini.where(both_arms_observed, 0.0)
     x = pd.Series(range(1, len(ranked) + 1), dtype="float64") / len(ranked)
     raw_auqc = float(
         0.5 * (qini.shift(1, fill_value=0) + qini).mul(x.diff().fillna(x.iloc[0])).sum()
@@ -385,12 +415,22 @@ def _qini_curve(frame: pd.DataFrame, score: pd.Series) -> dict[str, Any]:
     for fraction in (0.10, 0.20, 0.30):
         index = min(len(ranked) - 1, max(0, math.ceil(len(ranked) * fraction) - 1))
         prefix_rows = index + 1
+        prefix_treated = int(treated_cumulative.iloc[index])
+        prefix_control = int(control_cumulative.iloc[index])
+        difference_in_means = (
+            float(qini.iloc[index] / prefix_treated)
+            if prefix_treated and prefix_control
+            else None
+        )
         points.append(
             {
                 "fraction": fraction,
                 "prefix_rows": prefix_rows,
+                "treated_rows": prefix_treated,
+                "control_rows": prefix_control,
                 "qini": float(qini.iloc[index]),
-                "incremental_rate": float(qini.iloc[index] / prefix_rows),
+                "qini_per_ranked_row": float(qini.iloc[index] / prefix_rows),
+                "difference_in_means_incremental_rate": difference_in_means,
                 "ipw_incremental_rate": float(ipw_cumulative[index] / prefix_rows),
             }
         )
@@ -414,6 +454,7 @@ def _poisson_bootstrap_qini(
     """Estimate fixed-ranking Qini uncertainty with reproducible Poisson multiplier weights."""
     if replicates < 2:
         raise ValueError("replicates must be at least 2.")
+    _require_qini_inputs(frame, score)
     ranked = (
         frame.assign(
             _score=score.to_numpy(),
@@ -426,7 +467,10 @@ def _poisson_bootstrap_qini(
     outcome = ranked["visit"].to_numpy(dtype="float64")
     rng = np.random.default_rng(seed)
     estimates = []
-    for _ in range(replicates):
+    draws_attempted = 0
+    maximum_draws = replicates * 100
+    while len(estimates) < replicates and draws_attempted < maximum_draws:
+        draws_attempted += 1
         weights = rng.poisson(1.0, len(ranked)).astype("float64")
         treated = weights * treatment
         control = weights * (1.0 - treatment)
@@ -440,16 +484,23 @@ def _poisson_bootstrap_qini(
             out=np.zeros(len(ranked), dtype="float64"),
             where=control_count != 0,
         )
-        qini = treated_successes - treated_count * control_rate
         population = np.cumsum(weights)
+        if population[-1] == 0 or treated_count[-1] == 0 or control_count[-1] == 0:
+            continue
+        qini = treated_successes - treated_count * control_rate
+        qini[(treated_count == 0) | (control_count == 0)] = 0.0
         x = population / population[-1]
         dx = np.diff(np.concatenate(([0.0], x)))
         raw_auqc = float(0.5 * np.sum((np.concatenate(([0.0], qini[:-1])) + qini) * dx))
         estimates.append(raw_auqc - 0.5 * float(qini[-1]))
+    if len(estimates) < replicates:
+        raise ValueError("Unable to draw enough valid two-arm bootstrap replicates.")
     lower, upper = np.percentile(estimates, [2.5, 97.5])
     return {
         "method": "Poisson(1) multiplier bootstrap conditional on the frozen ranking",
         "replicates": replicates,
+        "draws_attempted": draws_attempted,
+        "invalid_draws_skipped": draws_attempted - replicates,
         "seed": seed,
         "standard_error": float(np.std(estimates, ddof=1)),
         "confidence_level": 0.95,
@@ -524,6 +575,21 @@ def _randomization_diagnostics(train: pd.DataFrame, test: pd.DataFrame) -> dict[
     }
 
 
+def _mean_qini_points(curves: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Average random-ranking policy points without silently changing their schema."""
+    averaged: list[dict[str, Any]] = []
+    for index, source_point in enumerate(curves[0]["qini_at"]):
+        point: dict[str, Any] = {"fraction": source_point["fraction"]}
+        for key in source_point:
+            if key == "fraction":
+                continue
+            values = [curve["qini_at"][index][key] for curve in curves]
+            finite_values = [float(value) for value in values if value is not None]
+            point[key] = float(np.mean(finite_values)) if finite_values else None
+        averaged.append(point)
+    return averaged
+
+
 def evaluate_uplift_models(
     input_path: str | Path,
     *,
@@ -531,6 +597,8 @@ def evaluate_uplift_models(
     train_sample_modulus: int = DEFAULT_TRAIN_SAMPLE_MODULUS,
 ) -> dict[str, Any]:
     """Train transparent S/T learners on real Criteo rows and score a locked real test split."""
+    if chunksize <= 0:
+        raise ValueError("chunksize must be positive.")
     if train_sample_modulus <= 0:
         raise ValueError("train_sample_modulus must be positive.")
     path = Path(input_path)
@@ -540,8 +608,10 @@ def evaluate_uplift_models(
     validation_parts: list[pd.DataFrame] = []
     test_parts: list[pd.DataFrame] = []
     counts = {"train": 0, "validation": 0, "test": 0}
+    chunks_read = 0
     for chunk in pd.read_csv(path, compression="infer", chunksize=chunksize):
         _require_valid_chunk(chunk)
+        chunks_read += 1
         chunk = chunk.reset_index(drop=True)
         buckets = _split_bucket(chunk, DEFAULT_SPLIT_SEED).reset_index(drop=True)
         split = pd.Series("train", index=chunk.index)
@@ -551,12 +621,22 @@ def evaluate_uplift_models(
             selected = chunk.loc[split.eq(name)].copy()
             counts[name] += len(selected)
             if name == "train":
-                sample_hash = _stable_row_hash(selected, DEFAULT_SPLIT_SEED + 1_000)
-                selected = selected.loc[sample_hash.mod(train_sample_modulus).eq(0)]
+                selected = selected.loc[_training_sample_mask(selected, train_sample_modulus)]
             destination.append(selected)
+    if not chunks_read:
+        raise ValueError("Criteo Uplift source contained no rows.")
     train = pd.concat(train_parts, ignore_index=True)
     validation = pd.concat(validation_parts, ignore_index=True)
     test = pd.concat(test_parts, ignore_index=True)
+    split_frames = {"sampled train": train, "validation": validation, "test": test}
+    for split_name, split_frame in split_frames.items():
+        diagnostics = _split_diagnostics(split_frame)
+        if not diagnostics["rows"]:
+            raise ValueError(f"{split_name} split contains no rows.")
+        if not diagnostics["both_treatment_arms_present"]:
+            raise ValueError(f"{split_name} split must contain treatment and control rows.")
+        if not diagnostics["both_outcome_classes_present"]:
+            raise ValueError(f"{split_name} split must contain both visit outcome classes.")
     results: dict[str, Any] = {}
     scores: dict[str, dict[str, pd.Series]] = {}
     convergence: dict[str, Any] = {}
@@ -584,13 +664,11 @@ def evaluate_uplift_models(
         "qini_coefficient": float(
             np.mean([curve["qini_coefficient"] for curve in random_curves])
         ),
-        "qini_at": [
-            {"fraction": fraction, "qini": float(np.mean([curve["qini_at"][index]["qini"] for curve in random_curves]))}
-            for index, fraction in enumerate((0.10, 0.20, 0.30))
-        ],
+        "qini_at": _mean_qini_points(random_curves),
         "n": len(test),
         "qini_final": float(np.mean([curve["qini_final"] for curve in random_curves])),
         "permutations": 5,
+        "role": "deterministic calibration sanity check; not an inferential interval",
         "seeds": [DEFAULT_SPLIT_SEED + offset for offset in range(5)],
     }
     selected_beats_random = (
@@ -616,12 +694,17 @@ def evaluate_uplift_models(
     }
     randomization = _randomization_diagnostics(train, test)
     return {
+        "artifact_schema_version": "1.1.0",
         "benchmark": "criteo-uplift-v2.1-uplift-ranking",
         "outcome": "visit",
         "metric": {
             "curve": "Radcliffe-style cumulative Qini with local prefix arm ratio",
             "raw_area": "trapezoidal AUQC over population fraction",
             "qini_coefficient": "raw AUQC minus triangular random-targeting line area",
+            "qini_per_ranked_row": "cumulative Qini divided by prefix population; not an ATE",
+            "difference_in_means_incremental_rate": "prefix treated response rate minus prefix control response rate",
+            "ipw_incremental_rate": "Horvitz-Thompson/IPW prefix ATE using the observed randomized treatment fraction",
+            "zero_arm_prefix_convention": "Qini is zero until both arms appear in a ranked prefix",
             "normalized": False,
         },
         "learners": results,
@@ -631,7 +714,7 @@ def evaluate_uplift_models(
         },
         "convergence": convergence,
         "selected_model_uncertainty": selected_uncertainty,
-        "final_audit_holdout": {
+        "post_freeze_audit_subset": {
             "method": "independent feature-hash subset of development test; learner and hyperparameters frozen",
             "seed": DEFAULT_SPLIT_SEED + 5_000,
             "rows": len(final_audit),
@@ -692,13 +775,20 @@ def evaluate_uplift_models(
                 randomization["common_support_fraction_0_05_to_0_95"] >= 0.99
             ),
             "test_rows_match_split": len(test) == counts["test"],
-            "selected_model_beats_random_baseline": selected_beats_random,
+            "selected_model_beats_random_baseline_mean": selected_beats_random,
             "promotion_allowed": False,
             "reason": (
-                "Ranking screen passed, but uncertainty and policy review are still required."
-                if selected_beats_random
+                "Benchmark ranking gates passed; business-policy promotion remains disabled."
+                if selected_beats_random and selected_uncertainty["ci_lower"] > 0
                 else "Ranking screen failed; no learner may be promoted."
             ),
         },
-        "source": {"filename": path.name, "sha256": sha256_file(path), "raw_data_committed_to_git": False},
+        "source": {
+            "dataset_page": CRITEO_UPLIFT_V21_DATASET_PAGE,
+            "download_url": CRITEO_UPLIFT_V21_SOURCE_URL,
+            "license": CRITEO_UPLIFT_V21_LICENSE,
+            "filename": path.name,
+            "sha256": sha256_file(path),
+            "raw_data_committed_to_git": False,
+        },
     }
