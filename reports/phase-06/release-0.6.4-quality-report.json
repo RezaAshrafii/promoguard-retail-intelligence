@@ -1,0 +1,54 @@
+{
+  "release": "0.6.4",
+  "phase": "6.8-adversarial-review",
+  "date": "2026-09-06",
+  "artifact_schema_version": "1.1.0",
+  "source_artifact": "criteo-uplift-model-ranking.json",
+  "source_sha256": "2716e1bf0fd157a93b5bf86924d9088419dfbac2022c6cd90030220634f616dc",
+  "real_source_rows": 13979592,
+  "selected_learner": "s_learner_hist_gb",
+  "selected_validation_qini_coefficient": 6308.606476691315,
+  "selected_test_qini_coefficient": 6553.725365847389,
+  "selected_test_bootstrap_95_ci": [5953.787776181353, 7153.860366647536],
+  "selected_test_policy_at_20_percent": {
+    "prefix_rows": 419459,
+    "treated_rows": 359478,
+    "control_rows": 59981,
+    "cumulative_qini": 14135.192427602073,
+    "qini_per_ranked_row_not_ate": 0.03369862710682587,
+    "difference_in_means_incremental_rate": 0.03932143949727681,
+    "ipw_incremental_rate": 0.047200036934501824
+  },
+  "post_freeze_audit_subset": {
+    "rows": 224078,
+    "qini_coefficient": 869.5811060071637,
+    "bootstrap_95_ci": [698.6470881926831, 1015.2262258781394],
+    "publication_status": "not a pristine publication holdout because the parent development test was previously observed"
+  },
+  "real_retail_validation": {
+    "rows": 524950,
+    "valid": true,
+    "missing_units": 0,
+    "non_finite_units": 0,
+    "duplicate_grain_rows_after_normalization": 0
+  },
+  "quality_commands": {
+    "ruff": "passed",
+    "pytest": "116 passed",
+    "combined_coverage": "72 percent; CI floor 70 percent",
+    "compileall": "passed",
+    "pip_check": "passed",
+    "wheel_build": "passed as promoguard_ai-0.6.4-py3-none-any.whl",
+    "bandit": "passed with zero findings",
+    "pip_audit": "passed with no known third-party vulnerabilities",
+    "cli_health": "passed",
+    "headless_streamlit_initial_render": "passed",
+    "real_streamlit_audit_flow": "passed",
+    "real_criteo_full_rerun": "passed",
+    "git_diff_check": "passed",
+    "github_ci": "required to pass before tag v0.6.4 is created"
+  },
+  "known_dependency_warning": "FastAPI TestClient emits one StarletteDeprecationWarning about the installed httpx adapter; tests and endpoints pass.",
+  "promotion_allowed": false,
+  "release_decision": "allowed for local demo, portfolio, and engineering benchmark; prohibited for autonomous targeting, financial claims, Iranian-market transport, or publication-holdout claims"
+}

@@ -51,11 +51,13 @@ We report:
 - model raw AUQC and Qini coefficient;
 - random-ranking Qini coefficient baseline;
 - Qini at 10%, 20%, and 30% of the ranked population;
-- incremental rate per targeted row and an IPW cross-check at the same budgets;
+- Qini divided by ranked-prefix population, explicitly labelled as a scaled curve quantity and not an ATE;
+- treated-minus-control response-rate difference and an IPW cross-check at the same budgets;
 - arm counts and treatment fraction.
 
 The random baseline is the mean of five deterministic seeded random permutations used as a reproducible
-calibration reference, not a confidence interval. AUUC does not prove individual causal truth; it evaluates policy ranking under
+calibration sanity check, not a confidence interval and not the sole inferential gate. The selected model's
+fixed-ranking bootstrap interval must also remain above zero. AUUC does not prove individual causal truth; it evaluates policy ranking under
 the randomized benchmark's assumptions. A perfect oracle is not reported because each person has only
 one observed outcome and the true counterfactual outcome is unavailable.
 
@@ -65,9 +67,10 @@ The phase passes only when:
 
 1. no post-treatment column enters training;
 2. every split and train sample is deterministic, outcome-independent, and recorded;
-3. the complete real test set is evaluated exactly once after model selection;
+3. each reproducible run selects on validation before evaluating the complete real test set; the repository
+   separately discloses that this development test has been observed in earlier iterations;
 4. both learners produce finite scores and preserve test-arm accounting;
-5. Qini curves report every ranked prefix and use an explicit zero-treatment-control convention;
+5. Qini curves use an explicit zero value until both treatment arms appear in a ranked prefix;
 6. the validation-selected learner beats the five-permutation random Qini-coefficient baseline in the
    test report; otherwise the result is retained as a negative benchmark and no model is promoted;
 7. the report states that Criteo evidence does not identify retail or Iranian impact.
@@ -98,10 +101,27 @@ engineering thresholds, not universal proof of randomization.
 
 ## Policy-value interpretation
 
-At 10%, 20%, and 30% of the ranking, the report divides cumulative Qini by the prefix size to show
-incremental visits per targeted row. It also reports an inverse-propensity-weighted rate using the
-randomized treatment fraction as a cross-check. These are benchmark response rates, not profit,
-revenue, ROI, or a recommendation to spend a budget.
+At 10%, 20%, and 30% of the ranking, the report keeps three quantities separate:
+
+1. `qini_per_ranked_row` is cumulative Qini divided by the whole prefix population. Because the
+   cumulative Qini convention is scaled by the treated count, this value is **not** an ATE.
+2. `difference_in_means_incremental_rate` is the treated response rate minus the control response
+   rate inside that prefix. Algebraically it equals cumulative Qini divided by the treated count
+   after both arms have appeared.
+3. `ipw_incremental_rate` is a Horvitz–Thompson/IPW estimate using the observed randomized treatment
+   fraction. It is a design-based cross-check and can differ from the local difference in means.
+
+For the selected test ranking at 20%, these values are respectively 0.03370, 0.03932, and 0.04720.
+They are benchmark response summaries, not profit, revenue, ROI, transportable business impact, or
+a recommendation to spend a budget.
+
+## Phase 6.8 adversarial review hardening
+
+Metric helpers now refuse empty, score-length-mismatched, non-finite, invalid-binary, and single-arm
+inputs. The Poisson bootstrap retries draws that accidentally contain no weighted treatment arm and
+reports skipped-draw accounting. The persisted artifact uses schema `1.1.0`, calls the old
+"final holdout" a `post_freeze_audit_subset`, and retains the explicit warning that its parent
+development test was previously observed. The five random permutations remain calibration only.
 
 ## Phase 6.6 nonlinear benchmark
 

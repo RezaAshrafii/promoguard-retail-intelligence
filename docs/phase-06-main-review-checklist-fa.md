@@ -1,4 +1,4 @@
-# چک‌لیست بازبینی اصلی Phase 6 — نسخهٔ 0.6.0
+# چک‌لیست بازبینی اصلی Phase 6 — نسخهٔ سخت‌گیری‌شده 0.6.4
 
 این سند نقطهٔ توقف نسخهٔ اصلاح‌شده برای بازبینی سطح بالا است. خروجی فعلی یک benchmark مهندسی و
 آماری روی آزمایش تبلیغاتی Criteo است؛ اثبات ارزش تجاری PromoGuard یا اثر promotion فروشگاهی نیست.
@@ -13,6 +13,10 @@
 - ۵۰ Poisson multiplier bootstrap برای uncertainty رتبه‌بندی قفل‌شده اجرا می‌شود.
 - SMD، propensity AUC و common support به گزارش اضافه شدند.
 - یک S-Learner غیرخطی HistGradientBoosting با تنظیمات ثابت اضافه شد.
+- ورودی خالی، نمرهٔ غیرمتناهی، طول ناسازگار و دادهٔ تک‌گروهی قبل از Qini رد می‌شوند.
+- drawهای bootstrap که پس از وزن‌دهی فاقد treated یا control باشند کنار گذاشته و شمارش می‌شوند.
+- مفهوم Qini/population از اختلاف نرخ treated/control و IPW جدا و با نام مستقل ثبت شد.
+- نام `final_audit_holdout` به `post_freeze_audit_subset` تغییر کرد تا ادعای holdout تازه القا نشود.
 
 ## نتیجهٔ واقعی
 
@@ -24,9 +28,11 @@
 | S-Learner غیرخطی Qini coefficient | 6,553.73 |
 | مدل منتخب روی validation | `s_learner_hist_gb` |
 | فاصلهٔ اطمینان ۹۵٪ مدل منتخب | [5,953.79, 7,153.86] |
-| final audit subset | 224,078 rows; Qini 869.58 |
-| final audit subset CI 95% | [698.65, 1,015.23] |
-| final audit incremental rate at 20% | حدود 0.0402 visit به‌ازای هر ردیف |
+| post-freeze audit subset | 224,078 rows; Qini 869.58 |
+| post-freeze subset CI 95% | [698.65, 1,015.23] |
+| test Qini/population در 20٪ | 0.03370؛ این عدد ATE نیست |
+| test treated-control rate difference در 20٪ | 0.03932 |
+| test IPW rate در 20٪ | 0.04720 |
 | random baseline Qini coefficient | -0.45 |
 | propensity test ROC-AUC | 0.5086 |
 | common support | 100% |
@@ -45,12 +51,13 @@ T-Learner در test عدد بالاتری دارد، اما روی validation ب
 - balance، propensity AUC و common support؛
 - انتخاب مدل فقط براساس validation؛
 - policy-value و IPW cross-check در budgetهای ۱۰٪، ۲۰٪ و ۳۰٪؛
-- ۹۰ تست، Ruff، compileall و diff check.
+- ۱۱۶ تست، حداقل coverage کل ۷۰٪، Ruff، compileall، build wheel، pip check، Bandit،
+  pip-audit و diff check.
 
 ## محدودیت‌های باز
 
 1. test در طول توسعه چند بار مشاهده شده و برای مقاله نباید final untouched holdout نامیده شود.
-2. final audit subset از parent development test جداست، اما parent test قبلاً در توسعه مشاهده شده است.
+2. post-freeze audit subset از parent development test جداست، اما parent test قبلاً در توسعه مشاهده شده است.
 3. bootstrap فعلی ranking را ثابت نگه می‌دارد و uncertainty ناشی از refit مدل را اندازه نمی‌گیرد.
 4. پنج random permutation برای sanity check است، نه فاصلهٔ اطمینان baseline.
 5. تنظیمات boosting فقط یک configuration ثابت است و tuning گسترده انجام نشده است.

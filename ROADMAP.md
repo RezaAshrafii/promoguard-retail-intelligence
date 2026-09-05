@@ -1,6 +1,6 @@
 # PromoGuard active development roadmap
 
-Last updated: 2026-09-05
+Last updated: 2026-09-06
 Roadmap owner: Reza  
 Execution rule: exactly one phase or release gate is `ACTIVE`.
 
@@ -346,7 +346,7 @@ Plain-language goal: Reza verifies eligibility, completes the official form and 
 outside Git, records the 110–118 second demo, and checks every final link without authentication.
 Submission packaging is closed; professional-track development continues in Phase 6.
 
-## Phase 6 — ACTIVE — Real-experiment causal benchmarking
+## Phase 6 — DONE — Real-experiment causal benchmarking
 
 Plain-language goal: use a real public randomized marketing experiment to benchmark treatment-effect methods, then test retail observational analyses with explicit refusal rules.
 
@@ -388,8 +388,16 @@ Deliverables and gate:
   fixed-ranking bootstrap 95% interval [698.65, 1,015.23]. It is explicitly not a pristine paper
   holdout because its parent development test was previously observed.
 - Policy-value view added after the audit: at 20% of the selected ranking, cumulative Qini is
-  14,135.19 and the incremental-rate view is approximately 0.0337 per targeted row. This remains a
-  benchmark response estimate, not profit, ROI, or a spending recommendation.
+  14,135.19. Qini/population is 0.03370 and is explicitly not an ATE; the direct treated-control
+  rate difference is 0.03932 and the IPW cross-check is 0.04720. None is profit, ROI, transportable
+  business impact, or a spending recommendation.
+- **Release Gate 6.8 — adversarial review completed on 2026-09-06:** 116 tests and 72% combined
+  coverage include single-arm/empty/non-finite Qini refusals, tiny-sample bootstrap retries,
+  treatment/outcome-independent sampling, normalized-grain duplicate detection, non-finite retail
+  values, local-file memory limits, graceful no-event API behavior, CLI routing, and a headless
+  Streamlit render. The 13,979,592-row real Criteo benchmark was rerun under artifact schema 1.1.0.
+  Bandit reports no code findings and pip-audit reports no known third-party vulnerabilities after
+  upgrading the affected test/build tools. Package, API, and wheel now share version 0.6.4.
 - Pre-trend, overlap, placebo, missingness, sensitivity, and coverage diagnostics.
 - Statistical tests use documented splits and confidence intervals, not a single lucky run.
 - Gate: Criteo results use the dataset’s treatment/outcome definitions; retail outputs abstain when the public data cannot identify a causal effect.
@@ -418,9 +426,11 @@ Deliverables and gate:
 
 Phase 7.1 was completed on 2026-09-02 and remains covered by its existing reports and tests.
 
-## Phase 8 — PENDING — Profit optimization
+## Phase 8 — ACTIVE — Constraint and real-input contract before profit optimization
 
-Plain-language goal: compare safe promotion scenarios under real constraints rather than automatically changing prices.
+Plain-language goal: define and validate the real margin, trade-spend, budget, inventory, and
+business-rule inputs before comparing safe promotion scenarios. No value is fabricated when a real
+partner field is absent, and no price is changed automatically.
 
 Deliverables and gate:
 

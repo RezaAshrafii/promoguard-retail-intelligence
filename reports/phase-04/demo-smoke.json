@@ -4,7 +4,7 @@
   "health": {
     "status": "ok",
     "service": "promoguard-api",
-    "version": "0.5.1",
+    "version": "0.6.4",
     "deployment_scope": "local_demo_only"
   },
   "quality": {
@@ -40,6 +40,6 @@
       "STOCKOUT_UNOBSERVABLE",
       "FORWARD_BUY_RISK"
     ],
-    "claim_language": "observed-minus-baseline estimate; causal treatment effect and financial impact not identified"
+    "claim_language": "observed-minus-baseline estimate; causal treatment effect, cross-SKU substitution, and financial impact not identified"
   }
 }

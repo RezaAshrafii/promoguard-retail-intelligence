@@ -41,10 +41,10 @@ capabilities. The Criteo benchmark is documented in [docs/causal-benchmark.md](d
 | Cross-SKU screen | 1 eligible neighbor, 0 candidates | no observed decline crossed the policy threshold; not no-effect proof |
 | Criteo randomized ITT benchmark | visit +1.034pp; conversion +0.115pp | external advertising RCT; not a retail causal claim |
 | Criteo selected uplift learner | Qini coefficient 6,553.73; 95% CI [5,953.79, 7,153.86] | nonlinear S-Learner selected on validation; fixed-ranking test uncertainty only |
-| Criteo 20% benchmark policy view | cumulative Qini 14,135.19; per-row incremental rate ~0.0337 | benchmark response rate; not profit, ROI, or spend recommendation |
+| Criteo 20% benchmark policy view | cumulative Qini 14,135.19; Qini/population 0.03370; treated-control rate difference 0.03932; IPW 0.04720 | three explicitly different benchmark summaries; none is profit, ROI, or a spend recommendation |
 
 Release Gate 5.1 passed 67 tests; the current Demo Mode release passes **73 tests**. Later causal,
-cross-SKU, uncertainty, overlap, and metric-correctness checks bring the current suite to **90 tests**. Command evidence
+cross-SKU, uncertainty, overlap, security, dashboard-rendering, and metric-correctness checks bring the current suite to **116 tests**. Command evidence
 and the one known dependency deprecation warning are recorded in the
 [correctness report](reports/foundation-correctness/release-quality-report.json) and
 [Demo Mode report](reports/phase-05/demo-mode-quality-report.json).
