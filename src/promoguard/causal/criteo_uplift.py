@@ -16,6 +16,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import brier_score_loss, roc_auc_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -431,6 +432,53 @@ def _split_diagnostics(frame: pd.DataFrame) -> dict[str, Any]:
     }
 
 
+def _frame_balance(frame: pd.DataFrame) -> dict[str, Any]:
+    arm_statistics = _empty_arm_statistics()
+    feature_statistics = _empty_feature_statistics()
+    _update_statistics(frame, arm_statistics, feature_statistics)
+    features = _feature_balance(feature_statistics)
+    return {
+        "features": features,
+        "maximum_absolute_smd": max(
+            abs(float(row["standardized_mean_difference"])) for row in features
+        ),
+    }
+
+
+def _randomization_diagnostics(train: pd.DataFrame, test: pd.DataFrame) -> dict[str, Any]:
+    propensity = Pipeline(
+        [
+            ("scale", StandardScaler()),
+            (
+                "logistic",
+                LogisticRegression(
+                    max_iter=LOGISTIC_MAX_ITER,
+                    solver="lbfgs",
+                    random_state=DEFAULT_SPLIT_SEED + 4_000,
+                ),
+            ),
+        ]
+    )
+    propensity.fit(train[list(FEATURE_COLUMNS)], train[TREATMENT_COLUMN])
+    probability = propensity.predict_proba(test[list(FEATURE_COLUMNS)])[:, 1]
+    iterations = int(propensity.named_steps["logistic"].n_iter_.max())
+    return {
+        "purpose": "detect feature-predictable treatment assignment; not used for outcome modeling",
+        "test_roc_auc": float(roc_auc_score(test[TREATMENT_COLUMN], probability)),
+        "test_brier_score": float(brier_score_loss(test[TREATMENT_COLUMN], probability)),
+        "probability_quantiles": {
+            "p01": float(np.quantile(probability, 0.01)),
+            "p50": float(np.quantile(probability, 0.50)),
+            "p99": float(np.quantile(probability, 0.99)),
+        },
+        "common_support_fraction_0_05_to_0_95": float(
+            np.mean((probability >= 0.05) & (probability <= 0.95))
+        ),
+        "iterations": iterations,
+        "converged": iterations < LOGISTIC_MAX_ITER,
+    }
+
+
 def evaluate_uplift_models(
     input_path: str | Path,
     *,
@@ -507,6 +555,12 @@ def evaluate_uplift_models(
     selected_uncertainty = _poisson_bootstrap_qini(
         test, scores[selected_learner]["test"]
     )
+    balance = {
+        "train": _frame_balance(train),
+        "validation": _frame_balance(validation),
+        "test": _frame_balance(test),
+    }
+    randomization = _randomization_diagnostics(train, test)
     return {
         "benchmark": "criteo-uplift-v2.1-uplift-ranking",
         "outcome": "visit",
@@ -523,6 +577,8 @@ def evaluate_uplift_models(
         },
         "convergence": convergence,
         "selected_model_uncertainty": selected_uncertainty,
+        "covariate_balance": balance,
+        "randomization_diagnostics": randomization,
         "random_ranking_baseline": random_curve,
         "split": {
             "method": "stable hash of pre-treatment features; independent of source row order",
@@ -559,6 +615,14 @@ def evaluate_uplift_models(
                 diagnostic["all_converged"] for diagnostic in convergence.values()
             ),
             "selected_model_ci_above_zero": selected_uncertainty["ci_lower"] > 0,
+            "covariate_balance_acceptable": all(
+                split_balance["maximum_absolute_smd"] < 0.1
+                for split_balance in balance.values()
+            ),
+            "randomization_auc_acceptable": randomization["test_roc_auc"] < 0.55,
+            "common_support_acceptable": (
+                randomization["common_support_fraction_0_05_to_0_95"] >= 0.99
+            ),
             "test_rows_match_split": len(test) == counts["test"],
             "selected_model_beats_random_baseline": selected_beats_random,
             "promotion_allowed": False,

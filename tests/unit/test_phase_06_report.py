@@ -18,6 +18,9 @@ def test_phase_06_report_is_locked_and_conservative() -> None:
     assert report["gate"]["test_rows_match_split"] is True
     assert report["gate"]["all_models_converged"] is True
     assert report["gate"]["selected_model_ci_above_zero"] is True
+    assert report["gate"]["covariate_balance_acceptable"] is True
+    assert report["gate"]["randomization_auc_acceptable"] is True
+    assert report["gate"]["common_support_acceptable"] is True
     assert report["gate"]["promotion_allowed"] is False
 
 

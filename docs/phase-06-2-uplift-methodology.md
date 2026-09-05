@@ -87,5 +87,13 @@ is frozen and evaluated with 50 reproducible Poisson(1) multiplier-bootstrap rep
 95% percentile interval is conditional on that frozen ranking: it measures test-population evaluation
 noise, not model-refit uncertainty, transportability, or business-policy uncertainty.
 
+## Phase 6.5 overlap and randomization audit
+
+Each split reports standardized mean differences for all pre-treatment features. A separate logistic
+propensity diagnostic is trained only to test whether those features predict treatment; it is never
+used by the outcome learners. The audit gate requires maximum absolute SMD below 0.1, test propensity
+ROC-AUC below 0.55, and at least 99% of estimated probabilities inside [0.05, 0.95]. These are declared
+engineering thresholds, not universal proof of randomization.
+
 No threshold for automatic targeting is introduced. A future policy requires cost, capacity, treatment
 harm, fairness, calibration, and a fresh holdout review.
