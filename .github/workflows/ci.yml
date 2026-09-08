@@ -12,7 +12,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
-      - run: python -m pip install --upgrade pip
+      # Build-system requirements are installed in an isolated environment and do
+      # not upgrade the runner's own packages. Upgrade both tools here so the
+      # subsequent pip-audit checks the same safe environment used by CI.
+      - run: python -m pip install --upgrade "pip>=26.2.1" "setuptools>=83"
       - run: python -m pip install -e ".[dev,dashboard]"
       - run: ruff check .
       - run: pytest --cov=promoguard --cov=apps --cov-fail-under=70 -q
