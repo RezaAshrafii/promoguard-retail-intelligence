@@ -8,11 +8,13 @@ without access to the original chat history.
 
 Finish and quality-assure the PromoGuard submission package before the internal deadline:
 
-- Official deadline: 1405-06-13 / 2026-09-04.
-- Internal send deadline: 1405-06-11 at 15:00 Tehran time / 2026-09-02.
+- Deficiency-correction deadline: 1405-06-21 / 2026-09-12.
+- Internal corrected-send deadline: 1405-06-20 at 15:00 Tehran time / 2026-09-11.
 - Applicant and final decision owner: Reza.
 - Repository: `promoguard-retail-intelligence`.
-- Current release line: Release Gate 5.1 and Demo Mode are DONE; submission refresh is ACTIVE; Phase 6 is PAUSED.
+- Current release line: release `v0.6.4` and Phase 6 adversarial review are DONE; the mandatory
+  three-person-team and private-document correction package is ACTIVE; Phase 8 implementation waits
+  behind this administrative gate.
 
 The submission must present a runnable, evidence-first MVP. It must not claim an Iranian customer,
 revenue, causal impact, profit improvement, patent, award, or production readiness unless Reza adds
@@ -37,16 +39,16 @@ Do not rely on chat memory when repository evidence disagrees with it.
 
 ## 3. Current verified state
 
-As of 2026-08-31:
+As of 2026-09-08:
 
 - Branch: `main`, tracking `origin/main`.
-- Latest release tag: `v0.5.2-park-demo`; correctness tag: `v0.5.1-foundation-correctness`.
+- Latest release tag: `v0.6.4`; its branch and tag GitHub CI runs pass.
 - Phase 5 package exists under `submission/park-application-1405/`.
 - Real public dunnhumby panel path is expected under
   `data/processed/breakfast-at-the-frat/` and is intentionally not tracked by Git.
-- The current local release candidate passes 67 tests, Ruff, compileall, real validation,
-  forecasting, audit, and API smoke. The source of truth is
-  `reports/foundation-correctness/release-quality-report.json`.
+- The current release passes 116 tests with 72% combined coverage, Ruff, compileall, pip check,
+  Bandit, pip-audit, wheel build, real retail validation, full Criteo rerun, CLI, API and headless
+  Streamlit checks. The source of truth is `reports/phase-06/release-0.6.4-quality-report.json`.
 - Completed Release Gate 5.1 fixes: audit contribution semantics, consecutive-week MASE scale,
   canonical grain identifiers, local API path confinement, paired-coverage accounting, versioned
   AuditPolicy, AI governance, retrospective ADRs, public README, and repository hygiene/license.
@@ -208,11 +210,11 @@ tag only at the end of the gate, never on a partial state.
 At the end of every work package, update this block and the main roadmap:
 
 ```text
-Active package: D/E — private form, PDFs, and final video
-Last completed task: public submission evidence and claim audit passed with verified 0.5.2 facts
-Current blocker: none in repository; applicant eligibility, private fields, documents, and video require Reza
-Next action: Reza verifies eligibility and completes the private official form outside Git
-Expected next artifact: private signed form/PDF package and a video URL tested without login
+Active package: Park deficiency correction — real team, signature, private documents, evidence refresh
+Last completed task: release 0.6.4 adversarial review, tag CI, and installable release smoke passed
+Current blocker: names, consent, identity documents, and student certificates of two real members
+Next action: recruit and screen one data/software member and one product/retail-validation member
+Expected next artifact: private signed three-person form and complete correction email by 2026-09-11
 ```
 
 If a blocking condition needs private information or external authority, stop and ask Reza. Do not

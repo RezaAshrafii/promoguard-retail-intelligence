@@ -1,6 +1,6 @@
 # PromoGuard active development roadmap
 
-Last updated: 2026-09-06
+Last updated: 2026-09-08
 Roadmap owner: Reza  
 Execution rule: exactly one phase or release gate is `ACTIVE`.
 
@@ -8,15 +8,18 @@ Execution rule: exactly one phase or release gate is `ACTIVE`.
 
 The roadmap has two speeds:
 
-- **Submission track:** produce a narrow but honest MVP package by **2026-09-04 (13 Shahrivar 1405)**. This is a five-day sprint, so the submission should promise a validated pilot, not a complete enterprise platform.
+- **Submission correction track:** complete the real three-person team, signature, member documents,
+  and evidence refresh by **2026-09-12 (21 Shahrivar 1405)**. The internal send target is
+  2026-09-11 at 15:00 Tehran time.
 - **Professional track:** extend the same codebase after submission into a production-minded portfolio project with causal validation, monitoring, optimization, and verified AI explanations.
 
 ## Active Park-submission execution overlay
 
-The official deadline remains 2026-09-04, but the internal send deadline is **2026-09-02 at 15:00
-Tehran time**. The Park sprint does not change the single-active-gate rule: Release Gate 5.1 and
-reviewer Demo Mode and submission evidence refresh are closed; the professional-track Phase 6.2
-benchmark is ACTIVE.
+The original submission was reviewed and the Park granted a deficiency-correction deadline of
+2026-09-12. The administrative correction package is ACTIVE: add two real complementary members,
+complete the applicant name/date/signature, attach member identity and student-status documents,
+and refresh external evidence to release 0.6.4. Professional Phase 8 design may continue only when
+it does not endanger this mandatory package.
 
 Execution documents:
 
@@ -70,9 +73,10 @@ The first submission implements the center path with a documented public retail 
 | 5.1 | Foundation correctness release | before Demo Mode | DONE |
 | 5.2 | Reviewer-focused real-data Demo Mode | immediately after 5.1 | DONE |
 | 5.3 | Final submission evidence refresh | before recording/submission | DONE |
-| 6 | Real-experiment causal benchmarking | after correctness gate | ACTIVE |
-| 7 | Cannibalization, forward-buy, uncertainty, abstention | 2026-09-15 to 09-24 | PENDING |
-| 8 | Constrained profit optimization | 2026-09-25 to 10-04 | PENDING |
+| 6 | Real-experiment causal benchmarking | completed in release 0.6.4 | DONE |
+| 7 | Cannibalization, forward-buy, uncertainty, abstention | completed 2026-09-02 | DONE |
+| Park correction | Three-person team, signature, member documents, evidence refresh | 2026-09-12 | ACTIVE |
+| 8 | Constrained profit optimization | after Park correction gate | PENDING |
 | 9 | Production data, monitoring, and optional verified LLM layer | 2026-10-05 to 10-19 | PENDING |
 | 10 | Portfolio, AIIF, and job-application packaging | 2026-10-20 to 10-25 | PENDING |
 
