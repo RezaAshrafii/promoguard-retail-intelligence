@@ -2,6 +2,7 @@
   "release": "0.6.4",
   "phase": "6.8-adversarial-review",
   "date": "2026-09-06",
+  "ci_verified_at": "2026-09-08",
   "artifact_schema_version": "1.1.0",
   "source_artifact": "criteo-uplift-model-ranking.json",
   "source_sha256": "2716e1bf0fd157a93b5bf86924d9088419dfbac2022c6cd90030220634f616dc",
@@ -46,7 +47,7 @@
     "real_streamlit_audit_flow": "passed",
     "real_criteo_full_rerun": "passed",
     "git_diff_check": "passed",
-    "github_ci": "required to pass before tag v0.6.4 is created"
+    "github_ci": "passed on Ubuntu/Python 3.11: https://github.com/RezaAshrafii/promoguard-retail-intelligence/actions/runs/34223222775"
   },
   "known_dependency_warning": "FastAPI TestClient emits one StarletteDeprecationWarning about the installed httpx adapter; tests and endpoints pass.",
   "promotion_allowed": false,
