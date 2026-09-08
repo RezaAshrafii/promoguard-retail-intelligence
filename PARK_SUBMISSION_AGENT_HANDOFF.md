@@ -213,7 +213,7 @@ At the end of every work package, update this block and the main roadmap:
 Active package: Park deficiency correction — real team, signature, private documents, evidence refresh
 Last completed task: release 0.6.4 adversarial review, tag CI, and installable release smoke passed
 Current blocker: names, consent, identity documents, and student certificates of two real members
-Next action: recruit and screen one data/software member and one product/retail-validation member
+Next action: recruit and screen one retail/commercial analytics member and one product/business-development member; Reza remains Founder & Technical Lead and owns data, modeling, testing, and deployment
 Expected next artifact: private signed three-person form and complete correction email by 2026-09-11
 ```
 
