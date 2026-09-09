@@ -17,3 +17,6 @@
 - Policy v1.1.0 adds a same-store, same-category co-movement screen, but it is not a causal
   cannibalization estimator. It excludes missing and concurrently promoted neighbors and reports
   only candidates for controlled follow-up.
+- Phase 8.1 validates real promotion-economics inputs and screens constraints only. `eligible` does
+  not mean profitable, causal, optimal, or approved; scenario ranking and portfolio optimization
+  remain unimplemented, and the public demo has no partner economics data.

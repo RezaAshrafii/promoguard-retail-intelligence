@@ -22,6 +22,9 @@ readiness from public observational data.
   intention-to-treat effects with balance diagnostics while keeping it separate from retail;
 - benchmarks logistic and nonlinear uplift learners on a deterministic real-data split with corrected
   Qini metrics, convergence, fixed-ranking bootstrap uncertainty, and overlap diagnostics;
+- validates evidenced promotion-economics candidates with decimal money, consistent currency,
+  bounded demand projections, and explicit price/budget/inventory constraint failures; it does not
+  yet rank scenarios or claim profit;
 - serves typed local FastAPI endpoints and a Persian Streamlit dashboard;
 - preserves an explicit abstention result when the evidence is insufficient.
 

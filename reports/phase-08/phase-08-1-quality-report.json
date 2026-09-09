@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0.0",
+  "phase": "8.1",
+  "title": "Real promotion-economics input contract and feasibility pre-check",
+  "validated_at": "2026-09-09",
+  "status": "passed",
+  "model_route": {
+    "model": "gpt-5.6-sol",
+    "reasoning": "xhigh",
+    "reason": "Financial semantics, provenance, and constraint boundaries are high-risk architecture decisions."
+  },
+  "scope": {
+    "included": [
+      "strict decimal financial input contract",
+      "one evidence record per financially material field",
+      "currency and scenario identity validation",
+      "bounded demand projection",
+      "human-approval and no-automatic-execution invariants",
+      "deterministic all-reasons feasibility screening"
+    ],
+    "excluded": [
+      "profit forecast",
+      "causal incrementality estimate",
+      "scenario ranking or selection",
+      "portfolio optimization",
+      "automatic campaign execution",
+      "public-demo fabricated economics"
+    ]
+  },
+  "validation": {
+    "ruff": "passed",
+    "pytest": {
+      "status": "passed",
+      "tests": 128,
+      "coverage_percent": 74.58,
+      "coverage_gate_percent": 70
+    },
+    "compileall": "passed",
+    "pip_check": "passed",
+    "bandit": "passed",
+    "pip_audit": {
+      "status": "passed",
+      "known_vulnerabilities": 0,
+      "note": "The local promoguard-ai package is not published on PyPI and was skipped as an auditable dependency."
+    },
+    "cli_health": "passed",
+    "known_warning": "Starlette TestClient emits one upstream httpx deprecation warning; no test failed."
+  },
+  "new_test_cases": 12,
+  "claim_boundary": "Eligible means only that the declared constraints passed. It is not profitable, causal, optimal, or approved.",
+  "data_boundary": "No new business dataset or fabricated economics values were added to the product demo. Test values are schema fixtures only.",
+  "next_gate": "Phase 8.2 may implement transparent scenario comparison only after an independent contract review and must retain human approval."
+}

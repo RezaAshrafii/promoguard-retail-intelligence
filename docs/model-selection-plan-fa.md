@@ -6,16 +6,16 @@
 
 ## تصمیم فوری
 
-فاز فعال فعلی **Release Gate 5.1 — Foundation Correctness و آماده‌سازی ارسال پارک** است و Phase 6
-تا عبور کامل این gate متوقف می‌ماند. برای coverage accounting، AuditPolicy، امنیت مرزها و audit
-نهایی ادعاها استفاده کن:
+فاز فنی فعال فعلی **Phase 8 — قرارداد ورودی واقعی و بهینه‌سازی محدودشده** است. بخش 8.1 قرارداد
+اقتصاد پروموشن، provenance و feasibility را می‌بندد و بخش 8.2 بعد از بازبینی مستقل سراغ مقایسه و
+بهینه‌سازی می‌رود. برای تعریف margin، trade spend، budget، inventory و مرزهای اجرای انسانی استفاده کن:
 
 ```powershell
 .\scripts\start-agent.ps1 -Model gpt-5.6-sol -Reasoning xhigh -RunMode phase
 ```
 
-برای بازبینی نهایی thresholdها، leakage، سازگاری artifact و زبان abstention یک اجرای جداگانه با
-Sol مناسب است:
+برای بازبینی نهایی فرمول هدف، واحدها، constraintها، infeasibility، سازگاری artifact و زبان عدم‌ادعا
+یک اجرای جداگانه با Sol مناسب است:
 
 ```powershell
 .\scripts\start-agent.ps1 -Model gpt-5.6-sol -Reasoning max -RunMode phase

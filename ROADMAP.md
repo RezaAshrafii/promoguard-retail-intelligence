@@ -443,6 +443,20 @@ Deliverables and gate:
 - Human approval required; no autonomous campaign execution.
 - Gate: solver output always satisfies tested constraints and reports infeasible cases clearly.
 
+Phase 8.1 completion evidence (2026-09-09):
+
+- Added frozen, extra-forbid contracts for scenario economics, demand intervals, provenance, and
+  request-level constraints under `src/promoguard/optimization/`.
+- Every price, cost, funding, spend, inventory, baseline, and projection field requires one dated
+  evidence record; assumptions remain explicitly labeled.
+- Human approval is schema-mandatory and automatic execution cannot be enabled.
+- Deterministic pre-check reports all failed price, discount, inventory, contribution, and budget
+  constraints without ranking or selecting a scenario.
+- Phase 8 remains ACTIVE: portfolio objective, ranking, uncertainty-aware sensitivity, solver,
+  API/dashboard adapters, and real partner run are Phase 8.2 work.
+- Model/reasoning: `gpt-5.6-sol`, `xhigh`, selected because financial semantics and constraint
+  boundaries are high-risk architecture decisions.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.
