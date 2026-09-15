@@ -7,7 +7,7 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator, model_validator
 
 EconomicsField = Literal[
     "regular_unit_price",
@@ -88,7 +88,7 @@ class PromotionScenario(BaseModel):
     supplier_funding_per_unit: Decimal = Field(ge=0, allow_inf_nan=False)
     fixed_trade_spend: Decimal = Field(ge=0, allow_inf_nan=False)
     variable_trade_spend_per_unit: Decimal = Field(ge=0, allow_inf_nan=False)
-    available_inventory_units: int = Field(ge=0)
+    available_inventory_units: StrictInt = Field(ge=0)
     baseline_demand_units: float = Field(ge=0, allow_inf_nan=False)
     projected_demand_units: ProjectionInterval
     evidence: list[EconomicsEvidence] = Field(min_length=1, max_length=9)
@@ -129,7 +129,7 @@ class OptimizationInput(BaseModel):
     total_trade_spend_budget: Decimal = Field(ge=0, allow_inf_nan=False)
     minimum_unit_contribution: Decimal = Field(allow_inf_nan=False)
     maximum_discount_rate: Decimal = Field(ge=0, le=1, allow_inf_nan=False)
-    inventory_reserve_units: int = Field(default=0, ge=0)
+    inventory_reserve_units: StrictInt = Field(default=0, ge=0)
     scenarios: list[PromotionScenario] = Field(min_length=1, max_length=10_000)
     human_approval_required: Literal[True] = True
     automatic_execution_allowed: Literal[False] = False

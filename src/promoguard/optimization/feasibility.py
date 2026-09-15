@@ -6,7 +6,7 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from promoguard.optimization.contracts import OptimizationInput, PromotionScenario
 
@@ -37,6 +37,13 @@ class ScenarioFeasibility(BaseModel):
     limitation: Literal[
         "Constraint screening only; not a profit forecast, causal estimate, or rollout approval."
     ] = "Constraint screening only; not a profit forecast, causal estimate, or rollout approval."
+
+    @model_validator(mode="after")
+    def validate_status_matches_reasons(self) -> ScenarioFeasibility:
+        expected = "infeasible" if self.reasons else "eligible"
+        if self.status != expected:
+            raise ValueError("status must be infeasible when reasons exist and eligible otherwise")
+        return self
 
 
 def _assess_one(request: OptimizationInput, scenario: PromotionScenario) -> ScenarioFeasibility:

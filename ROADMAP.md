@@ -457,6 +457,16 @@ Phase 8.1 completion evidence (2026-09-09):
 - Model/reasoning: `gpt-5.6-sol`, `xhigh`, selected because financial semantics and constraint
   boundaries are high-risk architecture decisions.
 
+Phase 8.1.1 team execution overlay (2026-09-16):
+
+- The repository now has a parallel team execution board at
+  `docs/team/TEAM-EXECUTION-BOARD-FA.md`.
+- Reza remains the Founder & Technical Lead and owns final technical review, while Product,
+  Data/Statistical Analysis, and Business Development have independent artifacts and acceptance
+  criteria.
+- Phase 8.2 optimizer remains blocked until the methodology corrections from the independent review
+  are closed; implementation work may continue in small contract, test, and documentation slices.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.

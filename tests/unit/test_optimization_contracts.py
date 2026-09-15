@@ -114,6 +114,13 @@ def test_contract_rejects_non_finite_projection() -> None:
         ProjectionInterval(point=float("nan"), lower=0, upper=10)
 
 
+def test_contract_rejects_boolean_inventory_values() -> None:
+    with pytest.raises(ValidationError):
+        scenario(available_inventory_units=True)
+    with pytest.raises(ValidationError):
+        request(inventory_reserve_units=False)
+
+
 def test_contract_rejects_duplicate_scenario_ids() -> None:
     duplicate = scenario()
     with pytest.raises(ValidationError, match="scenario_id values must be unique"):
@@ -182,3 +189,18 @@ def test_unknown_fields_are_rejected_instead_of_silently_ignored() -> None:
     payload["estimated_profit"] = 999999999
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         PromotionScenario.model_validate(payload)
+
+
+def test_feasibility_output_cannot_be_constructed_with_inconsistent_status() -> None:
+    from promoguard.optimization.feasibility import ScenarioFeasibility
+
+    with pytest.raises(ValidationError, match="status must be infeasible"):
+        ScenarioFeasibility(
+            scenario_id="x",
+            status="eligible",
+            reasons=[FeasibilityCode.TRADE_SPEND_BUDGET_EXCEEDED],
+            discount_rate=Decimal("0.1"),
+            projected_unit_contribution=Decimal(1),
+            projected_trade_spend=Decimal(2),
+            sellable_inventory_units=10,
+        )
