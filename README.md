@@ -71,7 +71,7 @@ validate input and render typed domain results.
 ## Reviewer demo
 
 The repository does not redistribute the source dataset and does not substitute synthetic business
-data. After placing and ingesting the official workbook as described below, the local reviewer flow
+data. Test fixtures may be synthetic only for schema/UI checks and are never business evidence. After placing and ingesting the official workbook as described below, the local reviewer flow
 is three commands:
 
 ```powershell
