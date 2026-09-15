@@ -1,25 +1,28 @@
 # PromoGuard active development roadmap
 
-Last updated: 2026-09-08
+Last updated: 2026-09-16
 Roadmap owner: Reza  
 Execution rule: exactly one phase or release gate is `ACTIVE`.
 
 ## Outcome and deadline tracks
 
-The roadmap has two speeds:
+The roadmap has three coordinated tracks:
 
 - **Submission correction track:** complete the real three-person team, signature, member documents,
   and evidence refresh by **2026-09-12 (21 Shahrivar 1405)**. The internal send target is
   2026-09-11 at 15:00 Tehran time.
 - **Professional track:** extend the same codebase after submission into a production-minded portfolio project with causal validation, monitoring, optimization, and verified AI explanations.
+- **Commercial validation track:** use the current Phase 8 contract work to deliver a narrowly scoped,
+  human-reviewed Data Readiness & Promotion Audit on permitted partner data. This is the first revenue
+  path; it is not a promise of profit or causal lift.
 
-## Active Park-submission execution overlay
+## Park-submission follow-up overlay
 
 The original submission was reviewed and the Park granted a deficiency-correction deadline of
-2026-09-12. The administrative correction package is ACTIVE: add two real complementary members,
+2026-09-12. The administrative correction package was tracked as a separate submission workstream: add two real complementary members,
 complete the applicant name/date/signature, attach member identity and student-status documents,
-and refresh external evidence to release 0.6.4. Professional Phase 8 design may continue only when
-it does not endanger this mandatory package.
+and refresh external evidence to release 0.6.4. Current engineering work is governed by Phase 8 and
+the commercial validation overlay below; no AIIF/bootcamp registration is part of the active plan.
 
 Execution documents:
 
@@ -75,10 +78,10 @@ The first submission implements the center path with a documented public retail 
 | 5.3 | Final submission evidence refresh | before recording/submission | DONE |
 | 6 | Real-experiment causal benchmarking | completed in release 0.6.4 | DONE |
 | 7 | Cannibalization, forward-buy, uncertainty, abstention | completed 2026-09-02 | DONE |
-| Park correction | Three-person team, signature, member documents, evidence refresh | 2026-09-12 | ACTIVE |
+| Park correction | Three-person team, signature, member documents, evidence refresh | 2026-09-12 | TRACKED / AWAITING EXTERNAL REVIEW |
 | 8 | Constrained profit optimization | after Park correction gate | PENDING |
 | 9 | Production data, monitoring, and optional verified LLM layer | 2026-10-05 to 10-19 | PENDING |
-| 10 | Portfolio, AIIF, and job-application packaging | 2026-10-20 to 10-25 | PENDING |
+| 10 | Portfolio, commercial evidence, and job-application packaging | 2026-10-20 to 10-25 | PENDING |
 
 ## Phase 0 — DONE — Scaffold and evidence policy
 
@@ -467,6 +470,20 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Phase 8.2 optimizer remains blocked until the methodology corrections from the independent review
   are closed; implementation work may continue in small contract, test, and documentation slices.
 
+### Commercial validation overlay (2026-09-16)
+
+- Active offer: `Data Readiness & Promotion Audit`, not an autonomous profit optimizer.
+- First target: medium FMCG manufacturers, distributors, retail chains, and market-research partners
+  that can provide an anonymized sales/price/promotion export.
+- First paid gate: one bounded dataset, one decision, one report, 7–10 business days, human review.
+- Required evidence: data contract, quality report, provenance/hash, reproducible artifact, limitations,
+  and an explicit statement of what cannot be inferred.
+- Revenue is permitted before v1.0 only as a fixed-scope analytical service. Subscription and private
+  deployment wait for repeatable onboarding, audit logs, monitoring, and a support boundary.
+- Detailed offer, pricing hypothesis, customer profile, and intake schema live in
+  `docs/business/GO-TO-MARKET-SERVICE-PLAN-FA.md` and
+  `docs/data/REAL-DATA-AND-PILOT-DATA-REQUEST-FA.md`.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.
@@ -488,7 +505,7 @@ Deliverables and gate:
 - Polished bilingual README, architecture decision records, model card, limitations, demo video, and reproducibility badge/checks.
 - One technical case study: problem → assumptions → method → evaluation → failure cases → product decision.
 - Role maps for data scientist, applied AI, analytics, and ML/data engineering vacancies.
-- AIIF challenge mapping based only on verified current challenge requirements.
+- External program mapping is out of the active scope unless the founder explicitly reopens it.
 - Gate: a reviewer can understand the value in 60 seconds and reproduce the core result in under 10 minutes.
 
 ## Scope cuts if the submission clock slips

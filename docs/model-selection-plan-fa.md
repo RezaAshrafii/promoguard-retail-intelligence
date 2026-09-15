@@ -35,7 +35,7 @@
 | ۷ | cannibalization، forward-buy و uncertainty | `gpt-5.6-sol` | `xhigh` | Sol `max` برای abstention review |
 | ۸ | constrained profit optimization | `gpt-5.6-sol` | `xhigh` | Terra `high` برای تست سناریوها |
 | ۹ | production، monitoring و LLM guardrails | `gpt-5.6-sol` | `xhigh` | Terra `high` برای adapterها |
-| ۱۰ | portfolio، AIIF و job packaging | `gpt-5.6-terra` | `high` | Sol `xhigh` برای final review |
+| ۱۰ | portfolio، commercial evidence و job packaging | `gpt-5.6-terra` | `high` | Sol `xhigh` برای final review |
 
 ## Luna چه زمانی مناسب است؟
 
