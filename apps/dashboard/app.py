@@ -17,7 +17,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from apps.dashboard.presentation import (
+from apps.dashboard.presentation import (  # noqa: E402
     audit_comparison_records,
     audit_event_summary,
     cannibalization_candidate_records,
@@ -29,8 +29,8 @@ from apps.dashboard.presentation import (
     recommendation_presentation,
     warning_presentation_records,
 )
-from promoguard.data.panel import load_weekly_panel, validate_canonical_panel
-from promoguard.insights.promotion_audit import (
+from promoguard.data.panel import load_weekly_panel, validate_canonical_panel  # noqa: E402
+from promoguard.insights.promotion_audit import (  # noqa: E402
     ContributionAssumption,
     PromotionAuditResult,
     audit_promotion_event,
