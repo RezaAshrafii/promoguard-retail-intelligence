@@ -492,6 +492,11 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - The new `customer-intake` gate was exercised on the same real panel: it returned
   `ready_for_observational_audit` while correctly keeping economics unavailable because cost,
   margin, and inventory fields are absent.
+- Phase 8.1.2 adds a permission-gated partner adapter contract (source owner/reference, extraction,
+  retention, grain, zero-unit and promotion semantics), original-file SHA256 helper, and blocked
+  outcomes that return no prepared frame. This is tested with tiny contract fixtures only; no
+  permitted partner run has been claimed. The exact limits and team handoff are in
+  `docs/phase-08-partner-adapter-contract-fa.md`. Phase 8.2 remains blocked.
 
 ## Phase 9 — PENDING — Production and verified AI layer
 
