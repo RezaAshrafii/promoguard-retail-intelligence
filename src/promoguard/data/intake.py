@@ -84,16 +84,19 @@ def assess_partner_intake(frame: pd.DataFrame, *, max_rows: int = 1_000_000) -> 
         "privacy_columns": privacy_columns,
         "max_rows": max_rows,
         "oversized_row_count": len(working) > max_rows,
+        "empty": working.empty,
         "date_parse_errors": None,
         "missing_identifier_rows": {"store_id": None, "sku_id": None},
         "duplicate_grain_rows": None,
         "numeric_parse_errors": {},
+        "missing_numeric_rows": {},
         "negative_value_rows": {},
         "invalid_binary_rows": {},
         "date_min": None,
         "date_max": None,
         "has_promotion_signal": False,
         "has_economics_fields": False,
+        "economics_ready": False,
         "has_inventory_signal": False,
         "warnings": [],
     }
@@ -101,7 +104,7 @@ def assess_partner_intake(frame: pd.DataFrame, *, max_rows: int = 1_000_000) -> 
         report["warnings"].append("Duplicate normalized column names require manual mapping review.")
     if privacy_columns:
         report["warnings"].append("Potential personal-data columns require removal or privacy review.")
-    if missing_required:
+    if missing_required or duplicate_columns:
         report["status"] = "blocked_data_quality"
         report["valid"] = False
         return report
@@ -115,32 +118,40 @@ def assess_partner_intake(frame: pd.DataFrame, *, max_rows: int = 1_000_000) -> 
         values = working[identifier].astype("string").str.strip()
         report["missing_identifier_rows"][identifier] = int(values.isna().sum() + values.eq("").sum())
         working[identifier] = values
+    working["date"] = parsed_dates.dt.date
 
     for column in sorted(NUMERIC_COLUMNS & columns):
         numeric = pd.to_numeric(working[column], errors="coerce")
         report["numeric_parse_errors"][column] = int(
             (working[column].notna() & numeric.isna()).sum()
         )
+        report["missing_numeric_rows"][column] = int(numeric.isna().sum())
         report["negative_value_rows"][column] = int((numeric < 0).sum())
         non_finite = numeric.notna() & ~np.isfinite(numeric)
         report["numeric_parse_errors"][column] += int(non_finite.sum())
         working[column] = numeric
 
     if "promotion_flag" in columns:
+        flag = pd.to_numeric(working["promotion_flag"], errors="coerce")
         report["invalid_binary_rows"]["promotion_flag"] = int(
-            (~working["promotion_flag"].isin([0, 1]) & working["promotion_flag"].notna()).sum()
+            (working["promotion_flag"].notna() & ~flag.isin([0, 1])).sum()
         )
+        working["promotion_flag"] = flag
     if "stockout_flag" in columns:
+        flag = pd.to_numeric(working["stockout_flag"], errors="coerce")
         report["invalid_binary_rows"]["stockout_flag"] = int(
-            (~working["stockout_flag"].isin([0, 1]) & working["stockout_flag"].notna()).sum()
+            (working["stockout_flag"].notna() & ~flag.isin([0, 1])).sum()
         )
 
     report["duplicate_grain_rows"] = int(
         working.duplicated(["date", "store_id", "sku_id"]).sum()
     )
     report["has_promotion_signal"] = bool(
-        {"promotion_flag", "promotion_id"}.intersection(columns)
-        or {"regular_price", "selling_price"}.issubset(columns)
+        ("promotion_flag" in columns and working["promotion_flag"].eq(1).any())
+        or (
+            "promotion_id" in columns
+            and working["promotion_id"].astype("string").str.strip().fillna("").ne("").any()
+        )
     )
     report["has_economics_fields"] = bool(
         {"unit_cost", "contribution_margin"}.issubset(columns)
@@ -150,11 +161,13 @@ def assess_partner_intake(frame: pd.DataFrame, *, max_rows: int = 1_000_000) -> 
     )
 
     fatal_values = [
+        report["empty"],
         report["oversized_row_count"],
         report["date_parse_errors"],
         *report["missing_identifier_rows"].values(),
         report["duplicate_grain_rows"],
         *report["numeric_parse_errors"].values(),
+        report["missing_numeric_rows"].get("units", 0),
         *report["negative_value_rows"].values(),
         *report["invalid_binary_rows"].values(),
     ]
@@ -173,5 +186,9 @@ def assess_partner_intake(frame: pd.DataFrame, *, max_rows: int = 1_000_000) -> 
     if not report["has_economics_fields"]:
         report["warnings"].append(
             "Unit cost and contribution margin are absent; economics and profit approval remain unavailable."
+        )
+    else:
+        report["warnings"].append(
+            "Cost and margin columns alone do not satisfy the Phase 8 scenario-evidence contract."
         )
     return report
