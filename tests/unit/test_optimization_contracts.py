@@ -145,8 +145,17 @@ def test_eligible_scenario_exposes_only_constraint_screening() -> None:
     assert result.reasons == []
     assert result.discount_rate == Decimal("0.1")
     assert result.projected_unit_contribution == Decimal(24000)
-    assert result.projected_trade_spend == Decimal("200000.0")
+    assert result.projected_trade_spend == Decimal("220000.0")
+    assert result.budget_risk_basis == "upper_projected_demand"
     assert "not a profit forecast" in result.limitation
+
+
+def test_budget_uses_upper_demand_when_point_is_within_budget() -> None:
+    candidate = scenario(projected_demand_units=ProjectionInterval(point=100, lower=90, upper=200))
+    result = assess_scenarios(request(candidate))[0]
+    assert result.projected_trade_spend == Decimal("300000.0")
+    assert result.status == "infeasible"
+    assert FeasibilityCode.TRADE_SPEND_BUDGET_EXCEEDED in result.reasons
 
 
 def test_all_infeasibility_reasons_are_reported_together() -> None:

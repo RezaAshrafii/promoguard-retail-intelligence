@@ -32,6 +32,13 @@ The deterministic pre-check reports every applicable reason:
 - projected unit contribution below its floor;
 - projected trade spend above budget.
 
+Budget screening uses the **upper** supplied demand projection, not its point estimate:
+`fixed_trade_spend + variable_trade_spend_per_unit × projected_demand_units.upper`.
+The output exposes `budget_risk_basis=upper_projected_demand`. This is a conservative
+constraint convention, not a confidence guarantee: the interval may be miscalibrated or
+miss demand outside its bounds. A single request budget is screened per candidate; this
+does not approve a portfolio of simultaneous promotions.
+
 The check does not rank candidates. Its contribution calculation is a constraint component, not a
 profit forecast: promotion price minus unit cost plus supplier funding minus variable trade spend.
 It excludes baseline-margin loss, substitution, forward-buy, taxes, logistics, fixed overhead,

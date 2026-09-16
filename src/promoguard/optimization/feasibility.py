@@ -33,6 +33,7 @@ class ScenarioFeasibility(BaseModel):
     discount_rate: Decimal
     projected_unit_contribution: Decimal
     projected_trade_spend: Decimal
+    budget_risk_basis: Literal["upper_projected_demand"] = "upper_projected_demand"
     sellable_inventory_units: int
     limitation: Literal[
         "Constraint screening only; not a profit forecast, causal estimate, or rollout approval."
@@ -59,7 +60,7 @@ def _assess_one(request: OptimizationInput, scenario: PromotionScenario) -> Scen
     )
     projected_trade_spend = scenario.fixed_trade_spend + (
         scenario.variable_trade_spend_per_unit
-        * Decimal(str(scenario.projected_demand_units.point))
+        * Decimal(str(scenario.projected_demand_units.upper))
     )
     sellable_inventory = max(
         scenario.available_inventory_units - request.inventory_reserve_units, 0
