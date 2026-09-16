@@ -89,6 +89,7 @@
   "privacy_columns": [],
   "max_rows": 1000000,
   "oversized_row_count": false,
+  "empty": false,
   "date_parse_errors": 0,
   "missing_identifier_rows": {
     "store_id": 0,
@@ -96,6 +97,9 @@
   },
   "duplicate_grain_rows": 0,
   "numeric_parse_errors": {
+    "units": 0
+  },
+  "missing_numeric_rows": {
     "units": 0
   },
   "negative_value_rows": {
@@ -108,6 +112,7 @@
   "date_max": "2012-01-04",
   "has_promotion_signal": true,
   "has_economics_fields": false,
+  "economics_ready": false,
   "has_inventory_signal": false,
   "warnings": [
     "Unit cost and contribution margin are absent; economics and profit approval remain unavailable."
