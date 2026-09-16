@@ -6,7 +6,12 @@ import pandas as pd
 import pytest
 from pydantic import ValidationError
 
-from promoguard.data.partner import PartnerExportContract, prepare_partner_export, sha256_file
+from promoguard.data.partner import (
+    PartnerBlockCode,
+    PartnerExportContract,
+    prepare_partner_export,
+    sha256_file,
+)
 
 
 def contract(**overrides: object) -> PartnerExportContract:
@@ -44,6 +49,7 @@ def test_preparation_preserves_values_and_keeps_provenance_non_row_level() -> No
     prepared, report = prepare_partner_export(source, contract(), source_sha256="a" * 64)
     assert prepared is not None
     assert report.status == "prepared_for_observational_audit"
+    assert report.reasons == []
     assert prepared["units"].tolist() == [0, 12]
     assert prepared["sku_id"].tolist() == ["p1", "p1"]
     assert "units" not in report.model_dump()
@@ -60,6 +66,8 @@ def test_preparation_preserves_values_and_keeps_provenance_non_row_level() -> No
 def test_contract_semantics_control_preparation(change: dict[str, str], expected: str) -> None:
     prepared, report = prepare_partner_export(export(), contract(**change), source_sha256="a" * 64)
     assert report.status == expected
+    if change.get("zero_units_meaning") == "unknown":
+        assert PartnerBlockCode.ZERO_UNITS_MEANING_UNKNOWN in report.reasons
     assert (prepared is None) is (expected == "blocked")
 
 
@@ -68,6 +76,7 @@ def test_weekly_contract_refuses_undocumented_generic_date() -> None:
     prepared, report = prepare_partner_export(source, contract(), source_sha256="a" * 64)
     assert prepared is None
     assert report.status == "blocked"
+    assert report.reasons == [PartnerBlockCode.WEEKLY_DATE_COLUMN_REQUIRED]
 
 
 def test_daily_contract_accepts_daily_date_column() -> None:
@@ -89,6 +98,7 @@ def test_intake_and_privacy_blocks_cannot_be_bypassed_by_contract() -> None:
         prepared, report = prepare_partner_export(source, contract(), source_sha256="a" * 64)
         assert prepared is None
         assert report.status == "blocked"
+        assert PartnerBlockCode.INTAKE_NOT_READY in report.reasons
 
 
 def test_contract_rejects_missing_or_unapproved_permission() -> None:

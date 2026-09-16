@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from enum import StrEnum
 from hashlib import sha256
 from typing import Literal
 
@@ -40,6 +41,13 @@ class PartnerExportContract(BaseModel):
         return value.strip()
 
 
+class PartnerBlockCode(StrEnum):
+    INTAKE_NOT_READY = "intake_not_ready"
+    ZERO_UNITS_MEANING_UNKNOWN = "zero_units_meaning_unknown"
+    WEEKLY_DATE_COLUMN_REQUIRED = "weekly_date_column_required"
+    DAILY_DATE_COLUMN_REQUIRED = "daily_date_column_required"
+
+
 class PartnerPrepared(BaseModel):
     """Non-row-level audit metadata returned alongside a prepared frame."""
 
@@ -48,8 +56,11 @@ class PartnerPrepared(BaseModel):
     source_id: str
     source_sha256: str
     status: Literal["prepared_for_observational_audit", "blocked"]
+    reasons: list[PartnerBlockCode]
     intake_status: str
     rows: int
+    extraction_date: date
+    retention_days: int
     column_mapping: dict[str, str]
     limitation: Literal[
         "Schema and permission gate only; no causal, economics, or rollout approval."
@@ -73,21 +84,27 @@ def prepare_partner_export(
         raw.strip().lower() == "week_end_date" and normalized == "date"
         for raw, normalized in intake["column_mapping"].items()
     )
-    blocked = (
-        intake["status"] != "ready_for_observational_audit"
-        or contract.zero_units_meaning != "observed_zero"
-        or (contract.grain == "weekly_store_sku" and not weekly_source)
-        or (contract.grain == "daily_store_sku" and weekly_source)
-    )
+    reasons: list[PartnerBlockCode] = []
+    if intake["status"] != "ready_for_observational_audit":
+        reasons.append(PartnerBlockCode.INTAKE_NOT_READY)
+    if contract.zero_units_meaning != "observed_zero":
+        reasons.append(PartnerBlockCode.ZERO_UNITS_MEANING_UNKNOWN)
+    if contract.grain == "weekly_store_sku" and not weekly_source:
+        reasons.append(PartnerBlockCode.WEEKLY_DATE_COLUMN_REQUIRED)
+    if contract.grain == "daily_store_sku" and weekly_source:
+        reasons.append(PartnerBlockCode.DAILY_DATE_COLUMN_REQUIRED)
     result = PartnerPrepared(
         source_id=contract.source_id,
         source_sha256=digest,
-        status="blocked" if blocked else "prepared_for_observational_audit",
+        status="blocked" if reasons else "prepared_for_observational_audit",
+        reasons=reasons,
         intake_status=intake["status"],
         rows=intake["rows"],
+        extraction_date=contract.extraction_date,
+        retention_days=contract.retention_days,
         column_mapping=intake["column_mapping"],
     )
-    if blocked:
+    if reasons:
         return None, result
     canonical, _ = _normalise_columns(frame)
     return canonical, result
