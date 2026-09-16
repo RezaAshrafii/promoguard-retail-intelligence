@@ -137,6 +137,15 @@ def main() -> None:
             if args.audit_policy is not None
             else AuditPolicy()
         )
+        evidence_refs = [
+            "docs/data-acquisition.md",
+            "docs/evaluation-protocol.md",
+        ]
+        live_forecast_report = args.output.parent / "forecast" / "forecast-evaluation.json"
+        if live_forecast_report.exists():
+            evidence_refs.insert(1, live_forecast_report.as_posix())
+        else:
+            evidence_refs.insert(1, "reports/phase-02/forecast-evaluation.json")
         panel = pd.read_csv(panel_path, parse_dates=["week_end_date"])
         selection = (
             {
@@ -154,6 +163,7 @@ def main() -> None:
             start_date=selection["start_date"],
             contribution_assumption=contribution_assumption,
             policy=policy,
+            evidence_refs=evidence_refs,
         )
         payload = result.model_dump(mode="json")
         args.output.mkdir(parents=True, exist_ok=True)

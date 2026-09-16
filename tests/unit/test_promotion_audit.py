@@ -267,3 +267,20 @@ def test_typed_payload_never_uses_unsupported_causal_wording() -> None:
         "observed-minus-baseline estimate; causal treatment effect, cross-SKU substitution, "
         "and financial impact not identified"
     )
+
+
+def test_audit_can_carry_run_specific_evidence_references() -> None:
+    result = run_audit(
+        audit_fixture(),
+    )
+    result_with_refs = audit_promotion_event(
+        audit_fixture(),
+        store_id="1",
+        upc="10",
+        start_date="2024-03-31",
+        policy=AuditPolicy(audit_min_history_weeks=8),
+        evidence_refs=["reports/live/forecast-evaluation.json"],
+    )
+
+    assert result.evidence_refs != result_with_refs.evidence_refs
+    assert result_with_refs.evidence_refs == ["reports/live/forecast-evaluation.json"]

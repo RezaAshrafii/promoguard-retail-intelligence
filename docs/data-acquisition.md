@@ -46,6 +46,7 @@ UNITS, VISITS, HHS, SPEND, PRICE, BASE_PRICE, FEATURE, DISPLAY, TPR_ONLY
 Place the downloaded/extracted source under `data/raw/breakfast-at-the-frat/`, then run:
 
 ```powershell
+python -m pip install -e ".[dev,dashboard]"
 promoguard ingest `
   --input data/raw/breakfast-at-the-frat `
   --output data/processed/breakfast-at-the-frat

@@ -483,6 +483,12 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Detailed offer, pricing hypothesis, customer profile, and intake schema live in
   `docs/business/GO-TO-MARKET-SERVICE-PLAN-FA.md` and
   `docs/data/REAL-DATA-AND-PILOT-DATA-REQUEST-FA.md`.
+- Real-data execution evidence from 2026-09-16 is recorded in
+  `reports/live-2026-09-16/REAL-DATA-RUN-REPORT-FA.md`: 524,950 rows passed the ingestion contract;
+  the transparent recursive-naive baseline remained stronger than seasonal-naive on 41,516 paired
+  rows; and the representative promotion audit abstained with a blocking forward-buy warning.
+- The run-specific audit now carries its own forecast artifact in `evidence_refs`, preventing a live
+  report from silently pointing only to a stale historical run.
 
 ## Phase 9 — PENDING — Production and verified AI layer
 

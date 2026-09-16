@@ -443,6 +443,7 @@ def audit_promotion_event(
     start_date: str | date | pd.Timestamp,
     contribution_assumption: ContributionAssumption | None = None,
     policy: AuditPolicy = DEFAULT_AUDIT_POLICY,
+    evidence_refs: list[str] | None = None,
 ) -> PromotionAuditResult:
     """Audit one promotion episode with pre-event-only baseline and explicit limitations."""
     prepared = prepare_audit_panel(panel)
@@ -661,7 +662,8 @@ def audit_promotion_event(
             "No unobserved distribution or assortment change invalidates the comparison.",
             "Same-category neighbor declines are descriptive candidates, not identified substitution effects.",
         ],
-        evidence_refs=[
+        evidence_refs=evidence_refs
+        or [
             "docs/data-acquisition.md",
             "reports/phase-02/forecast-evaluation.json",
             "docs/evaluation-protocol.md",

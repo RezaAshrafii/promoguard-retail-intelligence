@@ -91,6 +91,7 @@ Download **Breakfast at the Frat** from the official dunnhumby Source Files page
 under `data/raw/breakfast-at-the-frat/`. Raw and processed files are intentionally ignored by Git.
 
 ```powershell
+python -m pip install -e ".[dev,dashboard]"
 promoguard ingest --input data/raw/breakfast-at-the-frat --output data/processed/breakfast-at-the-frat
 promoguard validate --input data/processed/breakfast-at-the-frat
 promoguard forecast-evaluate --input data/processed/breakfast-at-the-frat --output reports/phase-02
