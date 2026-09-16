@@ -113,6 +113,24 @@ variable_trade_spend, effective_from, currency`
 
 ## ۶. data contract و دروازهٔ پذیرش
 
+برای اجرای اولیهٔ این دروازه، command زیر یک CSV مشتری را بدون اصلاح یا imputation بررسی می‌کند:
+
+```powershell
+promoguard customer-intake `
+  --input path/to/partner-export.csv `
+  --output reports/customer-intake
+```
+
+وضعیت خروجی یکی از این حالت‌هاست:
+
+- `ready_for_observational_audit`
+- `limited_observational_report`
+- `blocked_data_quality`
+- `blocked_privacy_review`
+
+این command هنوز تحلیل causal یا profit انجام نمی‌دهد؛ فقط دروازهٔ پذیرش و سطح مجاز تحلیل را تعیین
+می‌کند.
+
 فایل مشتری فقط وقتی وارد pipeline می‌شود که این پرسش‌ها پاسخ داشته باشد:
 
 1. grain چیست؟ یک ردیف فروش روزانهٔ SKU/فروشگاه است یا invoice line؟

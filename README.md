@@ -94,6 +94,7 @@ under `data/raw/breakfast-at-the-frat/`. Raw and processed files are intentional
 python -m pip install -e ".[dev,dashboard]"
 promoguard ingest --input data/raw/breakfast-at-the-frat --output data/processed/breakfast-at-the-frat
 promoguard validate --input data/processed/breakfast-at-the-frat
+promoguard customer-intake --input path/to/partner-export.csv --output reports/customer-intake
 promoguard forecast-evaluate --input data/processed/breakfast-at-the-frat --output reports/phase-02
 promoguard promotion-audit --input data/processed/breakfast-at-the-frat --output reports/phase-03
 python -m demo.phase4_smoke

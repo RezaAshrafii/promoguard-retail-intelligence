@@ -489,6 +489,9 @@ Phase 8.1.1 team execution overlay (2026-09-16):
   rows; and the representative promotion audit abstained with a blocking forward-buy warning.
 - The run-specific audit now carries its own forecast artifact in `evidence_refs`, preventing a live
   report from silently pointing only to a stale historical run.
+- The new `customer-intake` gate was exercised on the same real panel: it returned
+  `ready_for_observational_audit` while correctly keeping economics unavailable because cost,
+  margin, and inventory fields are absent.
 
 ## Phase 9 — PENDING — Production and verified AI layer
 

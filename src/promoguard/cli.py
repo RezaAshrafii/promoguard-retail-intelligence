@@ -10,6 +10,7 @@ import pandas as pd
 
 from promoguard.causal.criteo_uplift import evaluate_criteo_uplift, evaluate_uplift_models
 from promoguard.data.dunnhumby import build_panel, load_dataset, validate_transactions
+from promoguard.data.intake import assess_partner_intake
 from promoguard.forecasting.evaluation import evaluate_backtest
 from promoguard.insights.promotion_audit import (
     AuditPolicy,
@@ -27,6 +28,7 @@ def main() -> None:
             "health",
             "ingest",
             "validate",
+            "customer-intake",
             "forecast-evaluate",
             "promotion-audit",
             "causal-benchmark",
@@ -58,6 +60,21 @@ def main() -> None:
             parser.error("validate requires --input")
         frames = load_dataset(args.input)
         print(json.dumps(validate_transactions(frames["transactions"]), indent=2, default=str))
+    elif args.command == "customer-intake":
+        if args.input is None or args.output is None:
+            parser.error("customer-intake requires --input and --output")
+        if args.input.suffix.lower() != ".csv":
+            parser.error("customer-intake currently accepts a CSV export")
+        try:
+            partner_frame = pd.read_csv(args.input)
+        except (pd.errors.EmptyDataError, pd.errors.ParserError, UnicodeDecodeError) as error:
+            parser.error(f"customer CSV is malformed: {error}")
+        report = assess_partner_intake(partner_frame)
+        args.output.mkdir(parents=True, exist_ok=True)
+        (args.output / "customer-intake-quality-report.json").write_text(
+            json.dumps(report, indent=2, default=str), encoding="utf-8"
+        )
+        print(json.dumps(report, indent=2, default=str))
     elif args.command == "forecast-evaluate":
         if args.input is None or args.output is None:
             parser.error("forecast-evaluate requires --input and --output")

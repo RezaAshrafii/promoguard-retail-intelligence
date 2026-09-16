@@ -123,7 +123,30 @@ FORWARD_BUY_RISK
 این تغییر کوچک است، اما در محصول قابل‌اعتماد مهم است: گزارش نباید به سندی اشاره کند که در همان
 اجرا تولید نشده یا قابل تشخیص نیست.
 
-## ۵. تصمیم گیت فعلی
+## ۵. اجرای Customer Intake روی همان دادهٔ واقعی
+
+برای اینکه دادهٔ مشتری قبل از تحلیل سطح‌بندی شود، command جدید `customer-intake` روی
+`weekly_panel.csv` همین اجرای واقعی نیز اجرا شد.
+
+نتیجه:
+
+```text
+status = ready_for_observational_audit
+valid = true
+privacy_columns = []
+has_promotion_signal = true
+has_economics_fields = false
+has_inventory_signal = false
+```
+
+این نتیجه یعنی ساختار برای audit مشاهده‌ای مناسب است، اما economics و profit approval همچنان مجاز
+نیست، چون unit cost، contribution margin و inventory در داده وجود ندارند.
+
+خروجی:
+
+`customer-intake/customer-intake-quality-report.json`
+
+## ۶. تصمیم گیت فعلی
 
 ### مجاز
 
@@ -144,7 +167,7 @@ FORWARD_BUY_RISK
 - استفاده از این گزارش به‌عنوان نتیجهٔ مشتری؛
 - فعال‌کردن `promotion_allowed`.
 
-## فایل‌های خروجی ماشین‌خوان
+## ۷. فایل‌های خروجی ماشین‌خوان
 
 - `forecast/forecast-evaluation.json`
 - `forecast/forecast-evaluation.csv`
@@ -152,8 +175,9 @@ FORWARD_BUY_RISK
 - `forecast/forecast-segment-metrics.csv`
 - `promotion-audit/promotion-audit.json`
 - `promotion-audit/promotion-audit-windows.csv`
+- `customer-intake/customer-intake-quality-report.json`
 
-## گام بعدی فنی
+## ۸. گام بعدی فنی
 
 ۱. اجرای quality checks روی schema پیشنهادی مشتری؛
 

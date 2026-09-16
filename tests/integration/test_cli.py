@@ -47,6 +47,32 @@ def test_validate_command_emits_machine_readable_quality_report(
     assert payload["rows"] == 2
 
 
+def test_customer_intake_command_writes_readiness_report(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "partner-export.csv"
+    pd.DataFrame(
+        {
+            "date": ["2025-01-01", "2025-01-02"],
+            "store_id": ["s1", "s1"],
+            "sku_id": ["p1", "p1"],
+            "units": [10, 12],
+            "promotion_flag": [1, 0],
+        }
+    ).to_csv(source, index=False)
+    output = tmp_path / "intake-report"
+
+    run_cli(monkeypatch, "customer-intake", "--input", str(source), "--output", str(output))
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "ready_for_observational_audit"
+    assert json.loads(
+        (output / "customer-intake-quality-report.json").read_text("utf-8")
+    )["valid"] is True
+
+
 def test_uplift_command_writes_exact_domain_payload(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
