@@ -118,3 +118,9 @@ def sha256_file(path: str) -> str:
         for chunk in iter(lambda: source.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def sha256_bytes(content: bytes) -> str:
+    """Compute provenance for uploaded original bytes before any dataframe reserialization."""
+
+    return sha256(content).hexdigest()

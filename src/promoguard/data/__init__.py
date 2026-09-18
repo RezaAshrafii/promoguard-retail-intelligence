@@ -6,12 +6,18 @@ from promoguard.data.panel import (
     resolve_weekly_panel,
     validate_canonical_panel,
 )
-from promoguard.data.partner import PartnerExportContract, prepare_partner_export, sha256_file
+from promoguard.data.partner import (
+    PartnerExportContract,
+    prepare_partner_export,
+    sha256_bytes,
+    sha256_file,
+)
 
 __all__ = [
     "assess_partner_intake",
     "PartnerExportContract",
     "prepare_partner_export",
+    "sha256_bytes",
     "sha256_file",
     "load_weekly_panel",
     "resolve_weekly_panel",

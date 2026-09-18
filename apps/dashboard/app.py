@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date
 from io import BytesIO
+from typing import cast
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from pydantic import ValidationError
 
 # Streamlit executes this file as a script, so the repository root is not
 # guaranteed to be on sys.path when the entrypoint is passed by file path.
@@ -29,7 +32,14 @@ from apps.dashboard.presentation import (  # noqa: E402
     recommendation_presentation,
     warning_presentation_records,
 )
+from promoguard.data.intake import assess_partner_intake  # noqa: E402
 from promoguard.data.panel import load_weekly_panel, validate_canonical_panel  # noqa: E402
+from promoguard.data.partner import (  # noqa: E402
+    PartnerExportContract,
+    PartnerPrepared,
+    prepare_partner_export,
+    sha256_bytes,
+)
 from promoguard.insights.promotion_audit import (  # noqa: E402
     ContributionAssumption,
     PromotionAuditResult,
@@ -178,6 +188,113 @@ def _show_quality_report(report: dict[str, Any]) -> None:
         )
         if report["warnings"]:
             st.warning(" | ".join(report["warnings"]))
+
+
+def _show_partner_readiness(
+    report: PartnerPrepared, intake: dict[str, Any]
+) -> None:
+    """Render the partner gate without presenting it as a sales or causal result."""
+
+    if report.status == "prepared_for_observational_audit":
+        st.success("فایل از دروازهٔ قرارداد و کنترل اولیه عبور کرد")
+    else:
+        st.error("فایل برای ممیزی مشاهده‌ای آماده نیست")
+    first, second, third = st.columns(3)
+    first.metric("ردیف‌ها", f"{report.rows:,}")
+    second.metric("وضعیت کنترل داده", report.intake_status)
+    third.metric("مدت نگهداری توافق‌شده", f"{report.retention_days} روز")
+    if report.reasons:
+        st.warning(
+            "دلایل مسدودشدن: "
+            + "، ".join(reason.value for reason in report.reasons)
+        )
+    if intake["warnings"]:
+        st.info(" | ".join(intake["warnings"]))
+    with st.expander("جزئیات قرارداد و provenance"):
+        st.write(f"شناسه منبع: {report.source_id}")
+        st.write(f"SHA256 فایل اصلی: {report.source_sha256}")
+        st.write("نگاشت ستون‌ها:")
+        st.json(report.column_mapping)
+        st.caption(report.limitation)
+    st.download_button(
+        "دانلود گزارش آمادگی فایل شریک",
+        data=json.dumps(
+            {"partner": report.model_dump(mode="json"), "intake": intake},
+            ensure_ascii=False,
+            indent=2,
+        ),
+        file_name="partner-readiness-report.json",
+        mime="application/json",
+        width="stretch",
+    )
+
+
+def _partner_intake_workflow() -> None:
+    """Collect a declared partner contract and render the readiness-only result."""
+
+    upload = st.file_uploader(
+        "فایل CSV شریک را انتخاب کنید",
+        type=["csv"],
+        help="فایل خام شریک در Git ذخیره نمی‌شود و این مسیر تحلیل اقتصادی یا علّی انجام نمی‌دهد.",
+    )
+    if upload is None:
+        st.info("برای شروع یک CSV شامل تاریخ، فروشگاه، کالا، واحد فروش و نشانهٔ پروموشن بدهید.")
+        return
+    content = upload.getvalue()
+    try:
+        frame = _load_uploaded_panel(upload.name, content)
+    except ValueError as error:
+        st.error(str(error))
+        return
+
+    with st.form("partner_intake_contract"):
+        st.subheader("قرارداد دادهٔ همراه فایل")
+        first, second = st.columns(2)
+        with first:
+            source_id = st.text_input("شناسه منبع", value="partner-export-01")
+            data_owner = st.text_input("مالک داده", value="نام شرکت یا واحد مالک داده")
+            permission_reference = st.text_input(
+                "مرجع اجازه استفاده", value="شناسه قرارداد یا ایمیل تأیید"
+            )
+            extraction_date = st.date_input("تاریخ استخراج", value=date.today())
+            grain_label = st.selectbox("دانه‌بندی فایل", ["هفتگی فروشگاه–کالا", "روزانه فروشگاه–کالا"])
+        with second:
+            retention_days = st.number_input("مدت نگهداری توافق‌شده به روز", min_value=1, max_value=365, value=30)
+            calendar_reference = st.text_input("مرجع تقویم و timezone", value="تقویم و timezone اعلام‌شده توسط مالک داده")
+            units_definition = st.text_input("تعریف واحد فروش", value="تعداد واحد فروخته‌شده")
+            zero_label = st.selectbox("معنی مقدار صفر فروش", ["فروش واقعی صفر", "نامعلوم یا احتمالاً گمشده"])
+            promotion_definition = st.text_input("تعریف promotion flag", value="پرچم تأییدشدهٔ اجرای پروموشن")
+        submitted = st.form_submit_button("بررسی قرارداد و فایل", type="primary", width="stretch")
+
+    if submitted:
+        try:
+            contract = PartnerExportContract(
+                source_id=source_id,
+                data_owner=data_owner,
+                permission_reference=permission_reference,
+                extraction_date=cast(date, extraction_date),
+                permitted_purpose="observational_data_readiness_audit",
+                retention_days=int(retention_days),
+                grain=("weekly_store_sku" if grain_label.startswith("هفتگی") else "daily_store_sku"),
+                calendar_reference=calendar_reference,
+                units_definition=units_definition,
+                zero_units_meaning=("observed_zero" if zero_label.startswith("فروش واقعی") else "unknown"),
+                promotion_signal_definition=promotion_definition,
+            )
+            _prepared_frame, report = prepare_partner_export(
+                frame, contract, source_sha256=sha256_bytes(content)
+            )
+            st.session_state["partner_readiness"] = {
+                "report": report,
+                "intake": assess_partner_intake(frame),
+            }
+        except (ValidationError, ValueError) as error:
+            st.error(f"قرارداد یا فایل قابل قبول نیست: {error}")
+            return
+
+    stored = st.session_state.get("partner_readiness")
+    if stored is not None:
+        _show_partner_readiness(stored["report"], stored["intake"])
 
 
 def _event_label(row: pd.Series) -> str:
@@ -462,9 +579,16 @@ def main() -> None:
 
     source = st.radio(
         "منبع داده",
-        ["پنل واقعی موجود در پروژه", "آپلود پنل استاندارد CSV"],
+        [
+            "پنل واقعی موجود در پروژه",
+            "آپلود پنل استاندارد CSV",
+            "بررسی آمادگی فایل شریک",
+        ],
         horizontal=True,
     )
+    if source == "بررسی آمادگی فایل شریک":
+        _partner_intake_workflow()
+        return
     panel: pd.DataFrame | None = None
     try:
         if source == "پنل واقعی موجود در پروژه":

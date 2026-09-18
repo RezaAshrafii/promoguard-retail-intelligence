@@ -10,4 +10,6 @@ def test_dashboard_initial_render_has_no_uncaught_exception() -> None:
 
     assert not app.exception
     assert {radio.label for radio in app.radio} == {"حالت اجرا", "منبع داده"}
+    source_radio = next(radio for radio in app.radio if radio.label == "منبع داده")
+    assert "بررسی آمادگی فایل شریک" in source_radio.options
     assert any(button.label == "بارگذاری و کنترل کیفیت" for button in app.button)
