@@ -15,3 +15,14 @@ def test_dashboard_initial_render_has_no_uncaught_exception() -> None:
     source_radio = next(radio for radio in app.radio if radio.label == "منبع داده")
     assert "بررسی آمادگی فایل شریک" in source_radio.options
     assert any(button.label == "بارگذاری و کنترل کیفیت" for button in app.button)
+
+
+def test_partner_readiness_path_renders_without_uncaught_exception() -> None:
+    app = AppTest.from_file(str(APP_PATH), default_timeout=20).run()
+    app.radio[0].set_value("تحلیل دستی").run()
+    source_radio = next(radio for radio in app.radio if radio.label == "منبع داده")
+    source_radio.set_value("بررسی آمادگی فایل شریک").run()
+
+    assert not app.exception
+    assert any(uploader.label == "فایل CSV شریک را انتخاب کنید" for uploader in app.file_uploader)
+    assert any("آپلود فایل" in markdown.value for markdown in app.markdown)

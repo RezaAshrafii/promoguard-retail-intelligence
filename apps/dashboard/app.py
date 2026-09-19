@@ -192,6 +192,28 @@ def _apply_reviewer_style() -> None:
             border-radius: 12px;
             box-shadow: 0 4px 14px rgba(126, 87, 16, .05);
         }
+        .pg-wizard {
+            display: flex; gap: .55rem; margin: .75rem 0 1.1rem;
+            direction: rtl;
+        }
+        .pg-wizard-step {
+            flex: 1; min-height: 58px; padding: .7rem .8rem;
+            border: 1px solid #e1e7f2; border-radius: 13px;
+            background: #ffffff; color: #64748b; direction: rtl;
+            box-shadow: 0 4px 12px rgba(22, 34, 64, .035);
+        }
+        .pg-wizard-step.is-active {
+            border-color: #3157d5; background: #eef3ff; color: #3157d5;
+        }
+        .pg-wizard-step.is-done {
+            border-color: #b7ead2; background: #ecfdf5; color: #10734b;
+        }
+        .pg-wizard-index { font-weight: 900; margin-left: .35rem; }
+        .pg-wizard-label { font-weight: 750; font-size: .88rem; }
+        .pg-section-note {
+            color: #64748b; font-size: .88rem; line-height: 1.8;
+            margin-top: -.45rem;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -315,71 +337,141 @@ def _show_partner_readiness(
 
 
 def _partner_intake_workflow() -> None:
-    """Collect a declared partner contract and render the readiness-only result."""
+    """Collect a declared partner contract through a guided readiness wizard."""
+
+    step = int(st.session_state.get("partner_wizard_step", 1))
+    stored = st.session_state.get("partner_readiness")
+    labels = [(1, "آپلود فایل"), (2, "قرارداد داده"), (3, "گزارش آمادگی")]
+    wizard_html = '<div class="pg-wizard">'
+    for number, label in labels:
+        state = "is-active" if number == step else ("is-done" if number < step else "")
+        wizard_html += (
+            f'<div class="pg-wizard-step {state}">'
+            f'<span class="pg-wizard-index">{number}</span>'
+            f'<span class="pg-wizard-label">{label}</span></div>'
+        )
+    st.markdown(wizard_html + "</div>", unsafe_allow_html=True)
 
     upload = st.file_uploader(
         "فایل CSV شریک را انتخاب کنید",
         type=["csv"],
+        key="partner_file_upload",
         help="فایل خام شریک در Git ذخیره نمی‌شود و این مسیر تحلیل اقتصادی یا علّی انجام نمی‌دهد.",
     )
-    if upload is None:
-        st.info("برای شروع یک CSV شامل تاریخ، فروشگاه، کالا، واحد فروش و نشانهٔ پروموشن بدهید.")
-        return
-    content = upload.getvalue()
-    try:
-        frame = _load_uploaded_panel(upload.name, content)
-    except ValueError as error:
-        st.error(str(error))
-        return
-
-    with st.form("partner_intake_contract"):
-        st.subheader("قرارداد دادهٔ همراه فایل")
-        first, second = st.columns(2)
-        with first:
-            source_id = st.text_input("شناسه منبع", value="partner-export-01")
-            data_owner = st.text_input("مالک داده", value="نام شرکت یا واحد مالک داده")
-            permission_reference = st.text_input(
-                "مرجع اجازه استفاده", value="شناسه قرارداد یا ایمیل تأیید"
-            )
-            extraction_date = st.date_input("تاریخ استخراج", value=date.today())
-            grain_label = st.selectbox("دانه‌بندی فایل", ["هفتگی فروشگاه–کالا", "روزانه فروشگاه–کالا"])
-        with second:
-            retention_days = st.number_input("مدت نگهداری توافق‌شده به روز", min_value=1, max_value=365, value=30)
-            calendar_reference = st.text_input("مرجع تقویم و timezone", value="تقویم و timezone اعلام‌شده توسط مالک داده")
-            units_definition = st.text_input("تعریف واحد فروش", value="تعداد واحد فروخته‌شده")
-            zero_label = st.selectbox("معنی مقدار صفر فروش", ["فروش واقعی صفر", "نامعلوم یا احتمالاً گمشده"])
-            promotion_definition = st.text_input("تعریف promotion flag", value="پرچم تأییدشدهٔ اجرای پروموشن")
-        submitted = st.form_submit_button("بررسی قرارداد و فایل", type="primary", width="stretch")
-
-    if submitted:
+    if upload is not None:
+        content = upload.getvalue()
         try:
-            contract = PartnerExportContract(
-                source_id=source_id,
-                data_owner=data_owner,
-                permission_reference=permission_reference,
-                extraction_date=cast(date, extraction_date),
-                permitted_purpose="observational_data_readiness_audit",
-                retention_days=int(retention_days),
-                grain=("weekly_store_sku" if grain_label.startswith("هفتگی") else "daily_store_sku"),
-                calendar_reference=calendar_reference,
-                units_definition=units_definition,
-                zero_units_meaning=("observed_zero" if zero_label.startswith("فروش واقعی") else "unknown"),
-                promotion_signal_definition=promotion_definition,
-            )
-            _prepared_frame, report = prepare_partner_export(
-                frame, contract, source_sha256=sha256_bytes(content)
-            )
-            st.session_state["partner_readiness"] = {
-                "report": report,
-                "intake": assess_partner_intake(frame),
-            }
-        except (ValidationError, ValueError) as error:
-            st.error(f"قرارداد یا فایل قابل قبول نیست: {error}")
+            frame = _load_uploaded_panel(upload.name, content)
+        except ValueError as error:
+            st.error(str(error))
             return
+        st.session_state["partner_upload"] = {
+            "name": upload.name,
+            "content": content,
+            "frame": frame,
+        }
 
-    stored = st.session_state.get("partner_readiness")
-    if stored is not None:
+    upload_state = st.session_state.get("partner_upload")
+    if step == 1:
+        with st.container(border=True):
+            st.subheader("۱. فایل منبع")
+            st.markdown(
+                '<div class="pg-section-note">یک خروجی CSV واقعی از فروش، کالا، فروشگاه و پروموشن انتخاب کنید. '
+                "فایل هنوز تحلیل اقتصادی نمی‌شود؛ فقط برای کنترل ساختار آماده می‌شود.</div>",
+                unsafe_allow_html=True,
+            )
+            if upload_state is None:
+                st.info("برای شروع یک CSV شامل تاریخ، فروشگاه، کالا، واحد فروش و نشانهٔ پروموشن بدهید.")
+            else:
+                st.success(f"فایل آماده است: {upload_state['name']} | {len(upload_state['frame']):,} ردیف")
+                if st.button("ادامه به قرارداد داده", type="primary", width="stretch", key="partner_next_contract"):
+                    st.session_state["partner_wizard_step"] = 2
+                    st.rerun()
+        return
+
+    if upload_state is None:
+        st.warning("ابتدا فایل CSV را در مرحلهٔ اول انتخاب کنید.")
+        if st.button("بازگشت به آپلود فایل", key="partner_back_to_upload"):
+            st.session_state["partner_wizard_step"] = 1
+            st.rerun()
+        return
+
+    if step == 2:
+        if st.button("بازگشت به آپلود فایل", key="partner_back_upload"):
+            st.session_state["partner_wizard_step"] = 1
+            st.rerun()
+        with st.container(border=True):
+            st.subheader("۲. قرارداد داده")
+            st.markdown(
+                '<div class="pg-section-note">این بخش مشخص می‌کند داده از کجا آمده، چه معنایی دارد و تا چه زمانی '
+                "اجازهٔ نگهداری آن را داریم. بدون این اطلاعات، گزارش قابل اتکا نیست.</div>",
+                unsafe_allow_html=True,
+            )
+            with st.form("partner_intake_contract"):
+                first, second = st.columns(2)
+                with first:
+                    source_id = st.text_input("شناسه منبع", value="partner-export-01")
+                    data_owner = st.text_input("مالک داده", value="نام شرکت یا واحد مالک داده")
+                    permission_reference = st.text_input(
+                        "مرجع اجازه استفاده", value="شناسه قرارداد یا ایمیل تأیید"
+                    )
+                    extraction_date = st.date_input("تاریخ استخراج", value=date.today())
+                    grain_label = st.selectbox("دانه‌بندی فایل", ["هفتگی فروشگاه–کالا", "روزانه فروشگاه–کالا"])
+                with second:
+                    retention_days = st.number_input("مدت نگهداری توافق‌شده به روز", min_value=1, max_value=365, value=30)
+                    calendar_reference = st.text_input("مرجع تقویم و timezone", value="تقویم و timezone اعلام‌شده توسط مالک داده")
+                    units_definition = st.text_input("تعریف واحد فروش", value="تعداد واحد فروخته‌شده")
+                    zero_label = st.selectbox("معنی مقدار صفر فروش", ["فروش واقعی صفر", "نامعلوم یا احتمالاً گمشده"])
+                    promotion_definition = st.text_input("تعریف promotion flag", value="پرچم تأییدشدهٔ اجرای پروموشن")
+                submitted = st.form_submit_button("اجرای کنترل آمادگی", type="primary", width="stretch")
+        if submitted:
+            try:
+                contract = PartnerExportContract(
+                    source_id=source_id,
+                    data_owner=data_owner,
+                    permission_reference=permission_reference,
+                    extraction_date=cast(date, extraction_date),
+                    permitted_purpose="observational_data_readiness_audit",
+                    retention_days=int(retention_days),
+                    grain=("weekly_store_sku" if grain_label.startswith("هفتگی") else "daily_store_sku"),
+                    calendar_reference=calendar_reference,
+                    units_definition=units_definition,
+                    zero_units_meaning=("observed_zero" if zero_label.startswith("فروش واقعی") else "unknown"),
+                    promotion_signal_definition=promotion_definition,
+                )
+                _prepared_frame, report = prepare_partner_export(
+                    upload_state["frame"], contract, source_sha256=sha256_bytes(upload_state["content"])
+                )
+                st.session_state["partner_readiness"] = {
+                    "report": report,
+                    "intake": assess_partner_intake(upload_state["frame"]),
+                }
+                st.session_state["partner_wizard_step"] = 3
+                st.rerun()
+            except (ValidationError, ValueError) as error:
+                st.error(f"قرارداد یا فایل قابل قبول نیست: {error}")
+        return
+
+    if stored is None:
+        st.warning("هنوز گزارشی ساخته نشده است. به مرحلهٔ قرارداد برگردید.")
+        if st.button("بازگشت به قرارداد داده", key="partner_back_contract"):
+            st.session_state["partner_wizard_step"] = 2
+            st.rerun()
+        return
+
+    with st.container(border=True):
+        st.subheader("۳. گزارش آمادگی")
+        st.markdown(
+            '<div class="pg-section-note">این گزارش فقط می‌گوید فایل برای ممیزی مشاهده‌ای آماده هست یا نه؛ '
+            "هیچ تضمینی دربارهٔ سود، اثر علّی یا نتیجهٔ بازار نمی‌دهد.</div>",
+            unsafe_allow_html=True,
+        )
         _show_partner_readiness(stored["report"], stored["intake"])
+        if st.button("بررسی فایل جدید", key="partner_new_file", width="stretch"):
+            for key in ("partner_readiness", "partner_upload"):
+                st.session_state.pop(key, None)
+            st.session_state["partner_wizard_step"] = 1
+            st.rerun()
 
 
 def _event_label(row: pd.Series) -> str:
