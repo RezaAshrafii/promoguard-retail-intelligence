@@ -9,6 +9,8 @@ def test_dashboard_initial_render_has_no_uncaught_exception() -> None:
     app = AppTest.from_file(str(APP_PATH), default_timeout=20).run()
 
     assert not app.exception
+    assert {radio.label for radio in app.radio} == {"حالت اجرا"}
+    app.radio[0].set_value("تحلیل دستی").run()
     assert {radio.label for radio in app.radio} == {"حالت اجرا", "منبع داده"}
     source_radio = next(radio for radio in app.radio if radio.label == "منبع داده")
     assert "بررسی آمادگی فایل شریک" in source_radio.options

@@ -27,7 +27,6 @@ from apps.dashboard.presentation import (  # noqa: E402
     cannibalization_limitation_copy,
     cannibalization_presentation,
     claim_boundary_copy,
-    demo_mode_requested,
     randomized_benchmark_presentation,
     recommendation_presentation,
     warning_presentation_records,
@@ -63,49 +62,135 @@ def _apply_reviewer_style() -> None:
     st.markdown(
         """
         <style>
+        [data-testid="stAppViewContainer"] { background: #f5f7fb; }
+        [data-testid="stHeader"] { background: transparent; }
+        [data-testid="stSidebar"] {
+            background: #10182b;
+            border-left: 1px solid rgba(255,255,255,.08);
+            width: 240px;
+        }
+        [data-testid="stSidebar"] * { color: #e7ecf7; }
+        [data-testid="stSidebar"] [data-testid="stRadio"] label { color: #d7deed; }
+        [data-testid="stSidebar"] [data-testid="stRadio"] > label {
+            color: #ffffff; font-weight: 700; font-size: .82rem;
+        }
         [data-testid="stMainBlockContainer"] p,
         [data-testid="stSidebarContent"] p,
         [data-testid="stWidgetLabel"] {
             direction: rtl;
             text-align: right;
         }
-        [data-testid="stMetric"], [data-testid="stAlert"] { direction: rtl; text-align: right; }
+        [data-testid="stMetric"], [data-testid="stAlert"] {
+            direction: rtl; text-align: right;
+        }
+        [data-testid="stMetric"] {
+            background: #ffffff;
+            border: 1px solid #e5eaf4;
+            border-radius: 14px;
+            padding: .75rem .9rem;
+            box-shadow: 0 4px 16px rgba(22, 34, 64, .04);
+        }
+        .stButton > button {
+            border-radius: 10px;
+            min-height: 2.7rem;
+            font-weight: 700;
+            transition: all .18s ease;
+        }
         .stButton > button[kind="primary"] {
-            background: #4f46e5;
-            border-color: #4f46e5;
+            background: linear-gradient(135deg, #3157d5, #5746c8);
+            border-color: #3157d5;
             color: white;
+            box-shadow: 0 8px 18px rgba(49, 87, 213, .22);
+        }
+        .stButton > button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(22, 34, 64, .12);
+        }
+        [data-testid="stFileUploader"] {
+            background: #ffffff;
+            border: 1px dashed #b6c2db;
+            border-radius: 14px;
+            padding: .4rem;
+        }
+        [data-testid="stTextInput"] input,
+        [data-testid="stNumberInput"] input,
+        [data-testid="stDateInput"] input {
+            border-radius: 9px;
+            background: #ffffff;
+        }
+        [data-testid="stRadio"] [role="radiogroup"] { gap: .5rem; }
+        [data-testid="stRadio"] [role="radio"] {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: .35rem .7rem;
+        }
+        [data-testid="stRadio"] [role="radio"][aria-checked="true"] {
+            border-color: #3157d5;
+            background: #eef3ff;
+        }
+        [data-testid="stExpander"] {
+            border: 1px solid #e5eaf4;
+            border-radius: 12px;
+            background: #ffffff;
+        }
+        .pg-brand {
+            display: flex; align-items: center; gap: .65rem;
+            direction: ltr; margin: .4rem 0 1.25rem;
+        }
+        .pg-brand-mark {
+            width: 34px; height: 34px; display: grid; place-items: center;
+            border-radius: 10px; background: #3157d5; color: white;
+            font-weight: 900; box-shadow: 0 7px 16px rgba(49,87,213,.25);
+        }
+        .pg-brand-name { color: #172033; font-weight: 800; letter-spacing: -.02em; }
+        .pg-brand-sub { color: #64748b; font-size: .78rem; }
+        .pg-shell-label {
+            color: #64748b; font-size: .74rem; font-weight: 800;
+            letter-spacing: .08em; text-transform: uppercase; direction: ltr;
         }
         .pg-hero {
-            padding: 1.1rem 1.3rem;
-            border: 1px solid rgba(99, 102, 241, 0.28);
-            border-radius: 18px;
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(49, 46, 129, 0.82));
-            color: white;
-            margin-bottom: 1rem;
+            padding: 1.5rem 1.7rem;
+            border: 1px solid #dce4f4;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
+            color: #172033;
+            margin: .2rem 0 1.25rem;
+            box-shadow: 0 12px 30px rgba(31, 48, 87, .07);
+            position: relative; overflow: hidden;
         }
+        .pg-hero:after { content: ""; position: absolute; width: 180px; height: 180px;
+            border-radius: 50%; background: rgba(49,87,213,.08); left: -60px; top: -85px; }
         .pg-hero h1 {
             direction: ltr;
             unicode-bidi: isolate;
             text-align: left;
             margin: 0 0 .35rem 0;
-            font-size: 2rem;
+            font-size: clamp(1.25rem, 4vw, 1.85rem);
+            letter-spacing: -.045em;
+            color: #16234a;
+            overflow-wrap: anywhere;
         }
-        .pg-hero p { direction: rtl; text-align: right; margin: 0; opacity: .9; }
+        .pg-hero p { direction: rtl; text-align: right; margin: 0; color: #52627d; }
+        .pg-hero .pg-kicker { direction: ltr; color: #3157d5; font-size: .72rem;
+            font-weight: 800; letter-spacing: .14em; text-transform: uppercase; margin-bottom: .6rem; }
         .pg-step {
             direction: rtl;
             display: inline-block;
-            padding: .28rem .7rem;
+            padding: .38rem .8rem;
             border-radius: 999px;
-            background: rgba(99, 102, 241, .12);
-            color: rgb(79, 70, 229);
+            background: #e9efff;
+            color: #3157d5;
             font-weight: 700;
             margin: .5rem 0;
         }
         .pg-boundary {
-            padding: .8rem 1rem;
-            border-right: 4px solid #f59e0b;
-            background: rgba(245, 158, 11, .08);
-            border-radius: 10px;
+            padding: .85rem 1rem;
+            border-right: 4px solid #e6a72e;
+            background: #fff8e8;
+            color: #725018;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(126, 87, 16, .05);
         }
         </style>
         """,
@@ -548,19 +633,23 @@ def main() -> None:
         print("Install dashboard extras with: python -m pip install -e '.[dashboard]'")
         return
 
-    launch_in_demo = demo_mode_requested(sys.argv)
     st.set_page_config(
         page_title="PromoGuard Retail Intelligence",
         page_icon="🛡️",
         layout="wide",
-        initial_sidebar_state="collapsed" if launch_in_demo else "expanded",
+        initial_sidebar_state="collapsed",
     )
     _apply_reviewer_style()
     st.markdown(
         """
+        <div class="pg-brand">
+          <div class="pg-brand-mark">P</div>
+          <div><div class="pg-brand-name">PromoGuard</div><div class="pg-brand-sub">Retail intelligence</div></div>
+        </div>
         <div class="pg-hero">
+          <div class="pg-kicker">Evidence-aware retail intelligence</div>
           <h1>PromoGuard Retail Intelligence</h1>
-          <p>غربالگری قابل‌ممیزی پروموشن خرده‌فروشی با داده واقعی و خروجی abstention-first</p>
+          <p>تحلیل قابل ممیزی پروموشن خرده فروشی با داده واقعی و تصمیم گیری مسئولانه</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -568,10 +657,12 @@ def main() -> None:
     mode = st.sidebar.radio(
         "حالت اجرا",
         ["دموی داور", "تحلیل دستی"],
-        index=0 if launch_in_demo else 1,
+        index=0,
     )
-    st.warning(
-        "این ابزار رابطه علّی یا سود قطعی را ادعا نمی‌کند؛ خروجی برای تصمیم اولیه و طراحی آزمایش است."
+    st.markdown(
+        '<div class="pg-boundary"><strong>دامنه تصمیم:</strong> این ابزار برای غربالگری اولیه، '
+        'کنترل کیفیت داده و طراحی آزمایش است؛ سود قطعی یا رابطه علّی را ادعا نمی کند.</div>',
+        unsafe_allow_html=True,
     )
     if mode == "دموی داور":
         _demo_workflow()
