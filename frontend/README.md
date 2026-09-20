@@ -20,4 +20,4 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-The browser sends the configured local dataset path to the local API. This is intentionally a local demo boundary; authentication, multi-tenant storage, background jobs, and cloud deployment are later product work.
+The primary flow is `CSV upload -> dataset ID -> quality gate -> report ID -> progress polling -> dashboard/PDF`. A configured local dataset path remains available only for internal compatibility. Authentication, multi-tenant storage, and cloud deployment require the pilot and security gates described in the architecture roadmap.

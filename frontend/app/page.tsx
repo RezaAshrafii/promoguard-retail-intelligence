@@ -45,9 +45,7 @@ type Summary = {
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
-const DATASET_PATH =
-  process.env.NEXT_PUBLIC_DATASET_PATH ??
-  "C:/Users/Reza/Desktop/promoguard-ai/data/processed/breakfast-at-the-frat/weekly_panel.csv";
+const DATASET_PATH = process.env.NEXT_PUBLIC_DATASET_PATH ?? "";
 
 function faNumber(value: number, digits = 0) {
   return new Intl.NumberFormat("fa-IR", { maximumFractionDigits: digits }).format(value);
@@ -97,19 +95,48 @@ export default function Home() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [reportId, setReportId] = useState<string | null>(null);
   const [active, setActive] = useState("overview");
 
   async function loadDashboard() {
     setLoading(true);
     setError(null);
+    setProgress(5);
     try {
-      const response = await fetch(`${API_BASE}/v1/dashboard/summary`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input_path: DATASET_PATH }),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      setSummary(await response.json());
+      let datasetId = reportId ? null : null;
+      if (selectedFile) {
+        const form = new FormData();
+        form.append("file", selectedFile);
+        const upload = await fetch(`${API_BASE}/v1/datasets`, { method: "POST", body: form });
+        if (!upload.ok) throw new Error(await upload.text());
+        const dataset = await upload.json();
+        if (dataset.status !== "ready") throw new Error("دادهٔ ارسالی از کنترل‌های کیفیت عبور نکرد.");
+        datasetId = dataset.dataset_id;
+        setProgress(30);
+      }
+      if (datasetId) {
+        const create = await fetch(`${API_BASE}/v1/reports`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataset_id: datasetId }) });
+        if (!create.ok) throw new Error(await create.text());
+        const created = await create.json();
+        setReportId(created.report_id);
+        for (let attempt = 0; attempt < 90; attempt += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const status = await fetch(`${API_BASE}/v1/reports/${created.report_id}`);
+          const report = await status.json();
+          setProgress(report.progress ?? Math.min(95, 30 + attempt));
+          if (report.status === "ready") { setSummary(report.result); setProgress(100); break; }
+          if (report.status === "failed") throw new Error(report.error ?? "تحلیل گزارش ناموفق بود.");
+        }
+      } else if (DATASET_PATH) {
+        const response = await fetch(`${API_BASE}/v1/dashboard/summary`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ input_path: DATASET_PATH }) });
+        if (!response.ok) throw new Error(await response.text());
+        setSummary(await response.json());
+        setProgress(100);
+      } else {
+        throw new Error("ابتدا فایل دادهٔ فروش را انتخاب کنید.");
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "ارتباط با سرویس تحلیل برقرار نشد");
     } finally {
@@ -145,15 +172,17 @@ export default function Home() {
           <button className={active === "promotion" ? "nav-item active" : "nav-item"} onClick={() => setActive("promotion")}>▥ <span>ممیزی پروموشن</span></button>
           <button className={active === "manual" ? "nav-item active" : "nav-item"} onClick={() => setActive("manual")}>▤ <span>تحلیل دستی</span></button>
         </nav>
-        <div className="sidebar-footer"><span>راهنما</span><span>تنظیمات</span><small>نسخه نمایشی ۰.۱ · داده واقعی</small></div>
+        <div className="sidebar-footer"><span>راهنما</span><span>تنظیمات</span><small>محیط تحلیل سازمانی</small></div>
       </aside>
 
       <section className="content">
         <header className="topbar"><div className="search">⌕ <span>جست‌وجو در محصولات، فروشگاه‌ها یا گزارش‌ها</span></div><div className="top-actions"><span>آخرین بررسی: امروز</span><button className="primary" onClick={() => void loadDashboard()}>↻ به‌روزرسانی</button></div></header>
-        <div className="page-heading"><div><p className="eyebrow">EVIDENCE-AWARE RETAIL INTELLIGENCE</p><h1>سلام، رضا</h1><p className="subtitle">تصمیم‌گیری درباره پروموشن با داده واقعی و شواهد قابل بررسی</p></div><div className="scope-badge">فقط غربالگری مشاهده‌ای</div></div>
+        <div className="page-heading"><div><p className="eyebrow">EVIDENCE-AWARE RETAIL INTELLIGENCE</p><h1>نمای کلی عملکرد پروموشن</h1><p className="subtitle">تصمیم‌گیری درباره پروموشن با داده واقعی و شواهد قابل بررسی</p></div><div className="scope-badge">غربالگری مشاهده‌ای</div></div>
 
-        {loading && <div className="state-card"><div className="spinner" />در حال خواندن داده و آماده‌سازی گزارش مدیریتی...</div>}
+        {loading && !summary && <div className="state-card"><div className="spinner" />در حال آماده‌سازی گزارش مدیریتی...<div className="progress-track"><span style={{ width: `${progress}%` }} /></div><small>{progress}% · فایل شما ابتدا از نظر ساختار و کیفیت بررسی می‌شود</small></div>}
         {error && <div className="state-card error"><strong>گزارش آماده نشد</strong><p>{error}</p><button className="primary" onClick={() => void loadDashboard()}>تلاش دوباره</button></div>}
+
+        {!summary && !loading && <section className="upload-card"><div className="upload-icon">↑</div><h2>شروع بررسی داده</h2><p>فایل CSV فروش هفتگی را انتخاب کنید تا کیفیت داده بررسی و گزارش عملکرد پروموشن ساخته شود.</p><label className="file-picker"><input type="file" accept=".csv,text/csv" onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)} /><span>{selectedFile ? selectedFile.name : "انتخاب فایل CSV"}</span></label><button className="primary upload-action" disabled={!selectedFile} onClick={() => void loadDashboard()}>ساخت گزارش</button><small>فایل در این محیط برای تحلیل نگهداری می‌شود و قبل از گزارش از نظر دانه داده، تاریخ، فروش و پرچم پروموشن کنترل می‌شود.</small></section>}
 
         {summary && audit && active === "overview" && (
           <>
@@ -172,7 +201,7 @@ export default function Home() {
           </>
         )}
         {summary && active === "readiness" && <Readiness quality={summary.quality} />}
-        {summary && audit && active === "promotion" && <Promotion audit={audit} trend={chartData} />}
+        {summary && audit && active === "promotion" && <><div className="report-toolbar"><span>شناسه گزارش: {reportId ?? "گزارش محلی"}</span>{reportId && <button className="secondary" onClick={() => window.open(`${API_BASE}/v1/reports/${reportId}/pdf`, "_blank")}>دریافت PDF</button>}</div><Promotion audit={audit} trend={chartData} /></>}
         {active === "manual" && <div className="empty-page"><span className="empty-icon">⌁</span><h2>تحلیل دستی</h2><p>این بخش در نسخه بعدی برای انتخاب کالا، فروشگاه و بازه دلخواه فعال می‌شود.</p></div>}
       </section>
     </main>

@@ -1,0 +1,5 @@
+.upload-card{max-width:720px;margin:40px auto;background:#fff;border:1px solid var(--border);border-radius:16px;padding:42px;text-align:center;box-shadow:var(--shadow)}
+.upload-icon{margin:auto auto 15px;width:48px;height:48px;border-radius:14px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;font-size:26px;font-weight:800}
+.upload-card p{color:var(--muted);font-size:13px;line-height:2}.upload-card small{display:block;color:var(--muted);font-size:10px;line-height:1.8;margin-top:15px}
+.file-picker{display:block;border:1px dashed #a9bce9;background:#f9fbff;border-radius:11px;padding:17px;color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;margin:22px 0 12px}.file-picker input{display:none}
+.upload-action:disabled{opacity:.45;cursor:not-allowed}.progress-track{height:7px;background:#e9eef8;border-radius:20px;overflow:hidden;margin:17px auto 8px;max-width:360px}.progress-track span{display:block;height:100%;background:linear-gradient(90deg,#315cde,#6384ee);border-radius:20px;transition:width .3s ease}.state-card small{font-size:10px}
