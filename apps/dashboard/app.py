@@ -190,6 +190,29 @@ def _apply_reviewer_style() -> None:
         .pg-insight { padding: .7rem .8rem; border: 1px solid var(--pg-border); border-radius: 9px; background: #fff; direction: rtl; text-align: right; margin-bottom: .55rem; }
         .pg-insight strong { color: var(--pg-ink); display: block; margin-bottom: .2rem; }
         .pg-insight span { color: var(--pg-muted); font-size: .8rem; line-height: 1.7; }
+        .pg-kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; direction: rtl; margin: .4rem 0 1rem; }
+        .pg-kpi { background: var(--pg-surface); border: 1px solid var(--pg-border); border-radius: 12px; padding: .85rem 1rem; min-height: 104px; box-shadow: 0 6px 18px rgba(20,35,59,.035); direction: rtl; text-align: right; }
+        .pg-kpi-label { color: var(--pg-muted); font-size: .78rem; margin-bottom: .55rem; }
+        .pg-kpi-value { color: var(--pg-ink); font-size: 1.42rem; font-weight: 800; letter-spacing: -.03em; line-height: 1.2; }
+        .pg-kpi-note { color: var(--pg-muted); font-size: .72rem; margin-top: .35rem; }
+        .pg-kpi-positive .pg-kpi-value { color: var(--pg-green); }
+        .pg-kpi-warning .pg-kpi-value { color: var(--pg-amber); }
+        .pg-panel { background: var(--pg-surface); border: 1px solid var(--pg-border); border-radius: 12px; padding: 1rem; box-shadow: 0 6px 18px rgba(20,35,59,.035); direction: rtl; text-align: right; }
+        .pg-panel-title { color: var(--pg-ink); font-size: 1rem; font-weight: 800; margin-bottom: .2rem; }
+        .pg-panel-subtitle { color: var(--pg-muted); font-size: .78rem; line-height: 1.8; margin-bottom: .7rem; }
+        .pg-finding { display: flex; align-items: flex-start; gap: .65rem; padding: .65rem 0; border-bottom: 1px solid #eef1f5; direction: rtl; }
+        .pg-finding:last-child { border-bottom: 0; }
+        .pg-finding-icon { width: 28px; height: 28px; flex: 0 0 28px; display: grid; place-items: center; border-radius: 8px; background: var(--pg-blue-soft); color: var(--pg-blue); font-weight: 800; }
+        .pg-finding strong { display: block; color: var(--pg-ink); font-size: .83rem; margin-bottom: .15rem; }
+        .pg-finding span { color: var(--pg-muted); font-size: .76rem; line-height: 1.75; }
+        .pg-next-action { display: flex; gap: .65rem; align-items: center; margin-top: .75rem; padding: .75rem; border: 1px solid #dce7ff; background: #f1f5ff; border-radius: 9px; direction: rtl; }
+        .pg-next-action strong { display: block; color: var(--pg-ink); font-size: .82rem; }
+        .pg-next-action span { display: block; color: var(--pg-muted); font-size: .75rem; line-height: 1.7; }
+        .pg-section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; direction: rtl; margin: 1rem 0 .45rem; }
+        .pg-section-heading strong { color: var(--pg-ink); font-size: 1rem; }
+        .pg-section-heading span { color: var(--pg-muted); font-size: .75rem; }
+        @media (max-width: 900px) { .pg-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 560px) { .pg-kpi-grid { grid-template-columns: 1fr; } }
         .pg-step {
             direction: rtl;
             display: inline-block;
@@ -510,83 +533,102 @@ def _event_label(row: pd.Series) -> str:
     return f"فروشگاه {row['store_id']} | UPC {row['upc']} | شروع {start}"
 
 
-def _show_audit(result: PromotionAuditResult, *, compact_demo: bool = False) -> None:
-    payload = result.model_dump(mode="json")
-    presentation = recommendation_presentation(result.recommendation)
-    status_method = getattr(st, presentation.style)
-    st.subheader("نتیجهٔ بررسی")
-    status_method(f"**{presentation.title}**\n\n{presentation.explanation}")
-    st.caption("جزئیات روش و محدودیت‌ها در گزارش قابل دریافت ثبت شده است.")
-    observed, baseline, difference = st.columns(3)
-    observed.metric("فروش مشاهده‌شده", f"{result.observed_units:,.0f} واحد", border=True)
-    baseline.metric(
-        "فروش مبنا",
-        f"{result.baseline_units.point:,.0f} واحد",
-        border=True,
-        help=(
-            f"بازه عدم‌قطعیت: {result.baseline_units.lower:,.0f} تا "
-            f"{result.baseline_units.upper:,.0f}"
-        ),
-    )
-    units_difference = result.estimated_units_difference_vs_baseline
-    difference.metric(
-        "تفاوت مشاهده‌شده با مبنا",
-        f"{units_difference.point:+,.0f} واحد",
-        border=True,
-        help=(
-            f"بازه عدم‌قطعیت: {units_difference.lower:+,.0f} تا "
-            f"{units_difference.upper:+,.0f}"
-        ),
+def _trend_frame(panel: pd.DataFrame, result: PromotionAuditResult) -> pd.DataFrame:
+    """Build a manager-facing trend view from the already validated panel."""
+    prepared = panel[
+        panel["store_id"].astype(str).eq(str(result.store_id))
+        & panel["upc"].astype(str).eq(str(result.upc))
+    ].copy()
+    prepared["week_end_date"] = pd.to_datetime(prepared["week_end_date"])
+    start = pd.Timestamp(result.start_date) - pd.Timedelta(weeks=8)
+    end = pd.Timestamp(result.end_date) + pd.Timedelta(weeks=8)
+    prepared = prepared[prepared["week_end_date"].between(start, end)].copy()
+    prepared["فروش"] = pd.to_numeric(prepared["units"], errors="coerce")
+    prepared["خط مبنا"] = result.baseline_units.point / max(result.duration_weeks, 1)
+    prepared["پروموشن"] = prepared["promotion_flag"].eq(1).map({True: "حین پروموشن", False: "عادی"})
+    return prepared.rename(columns={"week_end_date": "تاریخ"})[["تاریخ", "فروش", "خط مبنا", "پروموشن"]]
+
+
+def _show_executive_summary(result: PromotionAuditResult) -> None:
+    """Render the first screen a sales manager needs before technical details."""
+    difference = result.estimated_units_difference_vs_baseline
+    baseline = result.baseline_units.point
+    delta_pct = (difference.point / baseline * 100) if baseline else 0.0
+    recommendation = recommendation_presentation(result.recommendation)
+    status_label = "نیاز به بررسی بیشتر" if result.recommendation == "needs_more_evidence" else recommendation.title
+    status_class = "pg-kpi-warning" if result.recommendation == "needs_more_evidence" else "pg-kpi-positive"
+    st.markdown(
+        f"""
+        <div class="pg-section-heading"><strong>خلاصه برای مدیر فروش</strong><span>رویداد انتخاب‌شده با قانون ثابت</span></div>
+        <div class="pg-kpi-grid">
+          <div class="pg-kpi"><div class="pg-kpi-label">فروش در زمان پروموشن</div><div class="pg-kpi-value">{result.observed_units:,.0f}</div><div class="pg-kpi-note">واحد فروش</div></div>
+          <div class="pg-kpi"><div class="pg-kpi-label">فروش معمول در همان مدت</div><div class="pg-kpi-value">{baseline:,.0f}</div><div class="pg-kpi-note">خط مبنای قبل از رویداد</div></div>
+          <div class="pg-kpi"><div class="pg-kpi-label">تفاوت با خط مبنا</div><div class="pg-kpi-value">{difference.point:+,.0f}</div><div class="pg-kpi-note">{delta_pct:+.1f}% نسبت به خط مبنا</div></div>
+          <div class="pg-kpi {status_class}"><div class="pg-kpi-label">نتیجهٔ فعلی</div><div class="pg-kpi-value">{status_label}</div><div class="pg-kpi-note">این نتیجه مجوز اجرای کمپین نیست</div></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    chart_data = pd.DataFrame(audit_comparison_records(result))
-    st.vega_lite_chart(
-        chart_data,
-        {
-            "height": 180,
-            "layer": [
-                {
-                    "mark": {"type": "bar", "cornerRadiusEnd": 6, "size": 34},
-                    "encoding": {
-                        "y": {
-                            "field": "label",
-                            "type": "nominal",
-                            "sort": None,
-                            "title": None,
-                        },
-                        "x": {"field": "value", "type": "quantitative", "title": "واحد فروش"},
-                        "color": {
-                            "field": "kind",
-                            "type": "nominal",
-                            "scale": {
-                                "domain": ["observed", "baseline"],
-                                "range": ["#4f46e5", "#0f766e"],
-                            },
-                            "legend": None,
-                        },
-                        "tooltip": [
-                            {"field": "label", "type": "nominal", "title": "شاخص"},
-                            {"field": "value", "type": "quantitative", "title": "مقدار"},
-                        ],
-                    },
-                },
-                {
-                    "transform": [{"filter": "datum.kind === 'baseline'"}],
-                    "mark": {"type": "errorbar", "ticks": True, "color": "#111827"},
-                    "encoding": {
-                        "y": {"field": "label", "type": "nominal", "sort": None, "title": None},
-                        "x": {"field": "lower", "type": "quantitative", "title": "واحد فروش"},
-                        "x2": {"field": "upper"},
-                    },
-                },
-            ],
-        },
-        width="stretch",
+
+def _show_manager_findings(result: PromotionAuditResult) -> None:
+    warning_text = {item["کد"]: item["معنی برای تصمیم"] for item in warning_presentation_records(result)}
+    findings: list[tuple[str, str, str]] = []
+    if result.observed_units < result.baseline_units.point:
+        findings.append(("!", "فروش از خط مبنا پایین‌تر است", "در این اجرا، فروش مشاهده‌شده کمتر از فروش معمول برآوردشده بوده است."))
+    else:
+        findings.append(("✓", "فروش از خط مبنا بالاتر است", "این نشانه فقط برای اولویت‌بندی یک بررسی کنترل‌شده استفاده می‌شود."))
+    if "FORWARD_BUY_RISK" in warning_text:
+        findings.append(("!", "احتمال جابه‌جایی زمان خرید", warning_text["FORWARD_BUY_RISK"]))
+    if "STOCKOUT_UNOBSERVABLE" in warning_text:
+        findings.append(("i", "وضعیت موجودی مشخص نیست", "بدون دادهٔ موجودی، نمی‌توان فهمید افت فروش از کمبود کالا بوده یا کاهش تقاضا."))
+    if "CANNIBALIZATION_CANDIDATE" in warning_text:
+        findings.append(("!", "افت کالای هم‌دسته دیده شده", "قبل از نتیجه‌گیری دربارهٔ فروش افزایشی، کالاهای هم‌دسته باید بررسی شوند."))
+    if not findings:
+        findings.append(("i", "هشدار مسدودکننده‌ای ثبت نشده است", "برای تصمیم نهایی، محدودیت‌های داده همچنان باید بررسی شوند."))
+    cards = "".join(
+        f'<div class="pg-finding"><div class="pg-finding-icon">{icon}</div><div><strong>{title}</strong><span>{detail}</span></div></div>'
+        for icon, title, detail in findings[:4]
     )
-    st.caption(
-        "خط روی فروش مبنا بازه عدم‌قطعیت را نشان می‌دهد؛ این نمودار مستقیماً از نتیجه typed ساخته "
-        "شده و هیچ محاسبه تحلیلی تازه‌ای در رابط کاربری ندارد."
+    st.markdown(
+        f"""
+        <div class="pg-panel">
+          <div class="pg-panel-title">یافته‌ها و شواهد</div>
+          <div class="pg-panel-subtitle">این بخش به زبان تصمیم توضیح می‌دهد چه چیزی دیده شده و چه چیزی هنوز قابل اثبات نیست.</div>
+          {cards}
+          <div class="pg-next-action"><div class="pg-finding-icon">→</div><div><strong>اقدام بعدی</strong><span>قبل از افزایش بودجه، دادهٔ موجودی و نتیجهٔ یک آزمون کنترل‌شده را بررسی کنید.</span></div></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
+
+
+def _show_audit(
+    result: PromotionAuditResult,
+    *,
+    compact_demo: bool = False,
+    panel: pd.DataFrame | None = None,
+) -> None:
+    payload = result.model_dump(mode="json")
+    _show_executive_summary(result)
+    chart_column, findings_column = st.columns([1.65, 1], gap="medium")
+    with chart_column, st.container(border=True):
+        st.markdown('<div class="pg-panel-title">روند فروش</div>', unsafe_allow_html=True)
+        st.markdown('<div class="pg-panel-subtitle">مقایسهٔ فروش هفتگی با خط مبنای همان رویداد</div>', unsafe_allow_html=True)
+        if panel is not None:
+            trend = _trend_frame(panel, result)
+            if not trend.empty:
+                st.line_chart(trend.set_index("تاریخ")[["فروش", "خط مبنا"]], height=285, width="stretch")
+        else:
+            st.vega_lite_chart(
+                pd.DataFrame(audit_comparison_records(result)),
+                {"mark": "bar", "encoding": {"x": {"field": "value", "type": "quantitative"}, "y": {"field": "label", "type": "nominal"}}},
+                width="stretch",
+            )
+        st.caption("خط مبنا تخمینی است و به‌تنهایی اثر علّی یا سود کمپین را ثابت نمی‌کند.")
+    with findings_column:
+        _show_manager_findings(result)
+
     if result.contribution_sensitivity is not None:
         sensitivity = result.contribution_sensitivity
         estimate = sensitivity.estimated_contribution_difference_vs_baseline
@@ -612,10 +654,10 @@ def _show_audit(result: PromotionAuditResult, *, compact_demo: bool = False) -> 
                 "هفته پروموشن": window.promotion_weeks,
             }
         )
-    with st.expander("رفتار فروش قبل، حین و بعد از رویداد", expanded=not compact_demo):
+    with st.expander("جزئیات دوره‌های قبل، حین و بعد", expanded=not compact_demo):
         st.dataframe(pd.DataFrame(window_rows), hide_index=True, width="stretch")
 
-    st.subheader("رفتار کالاهای هم‌دسته")
+    st.subheader("بررسی کالاهای هم‌دسته")
     substitution = cannibalization_presentation(result)
     substitution_method = getattr(st, substitution.style)
     substitution_method(f"**{substitution.title}**\n\n{substitution.explanation}")
@@ -629,7 +671,7 @@ def _show_audit(result: PromotionAuditResult, *, compact_demo: bool = False) -> 
         st.dataframe(pd.DataFrame(candidates), hide_index=True, width="stretch")
     st.caption(cannibalization_limitation_copy(result))
 
-    st.subheader("هشدارها و محدودهٔ نتیجه")
+    st.subheader("جزئیات هشدارها و محدودهٔ نتیجه")
     warnings = warning_presentation_records(result)
     if warnings:
         st.dataframe(pd.DataFrame(warnings), hide_index=True, width="stretch")
@@ -764,7 +806,7 @@ def _demo_workflow() -> None:
         column.metric(label, value)
 
     _step(3, "نتیجه و محدودهٔ تصمیم")
-    _show_audit(result, compact_demo=True)
+    _show_audit(result, compact_demo=True, panel=panel)
     _show_randomized_benchmark()
 
 
@@ -912,7 +954,7 @@ def main() -> None:
                 start_date=selected["start_date"],
                 contribution_assumption=contribution_assumption,
             )
-            _show_audit(result)
+            _show_audit(result, panel=panel)
         except ValueError as error:
             st.error(str(error))
 
