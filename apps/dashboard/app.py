@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import date
+from datetime import UTC, date, datetime
 from io import BytesIO
-from typing import cast
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 from pydantic import ValidationError
@@ -20,7 +19,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from apps.dashboard.presentation import (  # noqa: E402
+from apps.dashboard.presentation import (
     audit_comparison_records,
     audit_event_summary,
     cannibalization_candidate_records,
@@ -31,15 +30,15 @@ from apps.dashboard.presentation import (  # noqa: E402
     recommendation_presentation,
     warning_presentation_records,
 )
-from promoguard.data.intake import assess_partner_intake  # noqa: E402
-from promoguard.data.panel import load_weekly_panel, validate_canonical_panel  # noqa: E402
-from promoguard.data.partner import (  # noqa: E402
+from promoguard.data.intake import assess_partner_intake
+from promoguard.data.panel import load_weekly_panel, validate_canonical_panel
+from promoguard.data.partner import (
     PartnerExportContract,
     PartnerPrepared,
     prepare_partner_export,
     sha256_bytes,
 )
-from promoguard.insights.promotion_audit import (  # noqa: E402
+from promoguard.insights.promotion_audit import (
     ContributionAssumption,
     PromotionAuditResult,
     audit_promotion_event,
@@ -62,10 +61,21 @@ def _apply_reviewer_style() -> None:
     st.markdown(
         """
         <style>
-        [data-testid="stAppViewContainer"] { background: #f5f7fb; }
+        :root {
+            --pg-ink: #15233b;
+            --pg-muted: #667085;
+            --pg-blue: #315cde;
+            --pg-blue-soft: #edf2ff;
+            --pg-green: #168574;
+            --pg-amber: #b87913;
+            --pg-border: #e4e8f0;
+            --pg-surface: #ffffff;
+            --pg-canvas: #f7f8fa;
+        }
+        [data-testid="stAppViewContainer"] { background: var(--pg-canvas); }
         [data-testid="stHeader"] { background: transparent; }
         [data-testid="stSidebar"] {
-            background: #10182b;
+            background: #111c31;
             border-left: 1px solid rgba(255,255,255,.08);
             width: 240px;
         }
@@ -84,23 +94,24 @@ def _apply_reviewer_style() -> None:
             direction: rtl; text-align: right;
         }
         [data-testid="stMetric"] {
-            background: #ffffff;
-            border: 1px solid #e5eaf4;
-            border-radius: 14px;
+            background: var(--pg-surface);
+            border: 1px solid var(--pg-border);
+            border-radius: 12px;
             padding: .75rem .9rem;
-            box-shadow: 0 4px 16px rgba(22, 34, 64, .04);
+            box-shadow: 0 6px 18px rgba(20, 35, 59, .035);
+            min-height: 104px;
         }
         .stButton > button {
-            border-radius: 10px;
-            min-height: 2.7rem;
+            border-radius: 9px;
+            min-height: 2.55rem;
             font-weight: 700;
             transition: all .18s ease;
         }
         .stButton > button[kind="primary"] {
-            background: linear-gradient(135deg, #3157d5, #5746c8);
-            border-color: #3157d5;
+            background: var(--pg-blue);
+            border-color: var(--pg-blue);
             color: white;
-            box-shadow: 0 8px 18px rgba(49, 87, 213, .22);
+            box-shadow: 0 7px 16px rgba(49, 92, 222, .2);
         }
         .stButton > button:hover {
             transform: translateY(-1px);
@@ -130,57 +141,62 @@ def _apply_reviewer_style() -> None:
             background: #eef3ff;
         }
         [data-testid="stExpander"] {
-            border: 1px solid #e5eaf4;
-            border-radius: 12px;
-            background: #ffffff;
+            border: 1px solid var(--pg-border);
+            border-radius: 10px;
+            background: var(--pg-surface);
         }
         .pg-brand {
             display: flex; align-items: center; gap: .65rem;
-            direction: ltr; margin: .4rem 0 1.25rem;
+            direction: ltr; margin: .35rem 0 1.5rem;
         }
         .pg-brand-mark {
-            width: 34px; height: 34px; display: grid; place-items: center;
-            border-radius: 10px; background: #3157d5; color: white;
-            font-weight: 900; box-shadow: 0 7px 16px rgba(49,87,213,.25);
+            width: 36px; height: 36px; display: grid; place-items: center;
+            border-radius: 10px; background: var(--pg-blue); color: white;
+            font-weight: 900; box-shadow: 0 7px 16px rgba(49,92,222,.25);
         }
-        .pg-brand-name { color: #172033; font-weight: 800; letter-spacing: -.02em; }
-        .pg-brand-sub { color: #64748b; font-size: .78rem; }
+        .pg-brand-name { color: #f8fafc; font-weight: 800; letter-spacing: -.02em; }
+        .pg-brand-sub { color: #a7b4ca; font-size: .76rem; }
+        .pg-sidebar-caption { color: #a7b4ca; font-size: .76rem; line-height: 1.8; direction: rtl; text-align: right; }
         .pg-shell-label {
-            color: #64748b; font-size: .74rem; font-weight: 800;
-            letter-spacing: .08em; text-transform: uppercase; direction: ltr;
+            color: var(--pg-blue); font-size: .72rem; font-weight: 800;
+            letter-spacing: .08em; direction: rtl; text-align: right;
         }
         .pg-hero {
-            padding: 1.5rem 1.7rem;
-            border: 1px solid #dce4f4;
-            border-radius: 20px;
-            background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
-            color: #172033;
-            margin: .2rem 0 1.25rem;
-            box-shadow: 0 12px 30px rgba(31, 48, 87, .07);
-            position: relative; overflow: hidden;
+            padding: .45rem 0 .9rem;
+            color: var(--pg-ink);
+            margin: .2rem 0 .7rem;
         }
-        .pg-hero:after { content: ""; position: absolute; width: 180px; height: 180px;
-            border-radius: 50%; background: rgba(49,87,213,.08); left: -60px; top: -85px; }
         .pg-hero h1 {
-            direction: ltr;
+            direction: rtl;
             unicode-bidi: isolate;
-            text-align: left;
+            text-align: right;
             margin: 0 0 .35rem 0;
-            font-size: clamp(1.25rem, 4vw, 1.85rem);
+            font-size: clamp(1.45rem, 4vw, 2rem);
             letter-spacing: -.045em;
-            color: #16234a;
+            color: var(--pg-ink);
             overflow-wrap: anywhere;
         }
-        .pg-hero p { direction: rtl; text-align: right; margin: 0; color: #52627d; }
-        .pg-hero .pg-kicker { direction: ltr; color: #3157d5; font-size: .72rem;
-            font-weight: 800; letter-spacing: .14em; text-transform: uppercase; margin-bottom: .6rem; }
+        .pg-hero p { direction: rtl; text-align: right; margin: 0; color: var(--pg-muted); font-size: .93rem; }
+        .pg-hero .pg-kicker { direction: rtl; color: var(--pg-blue); font-size: .72rem;
+            font-weight: 800; margin-bottom: .5rem; }
+        .pg-header-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; direction: rtl; }
+        .pg-header-meta { color: var(--pg-muted); font-size: .78rem; direction: rtl; text-align: right; }
+        .pg-status-strip { padding: .75rem 1rem; background: #fff8e8; color: #725018; border: 1px solid #f4dfad; border-radius: 9px; direction: rtl; text-align: right; margin: .35rem 0 1.1rem; }
+        .pg-empty { padding: 1.5rem; background: var(--pg-surface); border: 1px solid var(--pg-border); border-radius: 12px; direction: rtl; text-align: right; }
+        .pg-empty-title { color: var(--pg-ink); font-size: 1.05rem; font-weight: 800; margin-bottom: .35rem; }
+        .pg-empty-copy { color: var(--pg-muted); line-height: 1.9; }
+        .pg-card-title { color: var(--pg-ink); font-size: 1rem; font-weight: 800; direction: rtl; text-align: right; margin-bottom: .2rem; }
+        .pg-card-copy { color: var(--pg-muted); font-size: .82rem; line-height: 1.8; direction: rtl; text-align: right; }
+        .pg-insight { padding: .7rem .8rem; border: 1px solid var(--pg-border); border-radius: 9px; background: #fff; direction: rtl; text-align: right; margin-bottom: .55rem; }
+        .pg-insight strong { color: var(--pg-ink); display: block; margin-bottom: .2rem; }
+        .pg-insight span { color: var(--pg-muted); font-size: .8rem; line-height: 1.7; }
         .pg-step {
             direction: rtl;
             display: inline-block;
-            padding: .38rem .8rem;
+            padding: .32rem .7rem;
             border-radius: 999px;
-            background: #e9efff;
-            color: #3157d5;
+            background: var(--pg-blue-soft);
+            color: var(--pg-blue);
             font-weight: 700;
             margin: .5rem 0;
         }
@@ -215,6 +231,19 @@ def _apply_reviewer_style() -> None:
             margin-top: -.45rem;
         }
         </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _sidebar_brand() -> None:
+    st.sidebar.markdown(
+        """
+        <div class="pg-brand">
+          <div class="pg-brand-mark">P</div>
+          <div><div class="pg-brand-name">PromoGuard</div><div class="pg-brand-sub">Retail intelligence</div></div>
+        </div>
+        <div class="pg-sidebar-caption">تحلیل دادهٔ فروش و ممیزی پروموشن برای تصمیم‌های قابل بررسی</div>
         """,
         unsafe_allow_html=True,
     )
@@ -262,12 +291,12 @@ def _load_uploaded_panel(name: str, content: bytes) -> pd.DataFrame:
 def _show_quality_report(report: dict[str, Any]) -> None:
     status_label = "معتبر" if report["valid"] else "نامعتبر"
     status_method = st.success if report["valid"] else st.error
-    status_method(f"وضعیت پنل: {status_label}")
+    status_method(f"کنترل داده: {status_label}")
     first, second, third, fourth = st.columns(4)
-    first.metric("ردیف‌ها", f"{report['rows']:,}")
-    second.metric("سری‌های فروشگاه–کالا", f"{(report['series'] or 0):,}")
-    third.metric("ردیف‌های پروموشن", f"{(report['promotion_rows'] or 0):,}")
-    fourth.metric("ردیف تکراری", f"{(report['duplicate_grain_rows'] or 0):,}")
+    first.metric("تعداد ردیف", f"{report['rows']:,}", border=True)
+    second.metric("سری فروشگاه–کالا", f"{(report['series'] or 0):,}", border=True)
+    third.metric("هفته‌های پروموشن", f"{(report['promotion_rows'] or 0):,}", border=True)
+    fourth.metric("ردیف تکراری", f"{(report['duplicate_grain_rows'] or 0):,}", border=True)
     st.caption(
         f"بازه زمانی: {report['date_min'] or 'نامشخص'} تا "
         f"{report['date_max'] or 'نامشخص'} | دانه‌بندی: {report['grain']}"
@@ -303,13 +332,13 @@ def _show_partner_readiness(
     """Render the partner gate without presenting it as a sales or causal result."""
 
     if report.status == "prepared_for_observational_audit":
-        st.success("فایل از دروازهٔ قرارداد و کنترل اولیه عبور کرد")
+        st.success("فایل برای بررسی مشاهده‌ای آماده است")
     else:
-        st.error("فایل برای ممیزی مشاهده‌ای آماده نیست")
+        st.error("فایل هنوز برای بررسی آماده نیست")
     first, second, third = st.columns(3)
-    first.metric("ردیف‌ها", f"{report.rows:,}")
-    second.metric("وضعیت کنترل داده", report.intake_status)
-    third.metric("مدت نگهداری توافق‌شده", f"{report.retention_days} روز")
+    first.metric("تعداد ردیف", f"{report.rows:,}", border=True)
+    second.metric("نتیجهٔ کنترل", report.intake_status, border=True)
+    third.metric("مدت نگهداری", f"{report.retention_days} روز", border=True)
     if report.reasons:
         st.warning(
             "دلایل مسدودشدن: "
@@ -324,7 +353,7 @@ def _show_partner_readiness(
         st.json(report.column_mapping)
         st.caption(report.limitation)
     st.download_button(
-        "دانلود گزارش آمادگی فایل شریک",
+        "دریافت گزارش آمادگی",
         data=json.dumps(
             {"partner": report.model_dump(mode="json"), "intake": intake},
             ensure_ascii=False,
@@ -415,7 +444,9 @@ def _partner_intake_workflow() -> None:
                     permission_reference = st.text_input(
                         "مرجع اجازه استفاده", value="شناسه قرارداد یا ایمیل تأیید"
                     )
-                    extraction_date = st.date_input("تاریخ استخراج", value=date.today())
+                    extraction_date = st.date_input(
+                        "تاریخ استخراج", value=datetime.now(UTC).date()
+                    )
                     grain_label = st.selectbox("دانه‌بندی فایل", ["هفتگی فروشگاه–کالا", "روزانه فروشگاه–کالا"])
                 with second:
                     retention_days = st.number_input("مدت نگهداری توافق‌شده به روز", min_value=1, max_value=365, value=30)
@@ -483,14 +514,15 @@ def _show_audit(result: PromotionAuditResult, *, compact_demo: bool = False) -> 
     payload = result.model_dump(mode="json")
     presentation = recommendation_presentation(result.recommendation)
     status_method = getattr(st, presentation.style)
-    st.subheader("نتیجه ممیزی قابل‌ممیزی")
+    st.subheader("نتیجهٔ بررسی")
     status_method(f"**{presentation.title}**\n\n{presentation.explanation}")
-    st.caption("منطق دقیق و machine-readable در فایل JSON قابل دانلود حفظ شده است.")
+    st.caption("جزئیات روش و محدودیت‌ها در گزارش قابل دریافت ثبت شده است.")
     observed, baseline, difference = st.columns(3)
-    observed.metric("فروش مشاهده‌شده", f"{result.observed_units:,.0f} واحد")
+    observed.metric("فروش مشاهده‌شده", f"{result.observed_units:,.0f} واحد", border=True)
     baseline.metric(
         "فروش مبنا",
         f"{result.baseline_units.point:,.0f} واحد",
+        border=True,
         help=(
             f"بازه عدم‌قطعیت: {result.baseline_units.lower:,.0f} تا "
             f"{result.baseline_units.upper:,.0f}"
@@ -500,6 +532,7 @@ def _show_audit(result: PromotionAuditResult, *, compact_demo: bool = False) -> 
     difference.metric(
         "تفاوت مشاهده‌شده با مبنا",
         f"{units_difference.point:+,.0f} واحد",
+        border=True,
         help=(
             f"بازه عدم‌قطعیت: {units_difference.lower:+,.0f} تا "
             f"{units_difference.upper:+,.0f}"
@@ -582,7 +615,7 @@ def _show_audit(result: PromotionAuditResult, *, compact_demo: bool = False) -> 
     with st.expander("رفتار فروش قبل، حین و بعد از رویداد", expanded=not compact_demo):
         st.dataframe(pd.DataFrame(window_rows), hide_index=True, width="stretch")
 
-    st.subheader("بررسی جایگزینی کالاهای هم‌دسته")
+    st.subheader("رفتار کالاهای هم‌دسته")
     substitution = cannibalization_presentation(result)
     substitution_method = getattr(st, substitution.style)
     substitution_method(f"**{substitution.title}**\n\n{substitution.explanation}")
@@ -596,7 +629,7 @@ def _show_audit(result: PromotionAuditResult, *, compact_demo: bool = False) -> 
         st.dataframe(pd.DataFrame(candidates), hide_index=True, width="stretch")
     st.caption(cannibalization_limitation_copy(result))
 
-    st.subheader("هشدارها و مرز ادعا")
+    st.subheader("هشدارها و محدودهٔ نتیجه")
     warnings = warning_presentation_records(result)
     if warnings:
         st.dataframe(pd.DataFrame(warnings), hide_index=True, width="stretch")
@@ -618,7 +651,7 @@ def _show_audit(result: PromotionAuditResult, *, compact_demo: bool = False) -> 
         for evidence in result.evidence_refs:
             st.code(evidence)
     st.download_button(
-        "دانلود گزارش JSON قابل‌ممیزی",
+        "دریافت گزارش کامل",
         data=json.dumps(payload, ensure_ascii=False, indent=2),
         file_name=f"{result.audit_id}.json",
         mime="application/json",
@@ -648,19 +681,30 @@ def _show_randomized_benchmark() -> None:
 
 
 def _demo_workflow() -> None:
-    st.sidebar.success("حالت ارائه با داده واقعی فعال است")
-    st.sidebar.caption("بدون API خارجی، بدون LLM و بدون داده مصنوعی")
+    st.sidebar.success("دمو آمادهٔ اجراست")
+    st.sidebar.caption("دادهٔ واقعی عمومی، بدون API خارجی و بدون دادهٔ ساختگی")
 
-    _step(1, "داده واقعی و کنترل کیفیت")
-    st.write(
-        "منبع: دیتاست عمومی **dunnhumby Breakfast at the Frat**؛ فایل خام در Git نگهداری نمی‌شود."
+    st.markdown(
+        '<div class="pg-header-row">'
+        '<div><div class="pg-shell-label">دموی داور</div>'
+        '<div class="pg-hero"><h1>بررسی عملکرد پروموشن</h1>'
+        '<p>یک نمونهٔ واقعی از کنترل کیفیت، مقایسه با خط مبنا و ثبت شواهد</p></div></div>'
+        '</div>',
+        unsafe_allow_html=True,
     )
+    st.markdown(
+        '<div class="pg-status-strip"><strong>محدودهٔ این دمو:</strong> '
+        'نتیجه برای اولویت‌بندی بررسی و طراحی آزمون است؛ تأیید سود یا اثر علّی نیست.</div>',
+        unsafe_allow_html=True,
+    )
+    _step(1, "داده و کنترل کیفیت")
+    st.caption("منبع: دیتاست عمومی dunnhumby — فایل خام داخل Git نگهداری نمی‌شود.")
     run_label = (
-        "اجرای دوباره دموی واقعی"
+        "اجرای دوبارهٔ بررسی"
         if "reviewer_demo" in st.session_state
-        else "اجرای دموی واقعی با یک کلیک"
+        else "اجرای بررسی"
     )
-    if st.button(run_label, type="primary", width="stretch"):
+    if st.button(run_label, type="primary", width="stretch", icon=":material/play_arrow:"):
         try:
             with st.spinner("در حال اعتبارسنجی داده و اجرای ممیزی deterministic..."):
                 panel = _load_local_panel(str(DEFAULT_PANEL_PATH))
@@ -692,30 +736,34 @@ def _demo_workflow() -> None:
 
     demo = st.session_state.get("reviewer_demo")
     if demo is None:
-        st.info(
-            "این یک نمونه ساختگی نیست. با کلیک روی دکمه، پنل کامل واقعی validate و همان رویداد "
-            "نمایندهٔ deterministic ممیزی می‌شود."
+        st.markdown(
+            '<div class="pg-empty">'
+            '<div class="pg-empty-title">گزارش هنوز اجرا نشده است</div>'
+            '<div class="pg-empty-copy">با اجرای بررسی، دادهٔ واقعی کنترل می‌شود و یک رویداد واجدشرایط '
+            'برای نمایش نتیجه انتخاب خواهد شد. انتخاب رویداد دستی نیست و از قانون ثابت استفاده می‌کند.</div>'
+            '</div>',
+            unsafe_allow_html=True,
         )
         return
 
-    st.progress(100, text="داده واقعی بارگذاری و کنترل شد")
+    st.progress(100, text="داده کنترل شد")
     _show_quality_report(demo["quality"])
     if demo["result"] is None:
         st.error("کنترل کیفیت رد شد؛ ممیزی برای جلوگیری از خروجی نامعتبر اجرا نشد.")
         return
 
     result: PromotionAuditResult = demo["result"]
-    _step(2, "رویداد انتخاب‌شده با قانون ثابت")
+    _step(2, "رویداد انتخاب‌شده")
     st.caption(
-        f"سیستم نخستین رویدادی را انتخاب می‌کند که حداقل "
+        f"سیستم رویدادی را انتخاب می‌کند که حداقل "
         f"{result.policy.representative_min_history_weeks} هفته تاریخچه و پنجره پس از پروموشن "
-        "کامل داشته باشد؛ انتخاب دستیِ نتیجه‌پسند در Demo Mode وجود ندارد."
+        "کامل داشته باشد؛ انتخاب دستی در این حالت انجام نمی‌شود."
     )
     columns = st.columns(4)
     for column, (label, value) in zip(columns, audit_event_summary(result), strict=True):
         column.metric(label, value)
 
-    _step(3, "نتیجه، عدم‌قطعیت و مرز تصمیم")
+    _step(3, "نتیجه و محدودهٔ تصمیم")
     _show_audit(result, compact_demo=True)
     _show_randomized_benchmark()
 
@@ -727,21 +775,20 @@ def main() -> None:
 
     st.set_page_config(
         page_title="PromoGuard Retail Intelligence",
-        page_icon="🛡️",
+        page_icon=":material/analytics:",
         layout="wide",
         initial_sidebar_state="collapsed",
     )
     _apply_reviewer_style()
+    _sidebar_brand()
+    st.sidebar.markdown("---")
+    st.sidebar.caption("مسیرهای اصلی")
     st.markdown(
         """
-        <div class="pg-brand">
-          <div class="pg-brand-mark">P</div>
-          <div><div class="pg-brand-name">PromoGuard</div><div class="pg-brand-sub">Retail intelligence</div></div>
-        </div>
         <div class="pg-hero">
-          <div class="pg-kicker">Evidence-aware retail intelligence</div>
-          <h1>PromoGuard Retail Intelligence</h1>
-          <p>تحلیل قابل ممیزی پروموشن خرده فروشی با داده واقعی و تصمیم گیری مسئولانه</p>
+          <div class="pg-shell-label">پشتیبانی از تصمیم‌های فروش</div>
+          <h1>PromoGuard</h1>
+          <p>کنترل داده و بررسی پروموشن برای تیم‌هایی که می‌خواهند قبل از تصمیم، شواهد را ببینند.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -752,8 +799,8 @@ def main() -> None:
         index=0,
     )
     st.markdown(
-        '<div class="pg-boundary"><strong>دامنه تصمیم:</strong> این ابزار برای غربالگری اولیه، '
-        'کنترل کیفیت داده و طراحی آزمایش است؛ سود قطعی یا رابطه علّی را ادعا نمی کند.</div>',
+        '<div class="pg-status-strip"><strong>محدودهٔ محصول:</strong> '
+        'کنترل کیفیت، ممیزی مشاهده‌ای و آماده‌سازی تصمیم؛ بدون ادعای سود قطعی یا اثر علّی.</div>',
         unsafe_allow_html=True,
     )
     if mode == "دموی داور":
