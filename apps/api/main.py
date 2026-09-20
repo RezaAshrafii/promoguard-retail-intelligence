@@ -6,6 +6,7 @@ from typing import Annotated
 
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
+from fastapi.middleware.cors import CORSMiddleware
 
 from apps.api.contracts import (
     AuditRequest,
@@ -35,6 +36,14 @@ app = FastAPI(
         "Local demonstration API for auditable retail-promotion screening; "
         "outputs are observational, not causal. Do not expose directly to the Internet."
     ),
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
 
@@ -142,4 +151,50 @@ def create_audit(request: AuditRequest) -> PromotionAuditResult:
         )
     except ValueError as error:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)) from error
+
+
+@app.post("/v1/dashboard/summary")
+def dashboard_summary(request: DatasetPathRequest) -> dict[str, object]:
+    """Return one stable, manager-facing payload for the web dashboard.
+
+    The API deliberately keeps the observational boundary visible: this endpoint
+    does not turn a promotion comparison into a causal or profit claim.
+    """
+    panel = _load_valid_panel(request.input_path)
+    quality = validate_canonical_panel(panel, max_rows=MAX_PANEL_ROWS)
+    try:
+        selection = select_representative_event(panel)
+        audit = audit_promotion_event(
+            panel,
+            store_id=str(selection["store_id"]),
+            upc=str(selection["upc"]),
+            start_date=selection["start_date"],
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)) from error
+
+    prepared = panel.copy()
+    prepared["week_end_date"] = pd.to_datetime(prepared["week_end_date"])
+    event_start = pd.Timestamp(selection["start_date"])
+    event_end = pd.Timestamp(audit.end_date)
+    trend = prepared[
+        (prepared["store_id"].astype(str) == str(selection["store_id"]))
+        & (prepared["upc"].astype(str) == str(selection["upc"]))
+        & (prepared["week_end_date"] >= event_start - pd.Timedelta(weeks=8))
+        & (prepared["week_end_date"] <= event_end + pd.Timedelta(weeks=8))
+    ].sort_values("week_end_date")
+    trend_records = [
+        {
+            "week_end_date": row.week_end_date.date().isoformat(),
+            "units": float(row.units),
+            "promotion_flag": int(row.promotion_flag),
+        }
+        for row in trend.itertuples(index=False)
+    ]
+    return {
+        "quality": quality,
+        "audit": audit.model_dump(mode="json"),
+        "trend": trend_records,
+        "dataset_path": str(request.input_path),
+    }
 
