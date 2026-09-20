@@ -24,5 +24,6 @@ mlruns/
 .vscode/
 frontend/node_modules/
 frontend/.next/
+frontend/*.tsbuildinfo
 tmp/*.log
 tmp/*.png
