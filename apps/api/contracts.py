@@ -85,3 +85,25 @@ class PromotionListResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str | dict[str, Any]
+
+
+class DatasetResponse(BaseModel):
+    dataset_id: str
+    filename: str
+    size_bytes: int
+    sha256: str
+    quality: PanelQualityResponse
+    status: str
+
+
+class ReportCreateRequest(BaseModel):
+    dataset_id: str = Field(min_length=8)
+
+
+class ReportResponse(BaseModel):
+    report_id: str
+    dataset_id: str
+    status: str
+    progress: int = Field(ge=0, le=100)
+    result: dict[str, object] | None = None
+    error: str | None = None
