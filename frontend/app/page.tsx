@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { BrandLogo } from "./components/BrandLogo";
 import {
   CartesianGrid,
   Line,
@@ -165,7 +166,7 @@ export default function Home() {
   return (
     <main className="shell">
       <aside className="sidebar">
-        <div className="brand"><span className="brand-mark">P</span><div><strong>PromoGuard</strong><small>Retail intelligence</small></div></div>
+        <div className="brand"><BrandLogo size={44} /></div>
         <nav aria-label="مسیرهای اصلی">
           <button className={active === "overview" ? "nav-item active" : "nav-item"} onClick={() => setActive("overview")}>⌂ <span>نمای کلی</span></button>
           <button className={active === "readiness" ? "nav-item active" : "nav-item"} onClick={() => setActive("readiness")}>▣ <span>آمادگی داده</span></button>

@@ -62,15 +62,15 @@ def _apply_reviewer_style() -> None:
         """
         <style>
         :root {
-            --pg-ink: #15233b;
-            --pg-muted: #667085;
-            --pg-blue: #315cde;
-            --pg-blue-soft: #edf2ff;
-            --pg-green: #168574;
+            --pg-ink: #10222d;
+            --pg-muted: #738996;
+            --pg-blue: #11bfae;
+            --pg-blue-soft: #e6faf6;
+            --pg-green: #18bf89;
             --pg-amber: #b87913;
             --pg-border: #e4e8f0;
             --pg-surface: #ffffff;
-            --pg-canvas: #f7f8fa;
+            --pg-canvas: #f3f7f8;
         }
         [data-testid="stAppViewContainer"] { background: var(--pg-canvas); }
         [data-testid="stHeader"] { background: transparent; }
@@ -151,7 +151,7 @@ def _apply_reviewer_style() -> None:
         }
         .pg-brand-mark {
             width: 36px; height: 36px; display: grid; place-items: center;
-            border-radius: 10px; background: var(--pg-blue); color: white;
+            border-radius: 12px; background: linear-gradient(135deg,#149df0,#18d6b0); color: #06171c;
             font-weight: 900; box-shadow: 0 7px 16px rgba(49,92,222,.25);
         }
         .pg-brand-name { color: #f8fafc; font-weight: 800; letter-spacing: -.02em; }
