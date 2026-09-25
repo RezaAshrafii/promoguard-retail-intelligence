@@ -96,6 +96,10 @@ class DatasetResponse(BaseModel):
     status: str
 
 
+class DatasetImportRequest(BaseModel):
+    input_path: str = Field(min_length=1)
+
+
 class ReportCreateRequest(BaseModel):
     dataset_id: str = Field(min_length=8)
 

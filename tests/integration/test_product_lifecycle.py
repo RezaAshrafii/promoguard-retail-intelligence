@@ -47,3 +47,27 @@ def test_upload_dataset_report_and_pdf_lifecycle(tmp_path: Path, monkeypatch) ->
     assert pdf.status_code == 200
     assert pdf.headers["content-type"].startswith("application/pdf")
     assert pdf.content.startswith(b"%PDF")
+
+
+def test_controlled_path_import_uses_the_same_dataset_contract(tmp_path: Path, monkeypatch) -> None:
+    panel = pd.DataFrame(
+        {
+            "week_end_date": pd.date_range("2023-01-01", periods=70, freq="7D"),
+            "store_id": "1",
+            "upc": "10",
+            "units": [10.0] * 55 + [20.0, 20.0] + [10.0] * 13,
+            "promotion_flag": [0] * 55 + [1, 1] + [0] * 13,
+        }
+    )
+    dataset_root = tmp_path / "data"
+    dataset_root.mkdir()
+    path = dataset_root / "weekly_panel.csv"
+    panel.to_csv(path, index=False)
+    monkeypatch.setattr(api_module, "LOCAL_DATA_ROOT", dataset_root.resolve())
+    api_module.DATASETS.clear()
+
+    response = TestClient(app).post("/v1/datasets/import-path", json={"input_path": str(path)})
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ready"
+    assert response.json()["filename"] == "weekly_panel.csv"

@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse
 
 from apps.api.contracts import (
     AuditRequest,
+    DatasetImportRequest,
     DatasetPathRequest,
     DatasetResponse,
     PanelQualityResponse,
@@ -161,6 +162,32 @@ async def create_dataset(file: Annotated[UploadFile, File(description="فایل 
     }
     DATASETS[dataset_id] = record
     return {key: value for key, value in record.items() if key != "path"}
+
+
+@app.post("/v1/datasets/import-path", response_model=DatasetResponse)
+def import_dataset_path(request: DatasetImportRequest) -> dict[str, object]:
+    """Register an approved local dataset through the product contract."""
+    resolved_path = Path(request.input_path).resolve()
+    allowed_roots = (LOCAL_DATA_ROOT.resolve(), UPLOAD_ROOT.resolve())
+    if not any(resolved_path == root or root in resolved_path.parents for root in allowed_roots):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="مسیر داده در محیط کنترل‌شده مجاز نیست.")
+    if not resolved_path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="فایل داده پیدا نشد.")
+    content = resolved_path.read_bytes()
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="حجم فایل از حد مجاز بیشتر است.")
+    _panel, quality = _quality_for_bytes(content)
+    dataset_id = hashlib.sha256(content).hexdigest()[:24]
+    DATASETS[dataset_id] = {
+        "dataset_id": dataset_id,
+        "filename": resolved_path.name,
+        "size_bytes": len(content),
+        "sha256": hashlib.sha256(content).hexdigest(),
+        "path": str(resolved_path),
+        "quality": quality,
+        "status": "ready" if quality["valid"] else "rejected",
+    }
+    return {key: value for key, value in DATASETS[dataset_id].items() if key != "path"}
 
 
 @app.get("/v1/datasets/{dataset_id}", response_model=DatasetResponse)

@@ -131,10 +131,23 @@ export default function Home() {
           if (report.status === "failed") throw new Error(report.error ?? "تحلیل گزارش ناموفق بود.");
         }
       } else if (DATASET_PATH) {
-        const response = await fetch(`${API_BASE}/v1/dashboard/summary`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ input_path: DATASET_PATH }) });
-        if (!response.ok) throw new Error(await response.text());
-        setSummary(await response.json());
-        setProgress(100);
+        const imported = await fetch(`${API_BASE}/v1/datasets/import-path`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ input_path: DATASET_PATH }) });
+        if (!imported.ok) throw new Error(await imported.text());
+        const dataset = await imported.json();
+        if (dataset.status !== "ready") throw new Error("دادهٔ متصل از کنترل‌های کیفیت عبور نکرد.");
+        setProgress(30);
+        const create = await fetch(`${API_BASE}/v1/reports`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataset_id: dataset.dataset_id }) });
+        if (!create.ok) throw new Error(await create.text());
+        const created = await create.json();
+        setReportId(created.report_id);
+        for (let attempt = 0; attempt < 90; attempt += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const status = await fetch(`${API_BASE}/v1/reports/${created.report_id}`);
+          const report = await status.json();
+          setProgress(report.progress ?? Math.min(95, 30 + attempt));
+          if (report.status === "ready") { setSummary(report.result); setProgress(100); break; }
+          if (report.status === "failed") throw new Error(report.error ?? "تحلیل گزارش ناموفق بود.");
+        }
       } else {
         throw new Error("ابتدا فایل دادهٔ فروش را انتخاب کنید.");
       }
