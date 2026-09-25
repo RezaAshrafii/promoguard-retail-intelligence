@@ -38,6 +38,9 @@ The general Persian commercial proposal is available at
 [output/pdf/PromoGuard-General-Commercial-Proposal-FA.pdf](output/pdf/PromoGuard-General-Commercial-Proposal-FA.pdf).
 The evidence register and shortlist methodology are documented in
 [docs/business/PROSPECT-RESEARCH-FA.md](docs/business/PROSPECT-RESEARCH-FA.md).
+The practical interview, discovery, service, pricing, and pilot playbook is available at
+[output/pdf/PromoGuard-Interview-and-Service-Playbook-FA.pdf](output/pdf/PromoGuard-Interview-and-Service-Playbook-FA.pdf), with its editable source in
+[docs/business/INTERVIEW-AND-SERVICE-PLAYBOOK-FA.md](docs/business/INTERVIEW-AND-SERVICE-PLAYBOOK-FA.md).
 These materials describe public prospect signals and a pilot offer; they do not represent confirmed customers or
 validated willingness to pay.
 
