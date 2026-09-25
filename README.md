@@ -32,6 +32,15 @@ Deeper substitution validation, constrained optimization, monitoring, and an opt
 evidence-grounded LLM explanation layer are listed in [ROADMAP.md](ROADMAP.md); they are not current
 capabilities. The Criteo benchmark is documented in [docs/causal-benchmark.md](docs/causal-benchmark.md).
 
+## Commercial discovery package
+
+The general Persian commercial proposal is available at
+[output/pdf/PromoGuard-General-Commercial-Proposal-FA.pdf](output/pdf/PromoGuard-General-Commercial-Proposal-FA.pdf).
+The evidence register and shortlist methodology are documented in
+[docs/business/PROSPECT-RESEARCH-FA.md](docs/business/PROSPECT-RESEARCH-FA.md).
+These materials describe public prospect signals and a pilot offer; they do not represent confirmed customers or
+validated willingness to pay.
+
 ## Evidence snapshot
 
 | Evidence | Current real-data result | Meaning |
