@@ -32,7 +32,7 @@ AIIF/bootcamp فعلاً از scope فعال خارج است. همهٔ کاره�
 ### T-REV-03 — تجاری‌سازی کنترل‌شده
 
 - owner: رضا
-- خروجی: تعریف Pilot در `docs/business/GO-TO-MARKET-SERVICE-PLAN-FA.md`
+- خروجی: تعریف Pilot در آرشیو تجاری خصوصی مالک پروژه
 - معیار قبولی: scope، deadline، مبلغ آزمایشی، خروجی و چیزهای خارج از scope مشخص باشند.
 
 ## تسک‌های محمد مهدی — Product Discovery

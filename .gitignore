@@ -27,3 +27,11 @@ frontend/.next/
 frontend/*.tsbuildinfo
 tmp/*.log
 tmp/*.png
+# Private commercial materials. Keep these outside the public repository.
+/private-commercial/
+/output/pdf/PromoGuard-General-Commercial-Proposal-FA.pdf
+/output/pdf/PromoGuard-Interview-and-Service-Playbook-FA.pdf
+/docs/business/PROSPECT-RESEARCH-FA.md
+/docs/business/INTERVIEW-AND-SERVICE-PLAYBOOK-FA.md
+/docs/business/GO-TO-MARKET-SERVICE-PLAN-FA.md
+/docs/business/30-TARGET-CONTACTS-FA.md

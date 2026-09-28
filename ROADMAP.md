@@ -480,9 +480,9 @@ Phase 8.1.1 team execution overlay (2026-09-16):
   and an explicit statement of what cannot be inferred.
 - Revenue is permitted before v1.0 only as a fixed-scope analytical service. Subscription and private
   deployment wait for repeatable onboarding, audit logs, monitoring, and a support boundary.
-- Detailed offer, pricing hypothesis, customer profile, and intake schema live in
-  `docs/business/GO-TO-MARKET-SERVICE-PLAN-FA.md` and
-  `docs/data/REAL-DATA-AND-PILOT-DATA-REQUEST-FA.md`.
+- Detailed offer, pricing hypothesis, and customer profile are kept in the owner's private
+  commercial archive. The public repository exposes only the non-sensitive data intake contract
+  in `docs/data/REAL-DATA-AND-PILOT-DATA-REQUEST-FA.md`.
 - Real-data execution evidence from 2026-09-16 is recorded in
   `reports/live-2026-09-16/REAL-DATA-RUN-REPORT-FA.md`: 524,950 rows passed the ingestion contract;
   the transparent recursive-naive baseline remained stronger than seasonal-naive on 41,516 paired
