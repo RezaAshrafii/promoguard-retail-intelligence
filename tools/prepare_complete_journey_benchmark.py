@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "data/raw/complete-journey/agg_promo_sales_weekly.parquet"
 OUTPUT_DIR = ROOT / "data/processed/complete-journey"

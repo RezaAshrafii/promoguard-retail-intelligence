@@ -4,11 +4,10 @@ import sys
 from pathlib import Path
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import PageBreak, SimpleDocTemplate, Spacer, Table, TableStyle
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -24,7 +23,6 @@ from tools.build_promoguard_proposal_pdf import (
     para,
     section_heading,
 )
-
 
 OUTPUT = ROOT / "output" / "pdf" / "PromoGuard-Interview-and-Service-Playbook-FA.pdf"
 
