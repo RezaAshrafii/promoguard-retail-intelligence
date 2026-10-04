@@ -20,17 +20,23 @@ readiness from public observational data.
   cross-SKU substitution candidates; it never labels the result causal;
 - streams and validates the public Criteo randomized-advertising benchmark, reporting aggregate
   intention-to-treat effects with balance diagnostics while keeping it separate from retail;
+- evaluates the public three-arm Hillstrom email experiment in a separate report/API/web flow,
+  including two treatment-vs-control comparisons, a direct version comparison, simultaneous
+  uncertainty intervals, and a human-set business hurdle;
 - benchmarks logistic and nonlinear uplift learners on a deterministic real-data split with corrected
   Qini metrics, convergence, fixed-ranking bootstrap uncertainty, and overlap diagnostics;
 - validates evidenced promotion-economics candidates with decimal money, consistent currency,
   bounded demand projections, and explicit price/budget/inventory constraint failures; it does not
   yet rank scenarios or claim profit;
-- serves typed local FastAPI endpoints and a Persian Streamlit dashboard;
+- serves typed local FastAPI endpoints, the Persian Next.js product UI, and a legacy Streamlit
+  review flow;
 - preserves an explicit abstention result when the evidence is insufficient.
 
 Deeper substitution validation, constrained optimization, monitoring, and an optional
 evidence-grounded LLM explanation layer are listed in [ROADMAP.md](ROADMAP.md); they are not current
 capabilities. The Criteo benchmark is documented in [docs/causal-benchmark.md](docs/causal-benchmark.md).
+Hillstrom is an email experiment, not retail pricing data. Its revenue outcome is not profit. See
+[the benchmark methodology and limits](docs/data/hillstrom-experiment-benchmark-fa.md).
 
 ## Evidence snapshot
 
@@ -137,6 +143,19 @@ python -m compileall -q src apps demo
 Filesystem-path endpoints are confined to the repository `data/` root. The API is not designed for
 direct Internet exposure. Contracts and examples are in
 [docs/api-dashboard.md](docs/api-dashboard.md).
+
+The separate randomized-experiment page can be run locally in two terminals after the public data
+is downloaded:
+
+```powershell
+python tools/download_hillstrom.py
+uvicorn apps.api.main:app --reload --host 127.0.0.1 --port 8000
+cd frontend
+npm run dev
+```
+
+Open `http://127.0.0.1:3000/experiments`. The original retail audit and this experiment benchmark
+are separate product flows and must not be interpreted as one combined dataset.
 
 ## Submission and learning material
 

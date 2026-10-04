@@ -193,6 +193,86 @@ def test_auto_audit_without_an_eligible_event_returns_422(
     assert "No promotion episode" in response.json()["detail"]
 
 
+def test_hillstrom_report_uses_async_report_contract_and_persists_result(
+    client: TestClient,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "hillstrom.csv"
+    source.write_text("public benchmark test source", encoding="utf-8")
+    runtime = tmp_path / "runtime"
+    reports = runtime / "reports"
+    monkeypatch.setattr(api_module, "RUNTIME_ROOT", runtime)
+    monkeypatch.setattr(api_module, "REPORT_ROOT", reports)
+    monkeypatch.setattr(api_module, "HILLSTROM_DATASET_PATH", source)
+    monkeypatch.setattr(api_module, "_run_hillstrom_report", lambda _report_id: None)
+
+    response = client.post(
+        "/v1/experiments/hillstrom/reports",
+        json={"primary_outcome": "spend"},
+    )
+
+    assert response.status_code == 202
+    created = response.json()
+    assert created["analysis_type"] == "randomized_experiment"
+    assert created["status"] == "queued"
+    assert created["configuration"]["analysis"]["primary_outcome"] == "spend"
+    stored = api_module._store().get("report", created["report_id"])
+    assert stored["dataset_id"].startswith("hillstrom-")
+
+
+def test_hillstrom_worker_caches_valid_result_by_source_and_config(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "hillstrom.csv"
+    source.write_text("public benchmark test source", encoding="utf-8")
+    runtime = tmp_path / "runtime"
+    reports = runtime / "reports"
+    monkeypatch.setattr(api_module, "RUNTIME_ROOT", runtime)
+    monkeypatch.setattr(api_module, "REPORT_ROOT", reports)
+    monkeypatch.setattr(api_module, "HILLSTROM_DATASET_PATH", source)
+    calls = 0
+    expected = {
+        "benchmark": "hillstrom-email-analytics-2008",
+        "source": {"sha256": api_module.hillstrom_sha256_file(source)},
+        "comparisons": [{"arm": "a"}, {"arm": "b"}, {"arm": "c"}],
+    }
+
+    def evaluate(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        return expected
+
+    monkeypatch.setattr(api_module, "evaluate_hillstrom_csv", evaluate)
+    configuration = {"primary_outcome": "spend", "minimum_effect_per_person": None}
+    for report_id in ("rpt_first", "rpt_second"):
+        api_module._save_report(
+            {
+                "report_id": report_id,
+                "dataset_id": "hillstrom-test",
+                "analysis_type": "randomized_experiment",
+                "configuration": {
+                    "benchmark": "hillstrom-email-analytics-2008",
+                    "source_sha256": api_module.hillstrom_sha256_file(source),
+                    "analysis": configuration,
+                },
+                "status": "queued",
+                "progress": 0,
+            }
+        )
+        api_module._run_hillstrom_report(report_id)
+
+    first = api_module._store().get("report", "rpt_first")
+    second = api_module._store().get("report", "rpt_second")
+    assert first["status"] == second["status"] == "ready"
+    assert first["cache_hit"] is False
+    assert second["cache_hit"] is True
+    assert calls == 1
+    assert second["result"] == expected
+    assert (reports / "rpt_first.json").is_file()
+
+
 def test_malformed_upload_is_reported_without_analysis(client: TestClient) -> None:
     response = client.post(
         "/v1/panels/validate-upload",

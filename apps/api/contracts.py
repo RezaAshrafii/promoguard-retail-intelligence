@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -102,12 +102,36 @@ class DatasetImportRequest(BaseModel):
 
 class ReportCreateRequest(BaseModel):
     dataset_id: str = Field(min_length=8)
+    store_id: str | None = None
+    upc: str | None = None
+    start_date: date | None = None
+
+    @model_validator(mode="after")
+    def require_complete_event_key(self) -> ReportCreateRequest:
+        values = [self.store_id, self.upc, self.start_date]
+        if any(value is not None for value in values) and not all(
+            value is not None for value in values
+        ):
+            raise ValueError("store_id, upc, and start_date must be supplied together")
+        return self
+
+
+class HillstromReportCreateRequest(BaseModel):
+    """Start evaluation of the local, public Hillstrom randomized benchmark."""
+
+    primary_outcome: Literal["spend", "conversion", "visit"] = "spend"
+    minimum_effect_per_person: float | None = None
 
 
 class ReportResponse(BaseModel):
     report_id: str
     dataset_id: str
+    selected_event: dict[str, object] | None = None
+    analysis_type: str | None = None
+    configuration: dict[str, object] | None = None
+    cache_hit: bool | None = None
     status: str
     progress: int = Field(ge=0, le=100)
     result: dict[str, object] | None = None
     error: str | None = None
+    created_at: str | None = None

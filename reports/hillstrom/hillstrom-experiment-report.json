@@ -1,0 +1,220 @@
+{
+  "benchmark": "hillstrom-email-analytics-2008",
+  "analysis_type": "randomized intention-to-treat campaign evaluation",
+  "source": {
+    "dataset_page": "https://blog.minethatdata.com/2008/03/minethatdata-e-mail-analytics-and-data.html",
+    "download_url": "http://www.minethatdata.com/Kevin_Hillstrom_MineThatData_E-MailAnalytics_DataMiningChallenge_2008.03.20.csv",
+    "license_status": "No explicit dataset license found on the publisher page; do not redistribute.",
+    "provenance": "Publisher-described randomized three-arm email test; source fields are retained as released.",
+    "raw_data_committed_to_git": false,
+    "filename": "hillstrom-email-analytics-2008.csv",
+    "sha256": "0e5893329d8b93cefecc571777672028290ab69865718020c78c7284f291aece"
+  },
+  "design": {
+    "randomization_unit": "customer",
+    "assignment_field": "segment",
+    "control_arm": "No E-Mail",
+    "treatment_arms": [
+      "Mens E-Mail",
+      "Womens E-Mail"
+    ],
+    "planned_contrasts": [
+      {
+        "treatment": "Mens E-Mail",
+        "comparison": "No E-Mail",
+        "type": "treatment_vs_control"
+      },
+      {
+        "treatment": "Womens E-Mail",
+        "comparison": "No E-Mail",
+        "type": "treatment_vs_control"
+      },
+      {
+        "treatment": "Mens E-Mail",
+        "comparison": "Womens E-Mail",
+        "type": "treatment_vs_treatment"
+      }
+    ],
+    "outcome_window": "two weeks after email campaign",
+    "sample_rows": 64000,
+    "arm_counts": {
+      "Womens E-Mail": 21387,
+      "Mens E-Mail": 21307,
+      "No E-Mail": 21306
+    }
+  },
+  "primary_outcome": {
+    "name": "spend",
+    "unit": "USD gross revenue per assigned customer",
+    "minimum_effect_per_person": null,
+    "business_goal_configured": false,
+    "business_goal_note": "A zero threshold is only a statistical direction check. It does not mean profitable or commercially worthwhile."
+  },
+  "uncertainty": {
+    "method": "Welch large-sample normal interval using separate arm variances",
+    "critical_value": 2.3939797998185104,
+    "familywise_confidence_level": 0.95,
+    "contrast_count": 3,
+    "multiple_comparison_adjustment": "Bonferroni"
+  },
+  "quality": {
+    "dataset": "hillstrom-email-analytics-2008",
+    "rows": 64000,
+    "columns": [
+      "recency",
+      "history_segment",
+      "history",
+      "mens",
+      "womens",
+      "zip_code",
+      "newbie",
+      "channel",
+      "segment",
+      "visit",
+      "conversion",
+      "spend"
+    ],
+    "missing_columns": [],
+    "unexpected_columns": [],
+    "invalid_numeric_counts": {
+      "recency": 0,
+      "history": 0,
+      "mens": 0,
+      "womens": 0,
+      "newbie": 0,
+      "visit": 0,
+      "conversion": 0,
+      "spend": 0
+    },
+    "invalid_binary_counts": {
+      "mens": 0,
+      "womens": 0,
+      "newbie": 0,
+      "visit": 0,
+      "conversion": 0
+    },
+    "duplicate_full_rows_retained": 6562,
+    "duplicate_note": "The released file has no participant identifier; identical rows are retained because they may represent different randomized participants.",
+    "errors": [],
+    "valid": true
+  },
+  "comparisons": [
+    {
+      "treatment_arm": "Mens E-Mail",
+      "control_arm": "No E-Mail",
+      "contrast_type": "treatment_vs_control",
+      "treatment_n": 21307,
+      "control_n": 21306,
+      "treatment_mean_per_person": 1.422616511005773,
+      "control_mean_per_person": 0.6527893551112361,
+      "incremental_effect_per_person": 0.7698271558945368,
+      "incremental_effect_per_1000_people": 769.8271558945368,
+      "relative_change_percent": 117.92887703620063,
+      "standard_error_per_person": 0.14524656024868676,
+      "familywise_ci_lower_per_person": 0.4221098246660584,
+      "familywise_ci_upper_per_person": 1.1175444871230151,
+      "familywise_confidence_level": 0.95,
+      "multiplicity_method": "Welch normal approximation; Bonferroni across three preplanned campaign contrasts",
+      "business_goal_status": "not_set",
+      "statistical_direction_status": "positive_evidence_vs_zero",
+      "decision_explanation": "The adjusted interval is entirely above zero.",
+      "descriptive_outcomes": {
+        "conversion": {
+          "treatment_mean": 0.01253109306800582,
+          "control_mean": 0.005726086548390125,
+          "difference": 0.006805006519615695
+        },
+        "visit": {
+          "treatment_mean": 0.18275684047496127,
+          "control_mean": 0.10616727682343002,
+          "difference": 0.07658956365153125
+        },
+        "spend": {
+          "treatment_mean": 1.422616511005773,
+          "control_mean": 0.6527893551112361,
+          "difference": 0.7698271558945368
+        }
+      }
+    },
+    {
+      "treatment_arm": "Womens E-Mail",
+      "control_arm": "No E-Mail",
+      "contrast_type": "treatment_vs_control",
+      "treatment_n": 21387,
+      "control_n": 21306,
+      "treatment_mean_per_person": 1.0772015710478329,
+      "control_mean_per_person": 0.6527893551112361,
+      "incremental_effect_per_person": 0.4244122159365967,
+      "incremental_effect_per_1000_people": 424.41221593659674,
+      "relative_change_percent": 65.01518638646863,
+      "standard_error_per_person": 0.13033285852919116,
+      "familywise_ci_lower_per_person": 0.11239798536510942,
+      "familywise_ci_upper_per_person": 0.7364264465080841,
+      "familywise_confidence_level": 0.95,
+      "multiplicity_method": "Welch normal approximation; Bonferroni across three preplanned campaign contrasts",
+      "business_goal_status": "not_set",
+      "statistical_direction_status": "positive_evidence_vs_zero",
+      "decision_explanation": "The adjusted interval is entirely above zero.",
+      "descriptive_outcomes": {
+        "conversion": {
+          "treatment_mean": 0.008837144059475383,
+          "control_mean": 0.005726086548390125,
+          "difference": 0.003111057511085258
+        },
+        "visit": {
+          "treatment_mean": 0.151400383410483,
+          "control_mean": 0.10616727682343002,
+          "difference": 0.045233106587052985
+        },
+        "spend": {
+          "treatment_mean": 1.0772015710478329,
+          "control_mean": 0.6527893551112361,
+          "difference": 0.4244122159365967
+        }
+      }
+    },
+    {
+      "treatment_arm": "Mens E-Mail",
+      "control_arm": "Womens E-Mail",
+      "contrast_type": "treatment_vs_treatment",
+      "treatment_n": 21307,
+      "control_n": 21387,
+      "treatment_mean_per_person": 1.422616511005773,
+      "control_mean_per_person": 1.0772015710478329,
+      "incremental_effect_per_person": 0.34541493995794004,
+      "incremental_effect_per_1000_people": 345.41493995794,
+      "relative_change_percent": 32.06595211534481,
+      "standard_error_per_person": 0.15961741484165423,
+      "familywise_ci_lower_per_person": -0.03670592687223151,
+      "familywise_ci_upper_per_person": 0.7275358067881116,
+      "familywise_confidence_level": 0.95,
+      "multiplicity_method": "Welch normal approximation; Bonferroni across three preplanned campaign contrasts",
+      "business_goal_status": "not_applicable_variant_comparison",
+      "statistical_direction_status": "inconclusive_vs_zero",
+      "decision_explanation": "The adjusted interval includes zero.",
+      "descriptive_outcomes": {
+        "conversion": {
+          "treatment_mean": 0.01253109306800582,
+          "control_mean": 0.008837144059475383,
+          "difference": 0.003693949008530437
+        },
+        "visit": {
+          "treatment_mean": 0.18275684047496127,
+          "control_mean": 0.151400383410483,
+          "difference": 0.03135645706447826
+        },
+        "spend": {
+          "treatment_mean": 1.422616511005773,
+          "control_mean": 1.0772015710478329,
+          "difference": 0.34541493995794004
+        }
+      }
+    }
+  ],
+  "interpretation": [
+    "Effects are intention-to-treat differences by randomized assignment, including people who did not visit or buy.",
+    "Spend is gross revenue in the publisher's data, not contribution margin or profit; campaign cost is absent.",
+    "The published challenge is an email campaign benchmark, not a retail discount or Iranian-market study.",
+    "Subgroup targeting and individual treatment effects are not evaluated in this report."
+  ]
+}

@@ -102,9 +102,19 @@ class SubstitutionCandidate(BaseModel):
     pre_mean_units: float
     during_mean_units: float
     during_to_pre_ratio: float
+    observed_units_change_per_week: float
     estimated_units_decline: float
     pre_weeks: int
     during_weeks: int
+    focal_pre_mean_units: float | None
+    focal_during_mean_units: float
+    focal_units_change_per_week: float | None
+    focal_pre_weeks: int
+    focal_during_weeks: int
+    evidence_level: Literal["descriptive_observational_screen"] = (
+        "descriptive_observational_screen"
+    )
+    limitation: str
 
 
 class CannibalizationSummary(BaseModel):
@@ -249,14 +259,11 @@ def select_representative_event(
         history = group[
             (group["week_end_date"] < event.start_date) & group["promotion_flag"].eq(0)
         ]
-        post_end = event.end_date + pd.Timedelta(weeks=policy.post_window_weeks)
-        post = group[
-            (group["week_end_date"] > event.end_date)
-            & (group["week_end_date"] <= post_end)
-        ]
+        expected_post = _expected_weekly_dates(event.end_date, policy.post_window_weeks)
+        observed_post_dates = pd.DatetimeIndex(group["week_end_date"].unique())
         if (
             len(history) >= policy.representative_min_history_weeks
-            and post["week_end_date"].nunique() >= policy.post_window_weeks
+            and expected_post.isin(observed_post_dates).all()
         ):
             return event._asdict()
     raise ValueError("No promotion episode has the required history and complete post window.")
@@ -271,6 +278,16 @@ def _window_summary(frame: pd.DataFrame, requested_weeks: int) -> WindowSummary:
         total_units=total_units,
         mean_units=float(frame["units"].mean()) if not frame.empty else None,
         promotion_weeks=int(frame["promotion_flag"].eq(1).sum()),
+    )
+
+
+def _expected_weekly_dates(after_date: pd.Timestamp, weeks: int) -> pd.DatetimeIndex:
+    """Return exact weekly observations after an event boundary, anchored to its weekday."""
+
+    return pd.date_range(
+        start=after_date + pd.Timedelta(weeks=1),
+        periods=weeks,
+        freq="7D",
     )
 
 
@@ -333,6 +350,23 @@ def _cannibalization_summary(
     pre_start = event_start - pd.Timedelta(weeks=policy.pre_window_weeks)
     pre_dates = set(pd.date_range(pre_start, periods=policy.pre_window_weeks, freq="7D"))
     during_dates = set(pd.date_range(event_start, end=event_end, freq="7D"))
+    focal_pre = panel[
+        panel["store_id"].eq(store_id)
+        & panel["upc"].eq(focal_upc)
+        & panel["week_end_date"].isin(pre_dates)
+    ]
+    focal_during = panel[
+        panel["store_id"].eq(store_id)
+        & panel["upc"].eq(focal_upc)
+        & panel["week_end_date"].isin(during_dates)
+    ]
+    focal_pre_mean = float(focal_pre["units"].mean()) if not focal_pre.empty else None
+    focal_during_mean = float(focal_during["units"].mean()) if not focal_during.empty else None
+    focal_change = (
+        focal_during_mean - focal_pre_mean
+        if focal_pre_mean is not None and focal_during_mean is not None
+        else None
+    )
     neighbors = panel[
         panel["store_id"].eq(store_id)
         & panel["category"].astype(str).str.strip().eq(category)
@@ -377,9 +411,16 @@ def _cannibalization_summary(
                 pre_mean_units=pre_mean,
                 during_mean_units=during_mean,
                 during_to_pre_ratio=ratio,
+                observed_units_change_per_week=during_mean - pre_mean,
                 estimated_units_decline=(pre_mean - during_mean) * len(during_dates),
                 pre_weeks=len(pre_dates),
                 during_weeks=len(during_dates),
+                focal_pre_mean_units=focal_pre_mean,
+                focal_during_mean_units=focal_during_mean,
+                focal_units_change_per_week=focal_change,
+                focal_pre_weeks=int(focal_pre["week_end_date"].nunique()),
+                focal_during_weeks=int(focal_during["week_end_date"].nunique()),
+                limitation=limitation,
             )
         )
     candidates.sort(key=lambda item: (-item.estimated_units_decline, item.upc))
@@ -470,14 +511,14 @@ def audit_promotion_event(
         raise ValueError("The selected episode has no non-promotion history for a baseline.")
 
     pre_start = event_start - pd.Timedelta(weeks=policy.pre_window_weeks)
-    post_end = event_end + pd.Timedelta(weeks=policy.post_window_weeks)
+    expected_post_dates = _expected_weekly_dates(event_end, policy.post_window_weeks)
     pre = group[
         (group["week_end_date"] >= pre_start) & (group["week_end_date"] < event_start)
     ]
     during = group[
         (group["week_end_date"] >= event_start) & (group["week_end_date"] <= event_end)
     ]
-    post = group[(group["week_end_date"] > event_end) & (group["week_end_date"] <= post_end)]
+    post = group[group["week_end_date"].isin(expected_post_dates)]
     baseline = _baseline_interval(history, duration_weeks)
     observed_units = float(during["units"].sum())
     units_difference = EstimateInterval(
@@ -545,7 +586,7 @@ def audit_promotion_event(
         warnings.append(
             _warning(
                 "POST_WINDOW_CONTAMINATED",
-                WarningSeverity.WARNING,
+                WarningSeverity.BLOCKING,
                 "Another promotion appears in the post window.",
             )
         )
@@ -633,7 +674,7 @@ def audit_promotion_event(
     recommendation, rationale = _recommendation(units_difference, warnings)
     return PromotionAuditResult(
         audit_id=str(event["audit_id"]),
-        dataset="dunnhumby-breakfast-at-the-frat",
+        dataset="canonical-weekly-panel",
         store_id=store_key,
         upc=upc_key,
         start_date=event_start.date(),

@@ -1,6 +1,6 @@
 # PromoGuard active development roadmap
 
-Last updated: 2026-09-16
+Last updated: 2026-10-03
 Roadmap owner: Reza  
 Execution rule: exactly one phase or release gate is `ACTIVE`.
 
@@ -79,7 +79,7 @@ The first submission implements the center path with a documented public retail 
 | 6 | Real-experiment causal benchmarking | completed in release 0.6.4 | DONE |
 | 7 | Cannibalization, forward-buy, uncertainty, abstention | completed 2026-09-02 | DONE |
 | Park correction | Three-person team, signature, member documents, evidence refresh | 2026-09-12 | TRACKED / AWAITING EXTERNAL REVIEW |
-| 8 | Constrained profit optimization | after Park correction gate | PENDING |
+| 8 | Real-input contract and controlled pilot; optimization gated separately | permitted partner data and manager review | ACTIVE |
 | 9 | Production data, monitoring, and optional verified LLM layer | 2026-10-05 to 10-19 | PENDING |
 | 10 | Portfolio, commercial evidence, and job-application packaging | 2026-10-20 to 10-25 | PENDING |
 
@@ -497,6 +497,103 @@ Phase 8.1.1 team execution overlay (2026-09-16):
   outcomes that return no prepared frame. This is tested with tiny contract fixtures only; no
   permitted partner run has been claimed. The exact limits and team handoff are in
   `docs/phase-08-partner-adapter-contract-fa.md`. Phase 8.2 remains blocked.
+- **Phase 8.1.3 — customer data contract completed on 2026-10-02:** added the versioned
+  `customer-data-contract.v1`, JSON template, explicit contract validation in `customer-intake`,
+  and Persian customer instructions. An explicit contract now requires declared grain, date field,
+  units definition, zero-sales semantics, and all columns to be listed; the standard default remains backward
+  compatible and is labeled as such in its report. Targeted tests passed (37 tests at completion),
+  and the full suite passed (169 tests). Ruff passed for changed Python files; repository-wide Ruff
+  still reports seven findings in three untouched PDF-generation scripts. Compileall and
+  `git diff --check` passed. No customer dataset or permission was supplied; this proves only
+  contract behavior. Implementation used the current GPT-6 session; no statistical estimator or
+  decision threshold changed, so the Phase 8.2 methodology review remains separate.
+- **Phase 8.1.4 — promotion event contract completed on 2026-10-02:** introduced typed v1 campaign
+  events and a registry with unique IDs, SKU scope, inclusive date bounds, channel, region, discount
+  mechanics, and unit-aware depth rules. The public JSON example is validated by tests. The focused
+  event-contract suite passed 16 tests. After both contract stages and final corrective review,
+  187 full-suite tests passed; the 55 targeted intake, partner, event-contract, and CLI tests passed;
+  Ruff passed for all changed Python files, and compileall plus `git diff --check` passed. Full-repo
+  Ruff still reports seven pre-existing findings in the three unchanged PDF-generation scripts.
+  The suite reports one Starlette/httpx deprecation warning. This defines and validates events; it
+  does not yet link them to sales rows or calculate their post-window, cannibalization, or economics.
+- **Phase 8.1.5 — post-promotion window tightened on 2026-10-02:** the existing default four-week
+  post-window now counts the exact expected weekly dates after the event, so off-cadence rows cannot
+  masquerade as complete weeks. A following promotion in that window is blocking because it
+  contaminates the recovery/forward-buy read. Focused regression tests cover missing weeks,
+  off-cadence dates, contaminated windows, and representative-event selection. The changed Python
+  files pass Ruff; the final full suite passes 192 tests, compileall passes, and `git diff --check`
+  passes. A real public-data run on 524,950 dunnhumby rows found all four requested post weeks for
+  event `23345 × 2840004768` (2010-01-13 through 2010-02-10); it retained the blocking
+  `FORWARD_BUY_RISK` warning and `needs_more_evidence` recommendation. Machine-readable evidence:
+  `reports/phase-08/phase-08-1-5-post-window-real-data-check.json`. Full-repo Ruff still has seven
+  findings in unchanged PDF-generation scripts; pytest emits one existing Starlette/httpx
+  deprecation warning.
+- **Phase 8.1.6 — manager-facing cannibalization table completed on 2026-10-02:** candidate records
+  now carry the observed change for the promoted SKU and the same-category SKU, a named descriptive
+  evidence level, and the limitation beside the values. The Persian table labels the second item
+  as a same-category SKU under review, not a confirmed substitute. The public 524,950-row run had
+  one eligible neighbor and no candidate crossing the 0.8 screening threshold; its evidence is at
+  `reports/phase-08/phase-08-1-6-cannibalization-report-check.json`. Focused domain/presentation tests
+  passed (33 tests); the full gate follows after the remaining stages.
+- **Phase 8.1.7 — economics readiness made explicit on 2026-10-02:** intake now reports missing or
+  partial cost/margin inputs, keeps `economics_ready=false`, and shows the requested Persian
+  message when either required cost field is absent. When both are present, it lists the remaining
+  scenario evidence needed before profit analysis. The partner readiness screen displays this
+  status. On the real 524,950-row public panel, sales intake passed while unit cost and contribution
+  margin were absent; the exact result is saved in
+  `reports/phase-08/phase-08-1-7-economics-readiness-real-data-check.json`. Focused tests passed;
+  the combined final gate remains pending.
+- **Phase 8.1.8 — pilot report path completed on 2026-10-02:** uploaded datasets now expose
+  selectable promotion events at `/v1/datasets/{dataset_id}/promotions`; report creation accepts an
+  all-or-none event key and analyzes exactly the selected store/SKU/start date. The web workflow
+  uploads, lists events, lets the user select one, creates a background report ID, tracks progress,
+  and offers the completed report PDF. PDF export now uses the bundled Vazirmatn font and includes
+  report/dataset IDs, selected event, observed/baseline units, window coverage, manager next step,
+  and claim limitations. Product lifecycle tests cover upload → event selection → report → PDF,
+  including PDF metadata and report ID extraction. Visual render review confirmed one legible A4
+  page with no clipping. This is still a controlled local pilot: dataset/report registries are
+  process-memory state, local files are not encrypted or automatically expired, and there is no
+  authentication, tenant isolation, durable database, or approved partner data run.
+- **Phase 8.1.9 — manager decision support completed on 2026-10-02:** added a typed four-option
+  decision support object consumed by the API report, web dashboard, and Streamlit summary. Current
+  observational evidence can recommend more testing or human-reviewed deprioritization. It cannot
+  recommend repeat without controlled-pilot plus economics evidence, and it cannot choose a campaign
+  lever to modify. A negative screen is not an automatic stop. Three unit tests lock these boundaries.
+- **Phase 8.1.10 — versioned report-result cache completed on 2026-10-02:** repeated analyses now
+  reuse a disk-cached payload only when the complete source SHA-256, exact selected campaign,
+  product version, audit policy, and result-schema version match. Each request still receives a
+  new report ID. Cache writes use a unique temporary file and atomic replace; the response reports
+  whether a cache hit occurred. The API no longer returns the local absolute source path in report
+  JSON. Tests verify repeat-hit equality and separation by source bytes/event. Cache is local-disk
+  only; report status registry remains process-memory state and no retention/tenant policy exists.
+- Combined verification after 8.1.8–8.1.10: full pytest **200 passed** (one existing Starlette/httpx
+  deprecation warning); changed-file Ruff passed; Next.js typecheck and production build passed.
+  Next.js emitted a workspace-root warning because both the repository root and frontend contain
+  lockfiles; the root `package-lock.json` is pre-existing user data and was not modified. The
+  repository-wide Ruff reports the same seven existing findings in three unrelated PDF-generation
+  scripts; all modified Python files pass Ruff. No commit or push has been made.
+
+### Phase 8.1.11 — durable controlled-pilot preparation (2026-10-03)
+
+- SQLite is now authoritative for dataset/report metadata; in-memory dictionaries are compatibility mirrors only. Reports survive restart. Single-process startup marks interrupted jobs failed; explicit retry creates a new ID.
+- Local imports copy immutable-by-contract snapshots; SHA-256 is checked before cache use. Dataset writes are atomic. Known personal-data columns are rejected before storage; this is not exhaustive PII detection.
+- Web report history and report-ID URL restore are connected. Real PDF export, signed data-derived findings, before/during/after tables and selected-campaign chart shading replace misleading static UI behavior.
+- Operations and limitations: `docs/development/PILOT-OPERATIONS-FA.md`; learning explanation: `learning/08-5-durable-pilot/README.fa.md`.
+- This supersedes the process-memory limitation in 8.1.8/8.1.10, not the authentication, encryption, retention or approved-partner-data limitations. Do not deploy publicly or use multiple workers.
+- Phase 8 remains ACTIVE. Approved company data and manager outcome review are the next external gate; Phase 8.2 optimization remains out of scope.
+- Verification: 207 pytest tests passed in the project .venv; changed-file Ruff and Next production build passed. Live public-data run used 524,950 rows; report/PDF remained readable after a real server-process restart and a repeated run hit cache. Browser visual QA is NOT passed: Chrome connector failed to load its request-header policy. See `reports/phase-08/phase-08-1-11-pilot-readiness.json`.
+
+### Phase 8.1.12 — public randomized campaign-evaluation mode (2026-10-04)
+
+- Added a separate Hillstrom experiment track using the publisher-described randomized three-arm email campaign dataset. This is not a replacement for the weekly retail promotion audit and does not close the approved-company-data gate.
+- Added strict source/schema checks, SHA-256 provenance, customer-level intention-to-treat comparisons for spend, conversion, or visit, a direct treatment-vs-treatment contrast, family-wise 95% Welch large-sample intervals with Bonferroni adjustment across three predeclared contrasts, and a minimum-arm-size abstention gate.
+- Added an API report job/cache contract and a Persian Next.js `/experiments` page with configurable primary outcome, optional business hurdle, report ID, interval/sample details, source limitations, and direct version comparison. The page copy was corrected so labels follow the selected outcome.
+- Reproducible aggregate output: `reports/hillstrom/hillstrom-experiment-report.json`. Dataset metadata, access/license status, method, exact commands, and claim limits: `docs/data/hillstrom-experiment-benchmark-fa.md`.
+- Observed spend results in this run: Mens email vs holdout +$0.7698/customer (simultaneous CI $0.4221 to $1.1175); Womens email vs holdout +$0.4244/customer (CI $0.1124 to $0.7364); Mens vs Womens +$0.3454/customer (CI -$0.0367 to $0.7275). The first two are positive statistical evidence against zero; the direct version comparison is inconclusive. These are gross observed two-week spend effects, not profit or proof about price promotions.
+- The business hurdle, actual costs/margins, and acceptance decision remain human-owned. Public benchmark results do not establish Iranian-market fit, willingness to pay, or customer impact. Hillstrom publisher page does not state an explicit redistribution license; raw CSV remains outside Git.
+- Verification evidence (2026-10-04): full `pytest -q` **226 passed** (one upstream Starlette/httpx deprecation warning); changed-file Ruff passed; `compileall`, CLI health, frontend typecheck, and Next production build passed. Repository-wide Ruff still reports 8 pre-existing style/import issues in unrelated PDF/benchmark helper scripts; those files were not modified as part of this gate.
+- Live smoke: Next `/experiments` returned HTTP 200 and included its title; FastAPI OpenAPI returned 200; `POST /v1/experiments/hillstrom/reports` returned a report ID, then `GET /v1/reports/{id}` reached `ready` with three comparisons. First observed effect matched the checked-in aggregate report (+$0.7698/customer); direct variant comparison remained inconclusive. The local processes used for this check were stopped afterward.
+- The technical benchmark slice is complete. Phase 8 remains ACTIVE because company-authorized data, a manager review, and human-set business economics are still missing; this does not authorize Phase 8.2 optimization or any profit claim.
 
 ## Phase 9 — PENDING — Production and verified AI layer
 

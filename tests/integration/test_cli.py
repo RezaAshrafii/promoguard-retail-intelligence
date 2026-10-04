@@ -73,6 +73,42 @@ def test_customer_intake_command_writes_readiness_report(
     )["valid"] is True
 
 
+def test_customer_intake_accepts_versioned_explicit_contract(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "weekly-export.csv"
+    pd.DataFrame(
+        {
+            "week_end_date": ["2025-01-07", "2025-01-14"],
+            "store_id": ["s1", "s1"],
+            "upc": ["p1", "p1"],
+            "units": [10, 12],
+            "promotion_flag": [0, 1],
+        }
+    ).to_csv(source, index=False)
+    contract = Path(__file__).parents[2] / "data_contracts" / "customer_data_contract.v1.example.json"
+    output = tmp_path / "contract-report"
+
+    run_cli(
+        monkeypatch,
+        "customer-intake",
+        "--input",
+        str(source),
+        "--contract",
+        str(contract),
+        "--output",
+        str(output),
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["contract_version"] == "customer-data-contract.v1"
+    assert payload["contract_mode"] == "explicit"
+    assert payload["contract_ready"] is True
+    assert payload["status"] == "ready_for_observational_audit"
+
+
 def test_uplift_command_writes_exact_domain_payload(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -96,3 +132,27 @@ def test_uplift_command_writes_exact_domain_payload(
     stored = json.loads((output / "criteo-uplift-model-ranking.json").read_text("utf-8"))
     assert stored == expected
     assert json.loads(capsys.readouterr().out) == expected
+
+
+def test_experiment_evaluate_writes_hillstrom_report(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "hillstrom.csv"
+    source.write_text("placeholder", encoding="utf-8")
+    output = tmp_path / "report"
+    expected = {"benchmark": "hillstrom-email-analytics-2008", "comparisons": []}
+    monkeypatch.setattr(cli_module, "evaluate_hillstrom_csv", lambda *args, **kwargs: expected)
+
+    run_cli(
+        monkeypatch,
+        "experiment-evaluate",
+        "--input",
+        str(source),
+        "--output",
+        str(output),
+    )
+
+    assert json.loads((output / "hillstrom-experiment-report.json").read_text("utf-8")) == expected
+    assert json.loads(capsys.readouterr().out)["result"] == expected

@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-03",
+  "scope": "single-process controlled local pilot",
+  "checks": {
+    "pytest": {"passed": 207, "warnings": 1, "environment": "project .venv Python 3.11", "warning": "existing Starlette/httpx deprecation"},
+    "changed_python_files_ruff": "passed",
+    "next_production_build": "passed",
+    "git_diff_check": "passed with CRLF conversion notices",
+    "live_frontend_http": 200,
+    "live_api_health": "ok",
+    "actual_process_restart_preserves_dataset_and_report": true,
+    "live_pdf": {"bytes": 34833, "pages": 1, "report_id_extracted": true},
+    "live_repeat_cache_hit": true,
+    "browser_visual_qa": "blocked: Chrome request-header policy loading failed; not verified"
+  },
+  "public_real_data": {
+    "source": "dunnhumby Breakfast at the Frat existing canonical weekly panel",
+    "dataset_id": "358fc77714e727cdaa81a755",
+    "source_sha256": "358fc77714e727cdaa81a75592f2d4550bba514f233fb88eec42a582b5a2e2d4",
+    "rows": 524950,
+    "series": 3909,
+    "promotion_rows": 149386,
+    "duplicate_rows": 0,
+    "report_id": "rpt_0c6980496f8e46d0",
+    "repeat_report_id": "rpt_67b9ce68d77648a4",
+    "store_id": "23345",
+    "upc": "2840004768",
+    "start_date": "2010-01-13",
+    "observed_units": 128,
+    "baseline_point_units": 185,
+    "observed_minus_baseline_units": -57,
+    "post_to_pre_ratio": 0.725,
+    "manager_action": "more_testing",
+    "claim": "observational screening only; neither causal effect nor profit identified"
+  },
+  "runtime_fix": "installed declared Persian PDF dependencies into the actual .venv runtime after detecting live PDF HTTP 500; PDF subsequently returned successfully",
+  "known_limits": [
+    "no authentication, tenant isolation or encryption",
+    "one server worker only; background tasks are not an external durable queue",
+    "no automatic retention deletion",
+    "direct web upload requires canonical weekly schema; arbitrary customer export needs intake conversion",
+    "browser visual review remains required",
+    "repository-wide Ruff has pre-existing findings in unrelated document builders; changed files passed",
+    "no approved company data, manager validation, verified paying customer or profit evidence"
+  ],
+  "next_human_gate": ["receive permitted company export", "confirm campaign and units definitions", "review decision usefulness with sales manager"],
+  "git": "no commit or push in this execution"
+}

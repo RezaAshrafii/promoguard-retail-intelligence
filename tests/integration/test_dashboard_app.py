@@ -6,7 +6,8 @@ APP_PATH = Path(__file__).parents[2] / "apps" / "dashboard" / "app.py"
 
 
 def test_dashboard_initial_render_has_no_uncaught_exception() -> None:
-    app = AppTest.from_file(str(APP_PATH), default_timeout=20).run()
+    # Cold Streamlit/Pandas imports can take more than 20 seconds on constrained Windows workers.
+    app = AppTest.from_file(str(APP_PATH), default_timeout=60).run()
 
     assert not app.exception
     assert {radio.label for radio in app.radio} == {"حالت اجرا"}
@@ -18,7 +19,7 @@ def test_dashboard_initial_render_has_no_uncaught_exception() -> None:
 
 
 def test_partner_readiness_path_renders_without_uncaught_exception() -> None:
-    app = AppTest.from_file(str(APP_PATH), default_timeout=20).run()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=60).run()
     app.radio[0].set_value("تحلیل دستی").run()
     source_radio = next(radio for radio in app.radio if radio.label == "منبع داده")
     source_radio.set_value("بررسی آمادگی فایل شریک").run()

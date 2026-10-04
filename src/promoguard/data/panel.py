@@ -42,7 +42,7 @@ def load_weekly_panel(input_path: str | Path, *, max_bytes: int | None = None) -
             f"Weekly panel is {panel_path.stat().st_size} bytes; limit is {max_bytes} bytes."
         )
     try:
-        return pd.read_csv(panel_path)
+        return pd.read_csv(panel_path, dtype={"store_id": "string", "upc": "string"})
     except pd.errors.EmptyDataError as error:
         raise ValueError("Weekly panel CSV is empty.") from error
     except (pd.errors.ParserError, UnicodeDecodeError) as error:

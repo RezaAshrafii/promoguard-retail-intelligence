@@ -27,6 +27,9 @@ frontend/.next/
 frontend/*.tsbuildinfo
 tmp/*.log
 tmp/*.png
+/tmp/product-runtime/
+*.sqlite-wal
+*.sqlite-shm
 # Private commercial materials. Keep these outside the public repository.
 /private-commercial/
 /output/pdf/PromoGuard-General-Commercial-Proposal-FA.pdf

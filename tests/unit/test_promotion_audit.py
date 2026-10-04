@@ -11,6 +11,7 @@ from promoguard.insights.promotion_audit import (
     ContributionAssumption,
     audit_promotion_event,
     detect_promotion_episodes,
+    select_representative_event,
 )
 
 
@@ -136,6 +137,49 @@ def test_forward_buy_warning_is_emitted() -> None:
     assert result.recommendation == AuditRecommendation.NEEDS_MORE_EVIDENCE
 
 
+def test_post_window_requires_all_four_exact_weekly_periods() -> None:
+    panel = audit_fixture().iloc[:16].copy()
+    result = run_audit(panel)
+
+    incomplete = next(warning for warning in result.warnings if warning.code == "INCOMPLETE_POST_WINDOW")
+    assert incomplete.severity.value == "blocking"
+    assert result.post_window.requested_weeks == 4
+    assert result.post_window.observed_weeks == 2
+    assert result.recommendation == AuditRecommendation.NEEDS_MORE_EVIDENCE
+
+
+def test_post_window_does_not_count_off_cadence_rows_as_weeks() -> None:
+    panel = audit_fixture()
+    panel.loc[14, "week_end_date"] += pd.Timedelta(days=1)
+
+    result = run_audit(panel)
+
+    assert result.post_window.observed_weeks == 3
+    assert any(warning.code == "INCOMPLETE_POST_WINDOW" for warning in result.warnings)
+    assert result.recommendation == AuditRecommendation.NEEDS_MORE_EVIDENCE
+
+
+def test_representative_event_selection_requires_complete_post_periods() -> None:
+    panel = audit_fixture().iloc[:17].copy()
+
+    with pytest.raises(ValueError, match="complete post window"):
+        select_representative_event(
+            panel,
+            policy=AuditPolicy(representative_min_history_weeks=8, post_window_weeks=4),
+        )
+
+
+def test_following_promotion_blocks_post_window_interpretation() -> None:
+    panel = audit_fixture()
+    panel.loc[16, "promotion_flag"] = 1
+
+    result = run_audit(panel)
+
+    contaminated = next(warning for warning in result.warnings if warning.code == "POST_WINDOW_CONTAMINATED")
+    assert contaminated.severity.value == "blocking"
+    assert result.recommendation == AuditRecommendation.NEEDS_MORE_EVIDENCE
+
+
 def test_custom_policy_changes_forward_buy_warning_without_changing_observations() -> None:
     panel = audit_fixture(post_units=5)
     default_result = run_audit(panel)
@@ -199,7 +243,12 @@ def test_same_category_neighbor_decline_is_a_blocking_candidate_not_a_causal_cla
     candidate = result.cannibalization.candidates[0]
     assert candidate.upc == "20"
     assert candidate.during_to_pre_ratio == 0.3
+    assert candidate.observed_units_change_per_week == -7
     assert candidate.estimated_units_decline == 14
+    assert candidate.focal_pre_mean_units == 10
+    assert candidate.focal_during_mean_units == 30
+    assert candidate.focal_units_change_per_week == 20
+    assert candidate.evidence_level == "descriptive_observational_screen"
     assert any(warning.code == "CANNIBALIZATION_CANDIDATE" for warning in result.warnings)
     assert result.recommendation == AuditRecommendation.NEEDS_MORE_EVIDENCE
     assert "does not identify cannibalization" in result.cannibalization.limitation
@@ -284,3 +333,7 @@ def test_audit_can_carry_run_specific_evidence_references() -> None:
 
     assert result.evidence_refs != result_with_refs.evidence_refs
     assert result_with_refs.evidence_refs == ["reports/live/forecast-evaluation.json"]
+
+
+def test_generic_canonical_panel_is_not_mislabeled_as_a_specific_fixture() -> None:
+    assert run_audit(audit_fixture()).dataset == "canonical-weekly-panel"

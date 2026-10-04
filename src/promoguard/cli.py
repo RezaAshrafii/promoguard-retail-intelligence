@@ -7,10 +7,16 @@ import json
 from pathlib import Path
 
 import pandas as pd
+from pydantic import ValidationError
 
 from promoguard.causal.criteo_uplift import evaluate_criteo_uplift, evaluate_uplift_models
+from promoguard.data.contracts import CustomerDataContract
 from promoguard.data.dunnhumby import build_panel, load_dataset, validate_transactions
 from promoguard.data.intake import assess_partner_intake
+from promoguard.experiments.hillstrom import (
+    HillstromAnalysisConfig,
+    evaluate_hillstrom_csv,
+)
 from promoguard.forecasting.evaluation import evaluate_backtest
 from promoguard.insights.promotion_audit import (
     AuditPolicy,
@@ -33,6 +39,7 @@ def main() -> None:
             "promotion-audit",
             "causal-benchmark",
             "uplift-benchmark",
+            "experiment-evaluate",
         ],
         nargs="?",
         default="health",
@@ -46,7 +53,14 @@ def main() -> None:
     parser.add_argument("--contribution-currency")
     parser.add_argument("--contribution-assumption-source")
     parser.add_argument("--audit-policy", type=Path)
+    parser.add_argument(
+        "--contract",
+        type=Path,
+        help="JSON file containing the versioned customer-data contract",
+    )
     parser.add_argument("--chunksize", type=int, default=250_000)
+    parser.add_argument("--primary-outcome", choices=["spend", "conversion", "visit"], default="spend")
+    parser.add_argument("--minimum-effect-per-person", type=float)
     args = parser.parse_args()
     if args.command == "health":
         print("PromoGuard core is healthy")
@@ -69,7 +83,15 @@ def main() -> None:
             partner_frame = pd.read_csv(args.input)
         except (pd.errors.EmptyDataError, pd.errors.ParserError, UnicodeDecodeError) as error:
             parser.error(f"customer CSV is malformed: {error}")
-        report = assess_partner_intake(partner_frame)
+        contract = None
+        if args.contract is not None:
+            try:
+                contract = CustomerDataContract.model_validate_json(
+                    args.contract.read_text(encoding="utf-8")
+                )
+            except (OSError, UnicodeDecodeError, ValidationError, ValueError) as error:
+                parser.error(f"customer data contract is invalid: {error}")
+        report = assess_partner_intake(partner_frame, contract=contract)
         args.output.mkdir(parents=True, exist_ok=True)
         (args.output / "customer-intake-quality-report.json").write_text(
             json.dumps(report, indent=2, default=str), encoding="utf-8"
@@ -211,6 +233,21 @@ def main() -> None:
             json.dumps(result, indent=2), encoding="utf-8"
         )
         print(json.dumps(result, indent=2))
+    elif args.command == "experiment-evaluate":
+        if args.input is None or args.output is None:
+            parser.error("experiment-evaluate requires --input and --output")
+        try:
+            config = HillstromAnalysisConfig(
+                primary_outcome=args.primary_outcome,
+                minimum_effect_per_person=args.minimum_effect_per_person,
+            )
+            result = evaluate_hillstrom_csv(args.input, config)
+        except (FileNotFoundError, ValueError) as error:
+            parser.error(str(error))
+        args.output.mkdir(parents=True, exist_ok=True)
+        report_path = args.output / "hillstrom-experiment-report.json"
+        report_path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(json.dumps({"report": str(report_path), "result": result}, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
