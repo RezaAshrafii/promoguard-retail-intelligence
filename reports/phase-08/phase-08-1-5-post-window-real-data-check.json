@@ -1,0 +1,29 @@
+{
+  "schema_version": "promoguard.phase-08-post-window-check.v1",
+  "validated_at": "2026-10-02",
+  "data_source": "dunnhumby Breakfast at the Frat",
+  "data_path": "data/processed/breakfast-at-the-frat/weekly_panel.csv",
+  "data_rows": 524950,
+  "audit_policy": "promoguard-observational-screening@1.1.0",
+  "event": {
+    "store_id": "23345",
+    "upc": "2840004768",
+    "start_date": "2010-01-13",
+    "end_date": "2010-02-10"
+  },
+  "post_window": {
+    "requested_weeks": 4,
+    "observed_weeks": 4,
+    "total_units": 87.0,
+    "mean_units": 21.75,
+    "promotion_weeks": 0
+  },
+  "post_window_warnings": [
+    {
+      "code": "FORWARD_BUY_RISK",
+      "severity": "blocking"
+    }
+  ],
+  "recommendation": "needs_more_evidence",
+  "claim_boundary": "Public observational benchmark only; no causal effect, profit, or customer impact is established."
+}

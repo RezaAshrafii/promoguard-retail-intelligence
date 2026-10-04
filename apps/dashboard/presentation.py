@@ -71,6 +71,12 @@ WARNING_PRESENTATIONS = {
     "FORWARD_BUY_RISK": (
         "افت فروش پس از پروموشن از آستانه سیاست عبور کرده و می‌تواند نشانه جابه‌جایی زمان خرید باشد."
     ),
+    "INCOMPLETE_POST_WINDOW": (
+        "چهار هفتهٔ دقیق پس از کمپین در فایل کامل نیست؛ برای بررسی افت فروش، دورهٔ ناقص کافی نیست."
+    ),
+    "POST_WINDOW_CONTAMINATED": (
+        "در بازهٔ بعد از کمپین، پروموشن دیگری اجرا شده و افت یا بازیابی فروش را مخدوش می‌کند."
+    ),
     "CANNIBALIZATION_CANDIDATE": (
         "کاهش هم‌زمان یک کالای هم‌دسته دیده شده است؛ قبل از نامیدن فروش کالا به‌عنوان تقاضای جدید، "
         "آزمون کنترل‌شده لازم است."
@@ -176,12 +182,17 @@ def cannibalization_candidate_records(result: PromotionAuditResult) -> list[dict
 
     return [
         {
-            "کالا (UPC)": candidate.upc,
-            "شرح": candidate.description or "—",
-            "میانگین قبل": candidate.pre_mean_units,
-            "میانگین حین": candidate.during_mean_units,
-            "نسبت حین به قبل": candidate.during_to_pre_ratio,
-            "افت تخمینی واحد": candidate.estimated_units_decline,
+            "کالای کمپین (UPC)": result.upc,
+            "میانگین هفتگی کالای کمپین قبل": candidate.focal_pre_mean_units,
+            "میانگین هفتگی کالای کمپین حین": candidate.focal_during_mean_units,
+            "تغییر هفتگی کالای کمپین": candidate.focal_units_change_per_week,
+            "کالای هم‌دستهٔ بررسی‌شده (UPC)": candidate.upc,
+            "شرح کالای هم‌دسته": candidate.description or "—",
+            "میانگین هفتگی هم‌دسته قبل": candidate.pre_mean_units,
+            "میانگین هفتگی هم‌دسته حین": candidate.during_mean_units,
+            "تغییر هفتگی هم‌دسته": candidate.observed_units_change_per_week,
+            "سطح شواهد": "غربالگری مشاهده‌ای؛ غیرعلّی",
+            "محدودیت": candidate.limitation,
         }
         for candidate in result.cannibalization.candidates
     ]

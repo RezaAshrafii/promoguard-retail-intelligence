@@ -1,0 +1,18 @@
+{
+  "contract_version": "promotion-event-registry.v1",
+  "events": [
+    {
+      "contract_version": "promotion-event-contract.v1",
+      "promotion_id": "campaign-2025-001",
+      "sku_ids": ["sku-1001", "sku-1002"],
+      "start_date": "2025-02-01",
+      "end_date": "2025-02-14",
+      "discount_type": "percentage_price_reduction",
+      "discount_depth": 0.15,
+      "discount_depth_unit": "fraction",
+      "currency": null,
+      "channel": "retail-store",
+      "region": "region-01"
+    }
+  ]
+}

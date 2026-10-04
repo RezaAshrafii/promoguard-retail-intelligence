@@ -1,0 +1,17 @@
+{
+  "schema_version": "promoguard.phase-08-economics-readiness-check.v1",
+  "validated_at": "2026-10-02",
+  "data_source": "dunnhumby Breakfast at the Frat",
+  "data_path": "data/processed/breakfast-at-the-frat/weekly_panel.csv",
+  "rows": 524950,
+  "intake_status": "ready_for_observational_audit",
+  "has_cost_and_margin_fields": false,
+  "economics_ready": false,
+  "economics_readiness_status": "missing_cost_data",
+  "economics_missing_fields": [
+    "contribution_margin",
+    "unit_cost"
+  ],
+  "economics_readiness_message": "تحلیل فروش انجام شد؛ تحلیل سود به‌دلیل نبود اطلاعات هزینه قابل انجام نیست.",
+  "claim_boundary": "Observed sales readiness only; no promotion profit or causal impact is established."
+}

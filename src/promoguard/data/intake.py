@@ -7,7 +7,13 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-REQUIRED_COLUMNS = {"date", "store_id", "sku_id", "units"}
+from promoguard.data.contracts import (
+    CUSTOMER_OPTIONAL_COLUMNS,
+    CUSTOMER_REQUIRED_COLUMNS,
+    CustomerDataContract,
+    standard_customer_data_contract,
+)
+
 ALIASES = {
     "week_end_date": "date",
     "transaction_date": "date",
@@ -17,16 +23,7 @@ ALIASES = {
     "quantity": "units",
 }
 OPTIONAL_COLUMNS = {
-    "revenue",
-    "currency",
-    "regular_price",
-    "selling_price",
-    "promotion_id",
-    "promotion_flag",
-    "inventory_on_hand",
-    "stockout_flag",
-    "unit_cost",
-    "contribution_margin",
+    *CUSTOMER_OPTIONAL_COLUMNS,
 }
 PII_TOKENS = (
     "customer_name",
@@ -47,6 +44,10 @@ NUMERIC_COLUMNS = {
     "unit_cost",
     "contribution_margin",
 }
+ECONOMICS_INTAKE_COLUMNS = ("unit_cost", "contribution_margin")
+MISSING_ECONOMICS_MESSAGE = (
+    "تحلیل فروش انجام شد؛ تحلیل سود به‌دلیل نبود اطلاعات هزینه قابل انجام نیست."
+)
 
 
 def _normalise_columns(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, str]]:
@@ -58,15 +59,69 @@ def _normalise_columns(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, str
     return renamed, {str(key): value for key, value in rename_map.items()}
 
 
-def assess_partner_intake(frame: pd.DataFrame, *, max_rows: int = 1_000_000) -> dict[str, Any]:
-    """Assess a customer export without imputing, dropping, or changing business values."""
+def assess_partner_intake(
+    frame: pd.DataFrame,
+    *,
+    max_rows: int = 1_000_000,
+    contract: CustomerDataContract | None = None,
+) -> dict[str, Any]:
+    """Assess a customer export without imputing, dropping, or changing business values.
 
+    ``contract=None`` keeps the historical intake behavior but still reports the standard
+    contract version. Passing a contract turns owner-declared date, grain, and promotion fields
+    into explicit gate checks.
+    """
+
+    effective_contract = contract or standard_customer_data_contract()
+    contract_mode = "explicit" if contract is not None else "standard_default"
     working, column_mapping = _normalise_columns(frame)
     columns = set(working.columns)
+    raw_columns = {str(column).strip().lower() for column in frame.columns}
     duplicate_columns = sorted(
         {column for column in working.columns if list(working.columns).count(column) > 1}
     )
-    missing_required = sorted(REQUIRED_COLUMNS - columns)
+    missing_required = sorted(set(effective_contract.required_columns) - columns)
+    contract_failures: list[str] = []
+    contract_warnings: list[str] = []
+    if contract_mode == "explicit":
+        if effective_contract.grain == "auto":
+            contract_failures.append("grain_not_declared")
+        if effective_contract.date_column == "auto":
+            contract_failures.append("date_column_not_declared")
+        if effective_contract.zero_units_meaning == "not_declared":
+            contract_failures.append("zero_units_meaning_not_declared")
+        if effective_contract.units_definition == "not_declared":
+            contract_failures.append("units_definition_not_declared")
+        undeclared_columns = sorted(
+            columns
+            - set(effective_contract.required_columns)
+            - set(effective_contract.optional_columns)
+        )
+        if undeclared_columns:
+            contract_failures.append(
+                "columns_not_declared:" + ",".join(undeclared_columns)
+            )
+    if effective_contract.date_column != "auto" and effective_contract.date_column not in raw_columns:
+        contract_failures.append(f"declared_date_column_missing:{effective_contract.date_column}")
+    if (
+        effective_contract.grain == "weekly_store_sku"
+        and effective_contract.date_column == "transaction_date"
+    ):
+        contract_failures.append("weekly_grain_declared_with_transaction_date")
+    if (
+        effective_contract.grain == "daily_store_sku"
+        and effective_contract.date_column == "week_end_date"
+    ):
+        contract_failures.append("daily_grain_declared_with_week_end_date")
+    missing_declared_promotion = sorted(
+        set(effective_contract.promotion_signal_columns) - columns
+    )
+    if missing_declared_promotion:
+        contract_failures.extend(
+            f"declared_promotion_column_missing:{column}" for column in missing_declared_promotion
+        )
+    if effective_contract.zero_units_meaning == "not_declared" and contract_mode != "explicit":
+        contract_warnings.append("zero_units_meaning_not_declared")
     privacy_columns = sorted(
         column
         for column in columns
@@ -74,13 +129,20 @@ def assess_partner_intake(frame: pd.DataFrame, *, max_rows: int = 1_000_000) -> 
     )
     report: dict[str, Any] = {
         "dataset": "partner-data-intake",
+        "contract_version": effective_contract.contract_version,
+        "contract_mode": contract_mode,
+        "contract_grain": effective_contract.grain,
+        "contract_failures": contract_failures,
+        "contract_warnings": contract_warnings,
+        "contract_ready": not contract_failures,
+        "contract": effective_contract.model_dump(mode="json"),
         "expected_grain": "date × store_id × sku_id",
         "rows": len(working),
         "columns": sorted(columns),
         "column_mapping": column_mapping,
         "missing_required_columns": missing_required,
         "duplicate_column_names": duplicate_columns,
-        "unexpected_columns": sorted(columns - REQUIRED_COLUMNS - OPTIONAL_COLUMNS),
+        "unexpected_columns": sorted(columns - set(CUSTOMER_REQUIRED_COLUMNS) - OPTIONAL_COLUMNS),
         "privacy_columns": privacy_columns,
         "max_rows": max_rows,
         "oversized_row_count": len(working) > max_rows,
@@ -97,6 +159,9 @@ def assess_partner_intake(frame: pd.DataFrame, *, max_rows: int = 1_000_000) -> 
         "has_promotion_signal": False,
         "has_economics_fields": False,
         "economics_ready": False,
+        "economics_readiness_status": "not_assessed",
+        "economics_missing_fields": [],
+        "economics_readiness_message": "",
         "has_inventory_signal": False,
         "warnings": [],
     }
@@ -105,6 +170,14 @@ def assess_partner_intake(frame: pd.DataFrame, *, max_rows: int = 1_000_000) -> 
     if privacy_columns:
         report["warnings"].append("Potential personal-data columns require removal or privacy review.")
     if missing_required or duplicate_columns:
+        report["status"] = "blocked_data_quality"
+        report["valid"] = False
+        return report
+    if privacy_columns:
+        report["status"] = "blocked_privacy_review"
+        report["valid"] = not contract_failures
+        return report
+    if contract_failures:
         report["status"] = "blocked_data_quality"
         report["valid"] = False
         return report
@@ -154,8 +227,23 @@ def assess_partner_intake(frame: pd.DataFrame, *, max_rows: int = 1_000_000) -> 
         )
     )
     report["has_economics_fields"] = bool(
-        {"unit_cost", "contribution_margin"}.issubset(columns)
+        set(ECONOMICS_INTAKE_COLUMNS).issubset(columns)
     )
+    report["economics_missing_fields"] = sorted(set(ECONOMICS_INTAKE_COLUMNS) - columns)
+    if report["economics_missing_fields"]:
+        report["economics_readiness_status"] = (
+            "missing_cost_data"
+            if len(report["economics_missing_fields"]) == len(ECONOMICS_INTAKE_COLUMNS)
+            else "partial_cost_data"
+        )
+        report["economics_readiness_message"] = MISSING_ECONOMICS_MESSAGE
+    else:
+        report["economics_readiness_status"] = "scenario_evidence_required"
+        report["economics_readiness_message"] = (
+            "ستون‌های بهای تمام‌شده و حاشیهٔ مشارکت موجودند؛ برای تحلیل سود پروموشن باید منبع و "
+            "اعتبار این اعداد و نیز قیمت کمپین، هزینه‌های ثابت و متغیر، کمک تأمین‌کننده، بودجه، "
+            "موجودی و تقاضای مبنا و پیش‌بینی‌شده تأیید شوند."
+        )
     report["has_inventory_signal"] = bool(
         {"inventory_on_hand", "stockout_flag"}.intersection(columns)
     )
@@ -183,9 +271,9 @@ def assess_partner_intake(frame: pd.DataFrame, *, max_rows: int = 1_000_000) -> 
         report["warnings"].append(
             "No promotion signal was found; promotion-effect analysis cannot start from this export."
         )
-    if not report["has_economics_fields"]:
+    if report["economics_missing_fields"]:
         report["warnings"].append(
-            "Unit cost and contribution margin are absent; economics and profit approval remain unavailable."
+            MISSING_ECONOMICS_MESSAGE
         )
     else:
         report["warnings"].append(

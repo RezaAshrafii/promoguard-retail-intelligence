@@ -38,6 +38,7 @@ from promoguard.data.partner import (
     prepare_partner_export,
     sha256_bytes,
 )
+from promoguard.insights.decision_support import build_manager_decision_support
 from promoguard.insights.promotion_audit import (
     ContributionAssumption,
     PromotionAuditResult,
@@ -367,8 +368,17 @@ def _show_partner_readiness(
             "دلایل مسدودشدن: "
             + "، ".join(reason.value for reason in report.reasons)
         )
-    if intake["warnings"]:
-        st.info(" | ".join(intake["warnings"]))
+    if intake["economics_readiness_status"] in {"missing_cost_data", "partial_cost_data"}:
+        st.warning(intake["economics_readiness_message"])
+    else:
+        st.info(intake["economics_readiness_message"])
+    other_warnings = [
+        warning
+        for warning in intake["warnings"]
+        if warning != intake["economics_readiness_message"]
+    ]
+    if other_warnings:
+        st.info(" | ".join(other_warnings))
     with st.expander("جزئیات قرارداد و provenance"):
         st.write(f"شناسه منبع: {report.source_id}")
         st.write(f"SHA256 فایل اصلی: {report.source_sha256}")
@@ -569,6 +579,13 @@ def _show_executive_summary(result: PromotionAuditResult) -> None:
         """,
         unsafe_allow_html=True,
     )
+    decision = build_manager_decision_support(result)
+    st.info(f"**اقدام پیشنهادی:** {decision.label}\n\n{decision.explanation}")
+    with st.expander("چهار مسیر تصمیم و شرط هرکدام"):
+        for option in decision.options:
+            state = "پیشنهاد این گزارش" if option.action == decision.recommended_action else option.availability
+            st.markdown(f"**{option.label} — {state}**\n\n{option.explanation}")
+        st.caption(decision.limitation)
 
 
 def _show_manager_findings(result: PromotionAuditResult) -> None:

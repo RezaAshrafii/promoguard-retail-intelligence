@@ -17,6 +17,10 @@ from apps.dashboard.presentation import (
 from promoguard.insights.promotion_audit import (
     AuditPolicy,
     AuditRecommendation,
+    AuditWarning,
+    CannibalizationSummary,
+    SubstitutionCandidate,
+    WarningSeverity,
     audit_promotion_event,
 )
 
@@ -94,6 +98,34 @@ def test_warning_copy_preserves_codes_and_blocking_severity() -> None:
     assert "علّی" in by_code["OBSERVATIONAL_ONLY"]["معنی برای تصمیم"]
 
 
+def test_post_window_warnings_have_plain_persian_manager_copy() -> None:
+    result = _result()
+    result = result.model_copy(
+        update={
+            "warnings": result.warnings
+            + [
+                AuditWarning(
+                    code="INCOMPLETE_POST_WINDOW",
+                    severity=WarningSeverity.BLOCKING,
+                    message="The post window is incomplete.",
+                ),
+                AuditWarning(
+                    code="POST_WINDOW_CONTAMINATED",
+                    severity=WarningSeverity.BLOCKING,
+                    message="Another promotion appears after this one.",
+                ),
+            ]
+        }
+    )
+
+    by_code = {row["کد"]: row for row in warning_presentation_records(result)}
+
+    assert by_code["INCOMPLETE_POST_WINDOW"]["سطح"] == "مسدودکننده"
+    assert "چهار هفتهٔ دقیق" in by_code["INCOMPLETE_POST_WINDOW"]["معنی برای تصمیم"]
+    assert by_code["POST_WINDOW_CONTAMINATED"]["سطح"] == "مسدودکننده"
+    assert "پروموشن دیگری" in by_code["POST_WINDOW_CONTAMINATED"]["معنی برای تصمیم"]
+
+
 def test_claim_boundary_is_explicitly_non_causal_and_non_financial() -> None:
     claim, scope = claim_boundary_copy()
     assert "اثر علّی" in claim
@@ -109,6 +141,47 @@ def test_cannibalization_presentation_preserves_not_assessed_boundary() -> None:
     assert "انجام نشد" in presentation.title
     assert cannibalization_candidate_records(_result()) == []
     assert "علت فنی" in cannibalization_limitation_copy(_result())
+
+
+def test_cannibalization_table_shows_both_skus_changes_and_evidence_limit() -> None:
+    candidate = SubstitutionCandidate(
+        upc="neighbor-1",
+        description="Neighbor product",
+        category="SNACKS",
+        pre_mean_units=10,
+        during_mean_units=3,
+        during_to_pre_ratio=0.3,
+        observed_units_change_per_week=-7,
+        estimated_units_decline=14,
+        pre_weeks=4,
+        during_weeks=2,
+        focal_pre_mean_units=10,
+        focal_during_mean_units=30,
+        focal_units_change_per_week=20,
+        focal_pre_weeks=4,
+        focal_during_weeks=2,
+        limitation="Observed co-movement; causal substitution is not identified.",
+    )
+    result = _result().model_copy(
+        update={
+            "cannibalization": CannibalizationSummary(
+                status="candidates_detected",
+                category="SNACKS",
+                eligible_neighbor_count=1,
+                candidates=[candidate],
+                limitation=candidate.limitation,
+            )
+        }
+    )
+
+    row = cannibalization_candidate_records(result)[0]
+
+    assert row["کالای کمپین (UPC)"] == result.upc
+    assert row["تغییر هفتگی کالای کمپین"] == 20
+    assert row["کالای هم‌دستهٔ بررسی‌شده (UPC)"] == "neighbor-1"
+    assert row["تغییر هفتگی هم‌دسته"] == -7
+    assert row["سطح شواهد"] == "غربالگری مشاهده‌ای؛ غیرعلّی"
+    assert "causal substitution" in row["محدودیت"]
 
 
 def test_randomized_benchmark_presentation_reads_persisted_values_without_reestimating() -> None:

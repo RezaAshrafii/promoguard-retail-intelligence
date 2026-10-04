@@ -1,0 +1,31 @@
+{
+  "contract_version": "customer-data-contract.v1",
+  "source_format": "csv",
+  "grain": "weekly_store_sku",
+  "date_column": "week_end_date",
+  "required_columns": [
+    "date",
+    "store_id",
+    "sku_id",
+    "units"
+  ],
+  "optional_columns": [
+    "revenue",
+    "currency",
+    "regular_price",
+    "selling_price",
+    "promotion_id",
+    "promotion_flag",
+    "inventory_on_hand",
+    "stockout_flag",
+    "unit_cost",
+    "contribution_margin"
+  ],
+  "units_definition": "تعداد واحد فروخته‌شده در هر هفته، فروشگاه و SKU",
+  "zero_units_meaning": "observed_zero",
+  "promotion_signal_columns": [
+    "promotion_flag"
+  ],
+  "promotion_signal_definition": "مقدار 1 یعنی SKU در آن هفته در پروموشن ثبت‌شده بوده است",
+  "personal_data_allowed": "prohibited"
+}

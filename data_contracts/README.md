@@ -3,6 +3,16 @@
 The current public-source contract is implemented in `promoguard.data.contracts` and validated at
 the ingestion boundary.
 
+The customer-facing v1 contract is `customer-data-contract.v1`. Its example template is kept at
+`customer_data_contract.v1.example.json`, and the Persian operating guide is
+`docs/data/customer-data-contract-fa.md`. It describes the minimum customer export without
+granting permission or implying causal/profit readiness.
+
+Promotion events use `promotion-event-contract.v1` in
+`promotion_event_registry.v1.example.json`; its Persian field guide is
+`docs/data/promotion-event-contract-fa.md`. The event registry validates campaign scope and
+discount semantics independently from the sales panel.
+
 Canonical grain:
 
 ```text
