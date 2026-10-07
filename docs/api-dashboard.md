@@ -28,7 +28,8 @@ resolved and restricted to the configured local `data/` root; paths outside it r
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/health` | Service and package health |
+| `GET` | `/health` | Liveness: service and package health |
+| `GET` | `/ready` | Readiness: liveness plus durable pilot-storage check |
 | `POST` | `/v1/panels/validate` | Validate a local canonical panel path |
 | `POST` | `/v1/panels/validate-upload` | Validate a bounded CSV upload |
 | `POST` | `/v1/promotions` | Detect and return a bounded event list |
@@ -86,6 +87,19 @@ normalization, and column names that collide after trimming are rejected before 
 
 A future public deployment must replace caller-supplied filesystem paths with authenticated upload
 or server-owned dataset IDs and add authorization, rate limiting, safe storage, and audit logging.
+
+### Liveness and readiness
+
+`GET /health` is a lightweight liveness probe. It does not open the runtime
+database, so it can still return `200` while the service process is alive but
+unable to accept a pilot request.
+
+`GET /ready` is the controlled-pilot readiness probe. It opens the SQLite
+metadata store and runs a harmless `SELECT 1`. A successful response contains
+`status=ready` and `storage=ok`; a storage failure returns `503` with a safe
+operator-facing message and does not expose the local runtime path or exception
+details. This is an operational signal, not authentication, tenant isolation,
+or a guarantee that an uploaded dataset is analytically valid.
 
 ## Streamlit dashboard
 

@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import os
+import sqlite3
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from io import BytesIO
@@ -141,6 +142,33 @@ def health() -> dict[str, str]:
         "status": "ok",
         "service": "promoguard-api",
         "version": __version__,
+        "deployment_scope": "controlled_environment",
+    }
+
+
+@app.get("/ready")
+def readiness() -> dict[str, str]:
+    """Report whether the API can safely accept a pilot request.
+
+    ``/health`` is intentionally a liveness probe and must stay independent of
+    storage.  ``/ready`` is the dependency-aware probe for a local pilot: it
+    verifies that the durable metadata store can be opened and queried without
+    exposing the runtime path or any customer data.
+    """
+    try:
+        with _store().connection() as connection:
+            connection.execute("SELECT 1").fetchone()
+    except (OSError, RuntimeError, ValueError, sqlite3.Error) as error:
+        LOGGER.warning("PromoGuard readiness check failed: %s", error)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="ذخیره‌ساز متادیتای پایلوت آماده نیست؛ فضای runtime را بررسی کنید.",
+        ) from error
+    return {
+        "status": "ready",
+        "service": "promoguard-api",
+        "version": __version__,
+        "storage": "ok",
         "deployment_scope": "controlled_environment",
     }
 
