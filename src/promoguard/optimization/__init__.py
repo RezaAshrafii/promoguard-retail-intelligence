@@ -7,6 +7,11 @@ from promoguard.optimization.contracts import (
     ProjectionInterval,
     PromotionScenario,
 )
+from promoguard.optimization.economics import (
+    ConditionalEconomics,
+    MonetaryInterval,
+    calculate_conditional_economics,
+)
 from promoguard.optimization.feasibility import (
     FeasibilityCode,
     ScenarioFeasibility,
@@ -14,12 +19,15 @@ from promoguard.optimization.feasibility import (
 )
 
 __all__ = [
+    "ConditionalEconomics",
     "EconomicsEvidence",
     "EvidenceKind",
     "FeasibilityCode",
+    "MonetaryInterval",
     "OptimizationInput",
     "ProjectionInterval",
     "PromotionScenario",
     "ScenarioFeasibility",
     "assess_scenarios",
+    "calculate_conditional_economics",
 ]

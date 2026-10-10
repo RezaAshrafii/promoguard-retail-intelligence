@@ -595,6 +595,26 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Live smoke: Next `/experiments` returned HTTP 200 and included its title; FastAPI OpenAPI returned 200; `POST /v1/experiments/hillstrom/reports` returned a report ID, then `GET /v1/reports/{id}` reached `ready` with three comparisons. First observed effect matched the checked-in aggregate report (+$0.7698/customer); direct variant comparison remained inconclusive. The local processes used for this check were stopped afterward.
 - The technical benchmark slice is complete. Phase 8 remains ACTIVE because company-authorized data, a manager review, and human-set business economics are still missing; this does not authorize Phase 8.2 optimization or any profit claim.
 
+### Phase 8.2.1 — conditional economics vertical slice (2026-10-10)
+
+- Added `src/promoguard/optimization/economics.py` with an explicit comparison between
+  baseline profit and promotion profit. The calculation includes regular price, promotion
+  price, unit cost, supplier funding, variable trade spend, fixed trade spend, baseline demand,
+  and the projected-demand interval.
+- The result is exposed on each `ScenarioFeasibility` record as `conditional_economics` with
+  baseline profit, promoted-profit interval, and incremental-profit interval. A negative
+  promoted unit contribution reverses the demand-bound ordering correctly.
+- This closes a methodological gap in the previous feasibility slice: an incremental-unit
+  sensitivity alone did not show baseline margin erosion or fixed trade spend. The new result
+  remains conditional and does not rank scenarios, claim causal lift, or authorize execution.
+- Focused optimization tests passed **16 tests**. Full pytest passed **230 tests** with one
+  pre-existing Starlette/httpx deprecation warning. Ruff for changed optimization files,
+  compileall, and `git diff --check` passed.
+- Phase 8 remains ACTIVE. The next implementation gate is an uncertainty-aware sensitivity
+  report and a transparent multi-scenario comparison with no automatic selection. A permitted
+  partner dataset and manager-approved economic definitions are still required before any
+  commercial profit claim.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.

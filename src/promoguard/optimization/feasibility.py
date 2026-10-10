@@ -9,6 +9,10 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from promoguard.optimization.contracts import OptimizationInput, PromotionScenario
+from promoguard.optimization.economics import (
+    ConditionalEconomics,
+    calculate_conditional_economics,
+)
 
 
 class FeasibilityCode(StrEnum):
@@ -33,6 +37,7 @@ class ScenarioFeasibility(BaseModel):
     discount_rate: Decimal
     projected_unit_contribution: Decimal
     projected_trade_spend: Decimal
+    conditional_economics: ConditionalEconomics
     budget_risk_basis: Literal["upper_projected_demand"] = "upper_projected_demand"
     sellable_inventory_units: int
     limitation: Literal[
@@ -86,6 +91,7 @@ def _assess_one(request: OptimizationInput, scenario: PromotionScenario) -> Scen
         discount_rate=discount_rate,
         projected_unit_contribution=projected_unit_contribution,
         projected_trade_spend=projected_trade_spend,
+        conditional_economics=calculate_conditional_economics(scenario),
         sellable_inventory_units=sellable_inventory,
     )
 

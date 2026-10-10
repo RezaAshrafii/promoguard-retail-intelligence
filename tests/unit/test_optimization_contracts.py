@@ -146,6 +146,11 @@ def test_eligible_scenario_exposes_only_constraint_screening() -> None:
     assert result.discount_rate == Decimal("0.1")
     assert result.projected_unit_contribution == Decimal(24000)
     assert result.projected_trade_spend == Decimal("220000.0")
+    assert result.conditional_economics.baseline_profit == Decimal(2400000)
+    assert result.conditional_economics.promoted_profit.point == Decimal(2300000)
+    assert result.conditional_economics.incremental_profit.point == Decimal(-100000)
+    assert result.conditional_economics.incremental_profit.lower == Decimal(-340000)
+    assert result.conditional_economics.incremental_profit.upper == Decimal(380000)
     assert result.budget_risk_basis == "upper_projected_demand"
     assert "not a profit forecast" in result.limitation
 
@@ -211,5 +216,38 @@ def test_feasibility_output_cannot_be_constructed_with_inconsistent_status() -> 
             discount_rate=Decimal("0.1"),
             projected_unit_contribution=Decimal(1),
             projected_trade_spend=Decimal(2),
+            conditional_economics={
+                "baseline_profit": Decimal(1),
+                "promoted_profit": {
+                    "point": Decimal(1),
+                    "lower": Decimal(1),
+                    "upper": Decimal(1),
+                    "currency": "IRR",
+                },
+                "incremental_profit": {
+                    "point": Decimal(0),
+                    "lower": Decimal(0),
+                    "upper": Decimal(0),
+                    "currency": "IRR",
+                },
+            },
             sellable_inventory_units=10,
         )
+
+
+def test_negative_unit_contribution_reverses_projected_profit_bounds() -> None:
+    candidate = scenario(
+        promotion_unit_price="60000",
+        unit_cost="70000",
+        supplier_funding_per_unit="0",
+        variable_trade_spend_per_unit="0",
+        fixed_trade_spend="0",
+        projected_demand_units=ProjectionInterval(point=100, lower=80, upper=120),
+    )
+    result = assess_scenarios(request(candidate, minimum_unit_contribution="-20000"))[0]
+    economics = result.conditional_economics
+    assert economics.promoted_profit.lower == Decimal(-1200000)
+    assert economics.promoted_profit.point == Decimal(-1000000)
+    assert economics.promoted_profit.upper == Decimal(-800000)
+    assert economics.incremental_profit.lower == Decimal(-3600000)
+    assert economics.incremental_profit.upper == Decimal(-3200000)
