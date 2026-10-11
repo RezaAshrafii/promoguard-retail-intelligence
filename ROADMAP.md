@@ -610,10 +610,19 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Focused optimization tests passed **16 tests**. Full pytest passed **230 tests** with one
   pre-existing Starlette/httpx deprecation warning. Ruff for changed optimization files,
   compileall, and `git diff --check` passed.
-- Phase 8 remains ACTIVE. The next implementation gate is an uncertainty-aware sensitivity
-  report and a transparent multi-scenario comparison with no automatic selection. A permitted
-  partner dataset and manager-approved economic definitions are still required before any
-  commercial profit claim.
+- Added `build_economic_sensitivity` with downside, expected, and upside demand cases. Prices,
+  cost, funding, and trade spend remain fixed so the manager can see demand sensitivity without
+  hidden economic assumptions.
+- Added `compare_scenarios` and a typed `ScenarioComparisonReport`. It preserves input order,
+  exposes each scenario's constraints and conditional economics, and hard-codes
+  `manual_review_required` with a null selected scenario. There is no implicit ranking or
+  automatic budget allocation.
+- Focused optimization tests passed **17 tests**. The full suite passed **231 tests** with one
+  pre-existing Starlette/httpx deprecation warning. Ruff, compileall, and `git diff --check`
+  passed for the changed slice.
+- Phase 8 remains ACTIVE. The next gate is a reviewed decision policy and API/dashboard adapter.
+  A permitted partner dataset and manager-approved economic definitions are still required
+  before any commercial profit claim.
 
 ## Phase 9 — PENDING — Production and verified AI layer
 

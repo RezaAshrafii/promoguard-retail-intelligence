@@ -14,6 +14,7 @@ from promoguard.optimization import (
     ProjectionInterval,
     PromotionScenario,
     assess_scenarios,
+    compare_scenarios,
 )
 
 ECONOMICS_FIELDS = [
@@ -151,6 +152,13 @@ def test_eligible_scenario_exposes_only_constraint_screening() -> None:
     assert result.conditional_economics.incremental_profit.point == Decimal(-100000)
     assert result.conditional_economics.incremental_profit.lower == Decimal(-340000)
     assert result.conditional_economics.incremental_profit.upper == Decimal(380000)
+    cases = result.economic_sensitivity.cases
+    assert [case.case for case in cases] == ["downside", "expected", "upside"]
+    assert [case.incremental_profit for case in cases] == [
+        Decimal(-340000),
+        Decimal(-100000),
+        Decimal(380000),
+    ]
     assert result.budget_risk_basis == "upper_projected_demand"
     assert "not a profit forecast" in result.limitation
 
@@ -231,6 +239,32 @@ def test_feasibility_output_cannot_be_constructed_with_inconsistent_status() -> 
                     "currency": "IRR",
                 },
             },
+            economic_sensitivity={
+                "baseline_profit": Decimal(1),
+                "cases": [
+                    {
+                        "case": "downside",
+                        "projected_demand_units": Decimal(1),
+                        "promoted_profit": Decimal(1),
+                        "incremental_profit": Decimal(0),
+                        "currency": "IRR",
+                    },
+                    {
+                        "case": "expected",
+                        "projected_demand_units": Decimal(1),
+                        "promoted_profit": Decimal(1),
+                        "incremental_profit": Decimal(0),
+                        "currency": "IRR",
+                    },
+                    {
+                        "case": "upside",
+                        "projected_demand_units": Decimal(1),
+                        "promoted_profit": Decimal(1),
+                        "incremental_profit": Decimal(0),
+                        "currency": "IRR",
+                    },
+                ],
+            },
             sellable_inventory_units=10,
         )
 
@@ -251,3 +285,17 @@ def test_negative_unit_contribution_reverses_projected_profit_bounds() -> None:
     assert economics.promoted_profit.upper == Decimal(-800000)
     assert economics.incremental_profit.lower == Decimal(-3600000)
     assert economics.incremental_profit.upper == Decimal(-3200000)
+
+
+def test_multi_scenario_comparison_preserves_input_order_and_requires_review() -> None:
+    first = scenario(scenario_id="scenario-first")
+    second = scenario(scenario_id="scenario-second", promotion_unit_price="85000")
+    report = compare_scenarios(request(scenarios=[first, second]))
+    assert report.request_id == "campaign-1"
+    assert [item.scenario_id for item in report.scenarios] == [
+        "scenario-first",
+        "scenario-second",
+    ]
+    assert report.selection_status == "manual_review_required"
+    assert report.selected_scenario_id is None
+    assert "no scenario is ranked" in report.limitation

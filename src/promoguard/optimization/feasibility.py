@@ -11,6 +11,8 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from promoguard.optimization.contracts import OptimizationInput, PromotionScenario
 from promoguard.optimization.economics import (
     ConditionalEconomics,
+    EconomicSensitivity,
+    build_economic_sensitivity,
     calculate_conditional_economics,
 )
 
@@ -38,6 +40,7 @@ class ScenarioFeasibility(BaseModel):
     projected_unit_contribution: Decimal
     projected_trade_spend: Decimal
     conditional_economics: ConditionalEconomics
+    economic_sensitivity: EconomicSensitivity
     budget_risk_basis: Literal["upper_projected_demand"] = "upper_projected_demand"
     sellable_inventory_units: int
     limitation: Literal[
@@ -50,6 +53,21 @@ class ScenarioFeasibility(BaseModel):
         if self.status != expected:
             raise ValueError("status must be infeasible when reasons exist and eligible otherwise")
         return self
+
+
+class ScenarioComparisonReport(BaseModel):
+    """Ordered multi-scenario comparison that requires human selection."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    request_id: str
+    currency: str
+    scenarios: list[ScenarioFeasibility]
+    selection_status: Literal["manual_review_required"] = "manual_review_required"
+    selected_scenario_id: None = None
+    limitation: Literal[
+        "Comparison only; no scenario is ranked, selected, or approved for execution."
+    ] = "Comparison only; no scenario is ranked, selected, or approved for execution."
 
 
 def _assess_one(request: OptimizationInput, scenario: PromotionScenario) -> ScenarioFeasibility:
@@ -92,6 +110,7 @@ def _assess_one(request: OptimizationInput, scenario: PromotionScenario) -> Scen
         projected_unit_contribution=projected_unit_contribution,
         projected_trade_spend=projected_trade_spend,
         conditional_economics=calculate_conditional_economics(scenario),
+        economic_sensitivity=build_economic_sensitivity(scenario),
         sellable_inventory_units=sellable_inventory,
     )
 
@@ -99,3 +118,13 @@ def _assess_one(request: OptimizationInput, scenario: PromotionScenario) -> Scen
 def assess_scenarios(request: OptimizationInput) -> list[ScenarioFeasibility]:
     """Assess every candidate without ranking, selecting, or executing one."""
     return [_assess_one(request, scenario) for scenario in request.scenarios]
+
+
+def compare_scenarios(request: OptimizationInput) -> ScenarioComparisonReport:
+    """Return comparable rows in input order and require human review."""
+
+    return ScenarioComparisonReport(
+        request_id=request.request_id,
+        currency=request.currency,
+        scenarios=assess_scenarios(request),
+    )

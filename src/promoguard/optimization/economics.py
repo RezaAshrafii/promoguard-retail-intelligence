@@ -9,6 +9,7 @@ scenario for execution.
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -52,6 +53,30 @@ class ConditionalEconomics(BaseModel):
         "Conditional scenario economics only; demand is not a causal lift estimate "
         "and the result is not an execution approval."
     )
+
+
+class SensitivityCase(BaseModel):
+    """One named demand case derived from the supplied projection interval."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    case: Literal["downside", "expected", "upside"]
+    projected_demand_units: Decimal
+    promoted_profit: Decimal
+    incremental_profit: Decimal
+    currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+
+
+class EconomicSensitivity(BaseModel):
+    """Manager-readable demand sensitivity without scenario selection."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    baseline_profit: Decimal
+    cases: tuple[SensitivityCase, SensitivityCase, SensitivityCase]
+    limitation: Literal[
+        "Demand sensitivity only; this is not a causal lift interval or execution approval."
+    ] = "Demand sensitivity only; this is not a causal lift interval or execution approval."
 
 
 def _interval_product(
@@ -112,3 +137,45 @@ def calculate_conditional_economics(
         promoted_profit=promoted,
         incremental_profit=incremental,
     )
+
+
+def build_economic_sensitivity(scenario: PromotionScenario) -> EconomicSensitivity:
+    """Build downside, expected, and upside cases from the demand projection.
+
+    The cases vary only projected demand. Prices, cost, funding, trade spend,
+    currency, and baseline demand stay fixed at their evidenced scenario values.
+    This makes the table easy to audit and prevents hidden margin assumptions.
+    """
+
+    baseline_unit_contribution = scenario.regular_unit_price - scenario.unit_cost
+    promoted_unit_contribution = (
+        scenario.promotion_unit_price
+        - scenario.unit_cost
+        + scenario.supplier_funding_per_unit
+        - scenario.variable_trade_spend_per_unit
+    )
+    baseline_profit = (
+        Decimal(str(scenario.baseline_demand_units)) * baseline_unit_contribution
+    )
+    demand_values = (
+        ("downside", Decimal(str(scenario.projected_demand_units.lower))),
+        ("expected", Decimal(str(scenario.projected_demand_units.point))),
+        ("upside", Decimal(str(scenario.projected_demand_units.upper))),
+    )
+    cases = tuple(
+        SensitivityCase(
+            case=case,
+            projected_demand_units=demand,
+            promoted_profit=(
+                demand * promoted_unit_contribution - scenario.fixed_trade_spend
+            ),
+            incremental_profit=(
+                demand * promoted_unit_contribution
+                - scenario.fixed_trade_spend
+                - baseline_profit
+            ),
+            currency=scenario.currency,
+        )
+        for case, demand in demand_values
+    )
+    return EconomicSensitivity(baseline_profit=baseline_profit, cases=cases)
