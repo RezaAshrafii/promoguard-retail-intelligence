@@ -18,6 +18,8 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from promoguard.experiments.revenue_details import build_revenue_details
+
 HILLSTROM_DATASET = "hillstrom-email-analytics-2008"
 HILLSTROM_DATASET_PAGE = (
     "https://blog.minethatdata.com/2008/03/minethatdata-e-mail-analytics-and-data.html"
@@ -312,6 +314,13 @@ def evaluate_hillstrom_frame(
                 ),
                 "decision_explanation": reason,
                 "descriptive_outcomes": descriptive_metrics,
+                "revenue_details": (
+                    build_revenue_details(
+                        treatment_frame, comparison_control_frame, (estimate, lower, upper)
+                    )
+                    if config.primary_outcome == "spend"
+                    else None
+                ),
             }
         )
         if progress_callback is not None:

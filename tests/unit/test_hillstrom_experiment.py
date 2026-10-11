@@ -88,6 +88,8 @@ def test_primary_effect_is_itt_and_includes_every_assigned_row() -> None:
     assert mens["business_goal_status"] == "insufficient_sample"
     assert "not contribution margin or profit" in result["interpretation"][1]
     assert len(result["comparisons"]) == 3
+    assert mens["revenue_details"]["revenue_effect_per_1000"]["point"] == 5000
+    assert mens["revenue_details"]["treatment"]["assigned_customers"] == 4
     mens_vs_womens = result["comparisons"][2]
     assert mens_vs_womens["contrast_type"] == "treatment_vs_treatment"
     assert mens_vs_womens["control_arm"] == "Womens E-Mail"

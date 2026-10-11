@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import { BrandLogo } from "../components/BrandLogo";
 
 type Outcome = "spend" | "conversion" | "visit";
+type RevenueDetails = {
+  treatment: { buyers: number; spend_per_buyer: number | null; top_one_percent_customer_revenue_share: number | null };
+  control: { buyers: number; spend_per_buyer: number | null; top_one_percent_customer_revenue_share: number | null };
+  additional_buyers_per_1000_assigned: number;
+  decomposition: { purchase_rate_component_per_customer: number; buyer_spend_component_per_customer: number } | null;
+  break_even_scenarios: { assumed_common_contribution_margin: number; maximum_incremental_cost_per_1000: number; lower_bound_cost_per_1000: number; upper_bound_cost_per_1000: number }[];
+};
 type Comparison = {
+  revenue_details?: RevenueDetails | null;
   treatment_arm: string;
   control_arm: string;
   contrast_type: "treatment_vs_control" | "treatment_vs_treatment";
@@ -235,6 +243,20 @@ export default function ExperimentsPage() {
                 <div className="comparison-ci"><span>بازهٔ هم‌زمان ۹۵٪</span><strong>{displayEffect(item.familywise_ci_lower_per_person, summary.primary_outcome.name)} تا {displayEffect(item.familywise_ci_upper_per_person, summary.primary_outcome.name)}</strong></div>
                 <p className="comparison-sample">نمونه: {number.format(item.treatment_n)} در گروه اول و {number.format(item.control_n)} در گروه مقایسه</p>
                 <div className="comparison-secondary"><span>تغییر احتمال خرید</span><strong>{displayEffect(item.descriptive_outcomes.conversion.difference, "conversion")}</strong><span>تغییر احتمال بازدید</span><strong>{displayEffect(item.descriptive_outcomes.visit.difference, "visit")}</strong></div>
+                {item.revenue_details && <details>
+                  <summary>منشأ تفاوت درآمد و هزینهٔ قابل‌پوشش</summary>
+                  <p>خرید افزوده به‌ازای هزار نفر: <strong>{number.format(item.revenue_details.additional_buyers_per_1000_assigned)}</strong></p>
+                  <p>مبلغ متوسط بین خریداران: گروه اول {item.revenue_details.treatment.spend_per_buyer === null ? "خریدی ثبت نشده" : money(item.revenue_details.treatment.spend_per_buyer)}؛ گروه مقایسه {item.revenue_details.control.spend_per_buyer === null ? "خریدی ثبت نشده" : money(item.revenue_details.control.spend_per_buyer)}.</p>
+                  {item.revenue_details.decomposition && <p>تجزیهٔ توصیفی اختلاف درآمد هر نفر: جزء تغییر نرخ خرید {money(item.revenue_details.decomposition.purchase_rate_component_per_customer)} و جزء تغییر مبلغ بین خریداران {money(item.revenue_details.decomposition.buyer_spend_component_per_customer)}. این تجزیه، علت رشد یا اثر بر یک خریدار ثابت را اثبات نمی‌کند.</p>}
+                  <p>سهم درآمدِ یک درصد بالای مشتریان: گروه اول {item.revenue_details.treatment.top_one_percent_customer_revenue_share === null ? "قابل محاسبه نیست" : `${number.format(item.revenue_details.treatment.top_one_percent_customer_revenue_share * 100)}٪`}؛ گروه مقایسه {item.revenue_details.control.top_one_percent_customer_revenue_share === null ? "قابل محاسبه نیست" : `${number.format(item.revenue_details.control.top_one_percent_customer_revenue_share * 100)}٪`}. هیچ خریدی حذف نشده است.</p>
+                  <small>اگر کمتر از یک درصد افراد خرید کرده باشند، این سهم می‌تواند ۱۰۰٪ باشد؛ تمرکز درآمد به‌تنهایی نشانهٔ خطا نیست.</small>
+                  <h4>{direct ? "سقف هزینهٔ افزودهٔ تغییر نسخه" : "سقف هزینهٔ افزودهٔ کمپین"} به‌ازای هزار مشتری — سناریوی فرضی</h4>
+                  <p>حاشیه‌های زیر فرض‌اند، نه اطلاعات مالی این شرکت. حاشیه برای هر دو گروه یکسان فرض شده است.</p>
+                  {item.revenue_details.break_even_scenarios.map((scenario) => <p key={scenario.assumed_common_contribution_margin}>
+                    حاشیهٔ {number.format(scenario.assumed_common_contribution_margin * 100)}٪: سقف مرکزی <strong>{money(scenario.maximum_incremental_cost_per_1000)}</strong>؛ بر مبنای بازهٔ درآمد {money(scenario.lower_bound_cost_per_1000)} تا {money(scenario.upper_bound_cost_per_1000)}.
+                  </p>)}
+                  <small>عدد منفی یعنی در آن برآورد، هیچ هزینهٔ غیرمنفی پوشش داده نمی‌شود. بازه فقط عدم‌قطعیت درآمد را منتقل می‌کند؛ این خروجی سود واقعی، مجوز اجرا یا اثبات برتری نسخه نیست.</small>
+                </details>}
               </article>;
             })}
           </section>
