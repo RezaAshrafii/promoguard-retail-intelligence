@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from promoguard.experiments.revenue_details import FinancialAssumptions
 from promoguard.insights.promotion_audit import ContributionAssumption
 from promoguard.optimization import ManagerHurdlePolicy, OptimizationInput
 
@@ -122,6 +123,7 @@ class HillstromReportCreateRequest(BaseModel):
 
     primary_outcome: Literal["spend", "conversion", "visit"] = "spend"
     minimum_effect_per_person: float | None = None
+    financial_assumptions: FinancialAssumptions | None = None
 
 
 class ManagerScenarioComparisonRequest(BaseModel):

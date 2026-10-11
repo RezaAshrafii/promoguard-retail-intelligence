@@ -143,6 +143,21 @@ def test_binary_goal_threshold_must_be_a_probability() -> None:
         HillstromAnalysisConfig(primary_outcome="conversion", minimum_effect_per_person=1.2)
 
 
+def test_financial_assumptions_require_revenue_as_primary_outcome() -> None:
+    assumptions = {
+        "common_contribution_margin": 0.3,
+        "margin_source": "test fixture",
+        "mens_campaign_cost_per_1000": 1,
+        "mens_cost_source": "test fixture",
+        "womens_campaign_cost_per_1000": 1,
+        "womens_cost_source": "test fixture",
+    }
+    with pytest.raises(ValueError, match="require spend as the primary outcome"):
+        HillstromAnalysisConfig(
+            primary_outcome="conversion", financial_assumptions=assumptions
+        )
+
+
 def test_small_groups_never_receive_a_business_verdict_even_with_a_large_effect() -> None:
     result = evaluate_hillstrom_frame(
         hillstrom_fixture(), HillstromAnalysisConfig(minimum_effect_per_person=0.0)

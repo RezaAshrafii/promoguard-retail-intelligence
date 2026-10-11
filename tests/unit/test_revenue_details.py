@@ -1,7 +1,11 @@
 import pandas as pd
 import pytest
 
-from promoguard.experiments.revenue_details import build_revenue_details, revenue_profile
+from promoguard.experiments.revenue_details import (
+    FinancialAssumptions,
+    build_revenue_details,
+    revenue_profile,
+)
 
 
 def test_manual_decomposition_and_financial_bounds():
@@ -42,3 +46,48 @@ def test_concentration_rounds_up_and_keeps_full_population():
     assert profile["top_one_percent_customer_count"] == 2
     assert profile["assigned_customers"] == 101
     assert profile["top_one_percent_customer_revenue_share"] == 1
+
+
+def test_user_financial_inputs_calculate_campaign_and_variant_cost_differences():
+    inputs = FinancialAssumptions(
+        common_contribution_margin=0.3,
+        margin_source="finance memo, 2026-10-12",
+        mens_campaign_cost_per_1000=90,
+        mens_cost_source="mens send invoice",
+        womens_campaign_cost_per_1000=60,
+        womens_cost_source="womens send invoice",
+    )
+    treatment = pd.DataFrame({"spend": [10, 12, 0, 0]})
+    control = pd.DataFrame({"spend": [2, 0, 0, 0]})
+    vs_control = build_revenue_details(
+        treatment, control, (5, 4, 6), inputs,
+        treatment_arm="Mens E-Mail", control_arm="No E-Mail",
+    )["conditional_economics"]
+    assert vs_control["incremental_campaign_cost_per_1000"] == 90
+    assert vs_control["contribution_per_1000"] == {
+        "point": 1410,
+        "lower": 1110,
+        "upper": 1710,
+    }
+    assert vs_control["source_verification"].endswith("not_independently_verified")
+
+    vs_variant = build_revenue_details(
+        treatment, control, (5, 4, 6), inputs,
+        treatment_arm="Mens E-Mail", control_arm="Womens E-Mail",
+    )["conditional_economics"]
+    assert vs_variant["incremental_campaign_cost_per_1000"] == 30
+    assert vs_variant["contribution_per_1000"]["point"] == 1470
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"common_contribution_margin": 1.01, "margin_source": "x", "mens_campaign_cost_per_1000": 1, "mens_cost_source": "x", "womens_campaign_cost_per_1000": 1, "womens_cost_source": "x"},
+        {"common_contribution_margin": 0.3, "margin_source": " ", "mens_campaign_cost_per_1000": 1, "mens_cost_source": "x", "womens_campaign_cost_per_1000": 1, "womens_cost_source": "x"},
+        {"common_contribution_margin": 0.3, "margin_source": "x", "mens_campaign_cost_per_1000": -1, "mens_cost_source": "x", "womens_campaign_cost_per_1000": 1, "womens_cost_source": "x"},
+        {"common_contribution_margin": 0.3, "margin_source": "x", "mens_campaign_cost_per_1000": 1, "mens_cost_source": "x", "womens_campaign_cost_per_1000": 1, "womens_cost_source": "x", "currency": "IRR"},
+    ],
+)
+def test_financial_assumption_contract_rejects_invalid_values(payload):
+    with pytest.raises(ValueError):
+        FinancialAssumptions.model_validate(payload)

@@ -10,6 +10,15 @@ type RevenueDetails = {
   additional_buyers_per_1000_assigned: number;
   decomposition: { purchase_rate_component_per_customer: number; buyer_spend_component_per_customer: number } | null;
   break_even_scenarios: { assumed_common_contribution_margin: number; maximum_incremental_cost_per_1000: number; lower_bound_cost_per_1000: number; upper_bound_cost_per_1000: number }[];
+  conditional_economics: {
+    currency: string;
+    common_contribution_margin: number;
+    incremental_campaign_cost_per_1000: number;
+    contribution_per_1000: { point: number; lower: number; upper: number };
+    assumption_sources: { margin: string; treatment_campaign_cost: string; control_campaign_cost: string };
+    source_verification: string;
+    limitation: string;
+  } | null;
 };
 type Comparison = {
   revenue_details?: RevenueDetails | null;
@@ -96,6 +105,12 @@ function displayEffect(value: number, outcome: Outcome) {
 export default function ExperimentsPage() {
   const [outcome, setOutcome] = useState<Outcome>("spend");
   const [threshold, setThreshold] = useState("");
+  const [marginPercent, setMarginPercent] = useState("");
+  const [marginSource, setMarginSource] = useState("");
+  const [mensCost, setMensCost] = useState("");
+  const [mensCostSource, setMensCostSource] = useState("");
+  const [womensCost, setWomensCost] = useState("");
+  const [womensCostSource, setWomensCostSource] = useState("");
   const [job, setJob] = useState<ReportJob | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -131,6 +146,39 @@ export default function ExperimentsPage() {
       setError("حداقل اثر را به‌صورت عدد وارد کن.");
       return;
     }
+    const financialValues = [marginPercent, marginSource, mensCost, mensCostSource, womensCost, womensCostSource];
+    const hasFinancialInputs = financialValues.some((value) => value.trim() !== "");
+    let financialAssumptions: Record<string, number | string> | null = null;
+    if (hasFinancialInputs) {
+      if (outcome !== "spend") {
+        setError("محاسبهٔ مالی فعلاً فقط با معیار درآمد ناخالص انجام می‌شود؛ پیامد اصلی را روی درآمد بگذار.");
+        return;
+      }
+      const margin = Number(marginPercent);
+      const mensCostValue = Number(mensCost);
+      const womensCostValue = Number(womensCost);
+      if (!marginPercent.trim() || !Number.isFinite(margin) || margin < 0 || margin > 100) {
+        setError("حاشیهٔ مشارکت را بین صفر تا صد درصد وارد کن.");
+        return;
+      }
+      if (!mensCost.trim() || !Number.isFinite(mensCostValue) || mensCostValue < 0 || !womensCost.trim() || !Number.isFinite(womensCostValue) || womensCostValue < 0) {
+        setError("هزینهٔ هر دو نسخه را به دلار و به‌ازای هزار نفر، با عدد صفر یا بیشتر وارد کن.");
+        return;
+      }
+      if (![marginSource, mensCostSource, womensCostSource].every((source) => source.trim())) {
+        setError("برای حاشیه و هزینهٔ هر دو نسخه، منبع یا توضیح ثبت کن.");
+        return;
+      }
+      financialAssumptions = {
+        common_contribution_margin: margin / 100,
+        margin_source: marginSource.trim(),
+        mens_campaign_cost_per_1000: mensCostValue,
+        mens_cost_source: mensCostSource.trim(),
+        womens_campaign_cost_per_1000: womensCostValue,
+        womens_cost_source: womensCostSource.trim(),
+        currency: "USD",
+      };
+    }
     setBusy(true);
     setError(null);
     setJob(null);
@@ -138,7 +186,7 @@ export default function ExperimentsPage() {
       const created: ReportJob = await apiJson("/v1/experiments/hillstrom/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ primary_outcome: outcome, minimum_effect_per_person: parsedThreshold }),
+        body: JSON.stringify({ primary_outcome: outcome, minimum_effect_per_person: parsedThreshold, financial_assumptions: financialAssumptions }),
       });
       setJob(created);
       const url = new URL(window.location.href);
@@ -197,7 +245,7 @@ export default function ExperimentsPage() {
 
         <div className="notice"><span className="notice-icon">i</span><div>
           <strong>این صفحه یک آزمایش بازاریابی عمومی را تحلیل می‌کند</strong>
-          <p>درآمد افزوده با سود فرق دارد؛ هزینهٔ کمپین و حاشیهٔ سود در فایل نیست. نتیجه هم نمایندهٔ تخفیف فروشگاهی یا بازار ایران نیست.</p>
+          <p>فایل عمومی هزینه و حاشیهٔ مشارکت ندارد. می‌توانی فرض‌های مالی را جدا وارد کنی تا مشارکت مشروط محاسبه شود. نتیجه نمایندهٔ تخفیف فروشگاهی یا بازار ایران نیست.</p>
         </div><a className="link-button" href="https://blog.minethatdata.com/2008/03/minethatdata-e-mail-analytics-and-data.html" target="_blank" rel="noreferrer">منبع داده ↗</a></div>
 
         <section className="panel experiment-controls">
@@ -213,6 +261,17 @@ export default function ExperimentsPage() {
             <input type="number" inputMode="decimal" step={outcome === "spend" ? "0.01" : "0.001"} value={threshold} onChange={(event) => setThreshold(event.target.value)} placeholder="خالی بماند تا فقط جهت آماری بررسی شود" disabled={busy} />
           </label>
           <small>آستانه را مدیر کسب‌وکار تعیین می‌کند. اگر هدف، سود است باید هزینهٔ ارسال، تخفیف و حاشیهٔ سود هم وارد شود؛ این benchmark آن‌ها را ندارد.</small>
+          <details className="financial-assumption-inputs">
+            <summary>افزودن هزینه و حاشیهٔ مشارکت برای گزارش مشروط</summary>
+            <p>همهٔ اعداد به دلارند؛ هزینه برای هر نسخه به‌ازای هزار نفر تخصیص‌یافته است. برای گروه کنترلِ بدون ایمیل، هزینه صفر در نظر گرفته می‌شود. مرجع را خودت وارد می‌کنی؛ سامانه صحت سند را راستی‌آزمایی نمی‌کند.</p>
+            <label>حاشیهٔ مشارکت مشترک، درصد<input type="number" min="0" max="100" step="0.1" value={marginPercent} onChange={(event) => setMarginPercent(event.target.value)} placeholder="مثلاً ۳۰" disabled={busy} /></label>
+            <label>منبع یا توضیح حاشیه<input value={marginSource} onChange={(event) => setMarginSource(event.target.value)} placeholder="مثلاً گزارش مالی و تاریخ آن" disabled={busy} /></label>
+            <label>هزینهٔ نسخهٔ محصولات مردانه، به‌ازای هزار نفر<input type="number" min="0" step="0.01" value={mensCost} onChange={(event) => setMensCost(event.target.value)} placeholder="هزینهٔ افزودهٔ کمپین" disabled={busy} /></label>
+            <label>منبع یا توضیح هزینهٔ نسخهٔ مردانه<input value={mensCostSource} onChange={(event) => setMensCostSource(event.target.value)} placeholder="مثلاً تعرفهٔ ارسال یا فاکتور" disabled={busy} /></label>
+            <label>هزینهٔ نسخهٔ محصولات زنانه، به‌ازای هزار نفر<input type="number" min="0" step="0.01" value={womensCost} onChange={(event) => setWomensCost(event.target.value)} placeholder="هزینهٔ افزودهٔ کمپین" disabled={busy} /></label>
+            <label>منبع یا توضیح هزینهٔ نسخهٔ زنانه<input value={womensCostSource} onChange={(event) => setWomensCostSource(event.target.value)} placeholder="مثلاً تعرفهٔ ارسال یا فاکتور" disabled={busy} /></label>
+            <small>این ورودی‌ها از benchmark عمومی Hillstrom نیستند. چون بر اساس این فایل هزینهٔ واقعی قابل‌تأیید نداریم، هر عدد واردشده فقط یک فرض یا مرجع ثبت‌شدهٔ کاربر است. خروجی مشارکت مشروط است، نه سود خالص.</small>
+          </details>
         </section>
 
         {busy && <section className="state-card" role="status" aria-live="polite"><div className="spinner" />در حال محاسبه و آماده‌سازی گزارش<div className="progress-track"><span style={{ width: `${job?.progress ?? 8}%` }} /></div><small>{number.format(job?.progress ?? 8)}٪ · شناسهٔ گزارش: {job?.report_id ?? "در حال ایجاد"}</small></section>}
@@ -255,6 +314,12 @@ export default function ExperimentsPage() {
                   {item.revenue_details.break_even_scenarios.map((scenario) => <p key={scenario.assumed_common_contribution_margin}>
                     حاشیهٔ {number.format(scenario.assumed_common_contribution_margin * 100)}٪: سقف مرکزی <strong>{money(scenario.maximum_incremental_cost_per_1000)}</strong>؛ بر مبنای بازهٔ درآمد {money(scenario.lower_bound_cost_per_1000)} تا {money(scenario.upper_bound_cost_per_1000)}.
                   </p>)}
+                  {item.revenue_details.conditional_economics && <>
+                    <h4>مشارکت افزوده با ورودی‌های ثبت‌شده — مشروط</h4>
+                    <p>پس از اعمال حاشیهٔ مشارکت {number.format(item.revenue_details.conditional_economics.common_contribution_margin * 100)}٪ و اختلاف هزینهٔ کمپین {money(item.revenue_details.conditional_economics.incremental_campaign_cost_per_1000)}، برآورد مرکزی به‌ازای هزار نفر <strong>{money(item.revenue_details.conditional_economics.contribution_per_1000.point)}</strong> است؛ بازهٔ ناشی از درآمد {money(item.revenue_details.conditional_economics.contribution_per_1000.lower)} تا {money(item.revenue_details.conditional_economics.contribution_per_1000.upper)}.</p>
+                    <p>منبع حاشیه: {item.revenue_details.conditional_economics.assumption_sources.margin}. منبع هزینهٔ گروه اول: {item.revenue_details.conditional_economics.assumption_sources.treatment_campaign_cost}. منبع هزینهٔ مقایسه: {item.revenue_details.conditional_economics.assumption_sources.control_campaign_cost}.</p>
+                    <small>منابع را کاربر وارد کرده و سامانه مستقلاً تأیید نکرده است. این بازه عدم‌قطعیت حاشیه یا هزینه را دربرنمی‌گیرد و مشارکت محاسباتی است، نه سود خالص.</small>
+                  </>}
                   <small>عدد منفی یعنی در آن برآورد، هیچ هزینهٔ غیرمنفی پوشش داده نمی‌شود. بازه فقط عدم‌قطعیت درآمد را منتقل می‌کند؛ این خروجی سود واقعی، مجوز اجرا یا اثبات برتری نسخه نیست.</small>
                 </details>}
               </article>;

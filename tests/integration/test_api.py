@@ -209,7 +209,18 @@ def test_hillstrom_report_uses_async_report_contract_and_persists_result(
 
     response = client.post(
         "/v1/experiments/hillstrom/reports",
-        json={"primary_outcome": "spend"},
+        json={
+            "primary_outcome": "spend",
+            "financial_assumptions": {
+                "common_contribution_margin": 0.3,
+                "margin_source": "test-only stated assumption",
+                "mens_campaign_cost_per_1000": 90,
+                "mens_cost_source": "test-only mens cost assumption",
+                "womens_campaign_cost_per_1000": 60,
+                "womens_cost_source": "test-only womens cost assumption",
+                "currency": "USD",
+            },
+        },
     )
 
     assert response.status_code == 202
@@ -217,8 +228,46 @@ def test_hillstrom_report_uses_async_report_contract_and_persists_result(
     assert created["analysis_type"] == "randomized_experiment"
     assert created["status"] == "queued"
     assert created["configuration"]["analysis"]["primary_outcome"] == "spend"
+    assert created["configuration"]["analysis"]["financial_assumptions"]["mens_campaign_cost_per_1000"] == 90
     stored = api_module._store().get("report", created["report_id"])
     assert stored["dataset_id"].startswith("hillstrom-")
+
+
+def test_hillstrom_report_rejects_margin_without_a_source(client: TestClient) -> None:
+    response = client.post(
+        "/v1/experiments/hillstrom/reports",
+        json={
+            "financial_assumptions": {
+                "common_contribution_margin": 0.3,
+                "margin_source": " ",
+                "mens_campaign_cost_per_1000": 90,
+                "mens_cost_source": "test-only",
+                "womens_campaign_cost_per_1000": 60,
+                "womens_cost_source": "test-only",
+            }
+        },
+    )
+    assert response.status_code == 422
+
+
+def test_hillstrom_report_rejects_financial_inputs_for_non_revenue_outcome(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/v1/experiments/hillstrom/reports",
+        json={
+            "primary_outcome": "conversion",
+            "financial_assumptions": {
+                "common_contribution_margin": 0.3,
+                "margin_source": "test only",
+                "mens_campaign_cost_per_1000": 1,
+                "mens_cost_source": "test only",
+                "womens_campaign_cost_per_1000": 1,
+                "womens_cost_source": "test only",
+            },
+        },
+    )
+    assert response.status_code == 422
 
 
 def test_hillstrom_worker_caches_valid_result_by_source_and_config(

@@ -749,6 +749,28 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Phase 8 remains ACTIVE. Dedicated experiment PDF, explicit financial inputs, bootstrap stability
   and limited subgroup analysis are remaining slices. No real profit, targeting or rollout is claimed.
 
+### Phase 8.3.2 — User-sourced conditional financial inputs (2026-10-12)
+
+- Added optional, strictly validated common contribution margin and separate per-1,000 assigned
+  campaign costs for the Mens and Womens email arms. Every value requires a user-provided source or
+  note; the API records that these references are not independently verified. Financial inputs are
+  rejected unless gross spend is the primary outcome, and cache schema was bumped to 1.3.0.
+- Reports now calculate conditional contribution as `incremental gross revenue × common margin −
+  incremental campaign cost` for both treatment/control comparisons and the direct Mens-vs-Womens
+  comparison. Revenue interval bounds are transformed using the same fixed financial assumptions;
+  uncertainty in margins/costs is not included. The UI states these boundaries and does not call the
+  result net profit or a deployment recommendation.
+- Validation: full Python suite **252 passed** (one existing Starlette/httpx deprecation warning),
+  Ruff, compileall, frontend typecheck/build, `git diff --check`, API report reached `ready`, and the
+  local browser showed the conditional result and test-only source notes. Report:
+  `rpt_8d86876df7644bfd`. Explicit test-only values produced conditional contribution per 1,000 of
+  **$140.95** (Mens vs no-email), **$67.32** (Womens vs no-email), and **$73.62** (Mens vs Womens);
+  these are not actual company results. Old report `rpt_79b096e8afa3496b` remained readable.
+- Learning: `learning/08-11-user-sourced-financial-assumptions/README.fa.md`. Phase 8 remains ACTIVE.
+  A dedicated experiment PDF, bootstrap stability, limited subgroup analysis, and a permitted
+  partner dataset with manager-verified financial inputs remain open. No actual profit, Iranian
+  market fit, or rollout claim is supported.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.

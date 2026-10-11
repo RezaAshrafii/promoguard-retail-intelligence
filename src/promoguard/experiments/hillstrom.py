@@ -18,7 +18,10 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from promoguard.experiments.revenue_details import build_revenue_details
+from promoguard.experiments.revenue_details import (
+    FinancialAssumptions,
+    build_revenue_details,
+)
 
 HILLSTROM_DATASET = "hillstrom-email-analytics-2008"
 HILLSTROM_DATASET_PAGE = (
@@ -58,9 +61,12 @@ class HillstromAnalysisConfig(BaseModel):
 
     primary_outcome: Literal["spend", "conversion", "visit"] = "spend"
     minimum_effect_per_person: float | None = None
+    financial_assumptions: FinancialAssumptions | None = None
 
     @model_validator(mode="after")
     def validate_threshold(self) -> HillstromAnalysisConfig:
+        if self.financial_assumptions is not None and self.primary_outcome != "spend":
+            raise ValueError("Financial assumptions require spend as the primary outcome.")
         if self.minimum_effect_per_person is not None and not math.isfinite(
             self.minimum_effect_per_person
         ):
@@ -316,7 +322,12 @@ def evaluate_hillstrom_frame(
                 "descriptive_outcomes": descriptive_metrics,
                 "revenue_details": (
                     build_revenue_details(
-                        treatment_frame, comparison_control_frame, (estimate, lower, upper)
+                        treatment_frame,
+                        comparison_control_frame,
+                        (estimate, lower, upper),
+                        config.financial_assumptions,
+                        treatment_arm=segment,
+                        control_arm=control_segment,
                     )
                     if config.primary_outcome == "spend"
                     else None
