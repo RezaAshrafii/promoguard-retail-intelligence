@@ -647,6 +647,60 @@ Phase 8.1.1 team execution overlay (2026-09-16):
   report and add serialized API contract examples. No real partner economics or manager-set
   hurdle has yet been supplied; therefore no company profit claim is established.
 
+### Phase 8.2.3 — Manager-facing scenario review page
+
+- Added a dedicated `/optimization` page in the Next.js application, linked from the primary
+  navigation. It accepts a caller-prepared JSON request, submits it to the local scenario API,
+  and renders each scenario's hurdle status, incremental-profit range, blockers, and explanation.
+- Added a downloadable blank JSON shape so users can see the complete request contract without
+  receiving fabricated prices, demand, costs, or business results. It is intentionally incomplete
+  and must be filled with sourced values before the API accepts it.
+- Added input-contract guidance and visible boundaries: projections are conditional scenarios,
+  not confidence intervals or causal effects; approver metadata is not authenticated; no scenario
+  is selected, ranked, or executed; budget screening is per scenario, not portfolio allocation.
+- The screen is a technical review surface, not an authenticated customer portal. It does not
+  store the request or create a report ID. No partner economics are bundled or implied.
+
+### Phase 8.2.4 — Explainable economic breakdown
+
+- Extended each manager-policy assessment with the already-calculated typed economics and
+  feasibility details: baseline and promoted profit intervals, downside/central/upside cases,
+  discount, unit contribution, trade spend, and sellable inventory.
+- The `/optimization` page reveals these fields in a per-scenario expandable audit section.
+  Calculations remain exclusively in the domain package; the browser formats and labels the values.
+- Unit and API tests assert the breakdown is preserved without changing scenario selection or
+  hurdle policy. No business-data example or profit claim is added.
+- Learning notes are in `learning/08-8-manager-scenario-ui/README.fa.md`.
+- Verification on 2026-10-11: focused optimization/API tests **41 passed**; full pytest **240
+  passed** with one existing Starlette/httpx deprecation warning; changed-scope Ruff, compileall,
+  Next typecheck/build, and `git diff --check` passed. The production local page, blank template,
+  and API CORS preflight returned HTTP 200. An end-user calculation with partner values remains
+  untested because no approved real economics payload is available.
+- This adapter/display slice did not change statistical formulas or decision thresholds. The
+  session did not expose a selectable model/reasoning override or a recordable reasoning level;
+  no independent statistical review is claimed.
+
+### Phase 8.2.5 — Review corrections for the scenario page (2026-10-11)
+
+- Cleared stale results on input edits, locked the editor and file picker while reading/submitting,
+  and guarded completion with request/operation versions so a late response cannot be shown for a
+  different input.
+- Preserved exact JSON number tokens by sending the validated original text to the API. Added a
+  decimal-string formatter that avoids JavaScript `Number` conversion for financial results and
+  demand values; focused tests cover large integers, exponent notation, percentage scaling, rounding,
+  negative zero, and invalid input.
+- Routed the data-readiness and promotion-audit links to explicit section query parameters and made
+  the home page retain the requested section after initial dataset/report loading.
+- Clarified that the budget-screening trade-spend value is calculated at upper projected demand.
+- Validation on 2026-10-11: focused formatter tests **3 passed**; `npm run typecheck` passed;
+  `npm run build` passed and generated `/`, `/experiments`, and `/optimization`; focused Python
+  optimization/API suite **41 passed** with one existing Starlette/httpx deprecation warning;
+  `git diff --check` passed. The local API and production web server were started; route smoke tests
+  returned HTTP 200 for `/optimization`, `/?section=readiness`, `/?section=promotion`, and
+  `/health`. No browser-driven interaction test was run.
+- Phase 8 remains ACTIVE. No economics, feasibility, hurdle, or statistical formula changed. No
+  approved partner data or business result is added by this correction.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.

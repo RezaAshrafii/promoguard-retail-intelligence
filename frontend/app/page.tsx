@@ -229,9 +229,17 @@ export default function Home() {
   }
 
   useEffect(() => {
-    const saved = new URL(window.location.href).searchParams.get("report");
-    if (saved) void openReport(saved);
-    else if (DATASET_PATH) void prepareDataset();
+    const url = new URL(window.location.href);
+    const saved = url.searchParams.get("report");
+    const requestedSection = url.searchParams.get("section");
+    const validSections = ["overview", "readiness", "promotion", "history"];
+    const startupSection = validSections.includes(requestedSection ?? "") ? requestedSection! : null;
+    if (startupSection) setActive(startupSection);
+    void (async () => {
+      if (saved) await openReport(saved);
+      else if (DATASET_PATH) await prepareDataset();
+      if (startupSection) setActive(startupSection);
+    })();
     void refreshReports().catch(() => {});
   }, []);
 
@@ -258,6 +266,7 @@ export default function Home() {
           <button className={active === "readiness" ? "nav-item active" : "nav-item"} onClick={() => setActive("readiness")}>▣ <span>آمادگی داده</span></button>
           <button className={active === "promotion" ? "nav-item active" : "nav-item"} onClick={() => setActive("promotion")}>▥ <span>ممیزی پروموشن</span></button>
           <a className="nav-item" href="/experiments">◉ <span>ارزیابی با گروه کنترل</span></a>
+          <a className="nav-item" href="/optimization">↗ <span>بررسی سناریوها</span></a>
           <button className={active === "history" ? "nav-item active" : "nav-item"} onClick={() => { setActive("history"); void refreshReports().catch(() => setError("دریافت فهرست گزارش‌ها ناموفق بود.")); }}>▤ <span>گزارش‌های ذخیره‌شده</span></button>
         </nav>
         <div className="sidebar-footer"><small>محیط پایلوت خصوصی · بدون دسترسی عمومی</small></div>

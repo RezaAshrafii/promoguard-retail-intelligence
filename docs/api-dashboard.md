@@ -48,6 +48,19 @@ review API only. Do not expose it to the Internet or submit confidential company
 authentication, access control, and approved storage are implemented.
 The recorded approver name/reference is caller-supplied metadata and is not identity verification.
 
+Each response assessment also preserves the domain's conditional-economics breakdown: baseline
+profit, promoted-profit interval, the three entered demand cases, discount rate, unit contribution,
+projected trade spend, and sellable inventory. These are the same deterministic domain outputs
+used by the hurdle classification; the API does not validate source documents or recalculate them
+in the browser. The web review page validates the JSON syntax in the browser, then sends the original
+JSON text to the API so large decimal literals do not pass through JavaScript's lower-precision
+`Number` type. Decimal amounts in the response are formatted directly from their decimal strings.
+The budget-check figure uses upper projected demand; the page labels that basis beside the value.
+
+The review page clears a prior result as soon as its input changes and locks the editor while a
+request or file read is running. Main-page navigation links carry a section key so the requested
+readiness or promotion section opens after the dataset is loaded.
+
 Example local validation:
 
 ```powershell

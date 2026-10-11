@@ -170,6 +170,7 @@ export default function ExperimentsPage() {
           <a className="nav-item" href="/">▣ <span>آمادگی داده</span></a>
           <a className="nav-item" href="/">▥ <span>ممیزی پروموشن</span></a>
           <a className="nav-item active" href="/experiments">◉ <span>ارزیابی با گروه کنترل</span></a>
+          <a className="nav-item" href="/optimization">↗ <span>بررسی سناریوها</span></a>
         </nav>
         <div className="sidebar-footer"><small>آزمایش تصادفی عمومی · تحلیل محلی</small></div>
       </aside>

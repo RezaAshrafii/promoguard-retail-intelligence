@@ -1,0 +1,49 @@
+{
+  "optimization": {
+    "request_id": "",
+    "currency": "",
+    "total_trade_spend_budget": null,
+    "minimum_unit_contribution": null,
+    "maximum_discount_rate": null,
+    "inventory_reserve_units": null,
+    "human_approval_required": true,
+    "automatic_execution_allowed": false,
+    "scenarios": [
+      {
+        "scenario_id": "",
+        "store_id": "",
+        "sku_id": "",
+        "start_date": "",
+        "end_date": "",
+        "currency": "",
+        "regular_unit_price": null,
+        "promotion_unit_price": null,
+        "unit_cost": null,
+        "supplier_funding_per_unit": null,
+        "fixed_trade_spend": null,
+        "variable_trade_spend_per_unit": null,
+        "available_inventory_units": null,
+        "baseline_demand_units": null,
+        "projected_demand_units": { "lower": null, "point": null, "upper": null },
+        "evidence": [
+          { "field_name": "regular_unit_price", "kind": "", "reference": "", "as_of_date": "", "approved_by": "" },
+          { "field_name": "promotion_unit_price", "kind": "", "reference": "", "as_of_date": "", "approved_by": "" },
+          { "field_name": "unit_cost", "kind": "", "reference": "", "as_of_date": "", "approved_by": "" },
+          { "field_name": "supplier_funding_per_unit", "kind": "", "reference": "", "as_of_date": "", "approved_by": "" },
+          { "field_name": "fixed_trade_spend", "kind": "", "reference": "", "as_of_date": "", "approved_by": "" },
+          { "field_name": "variable_trade_spend_per_unit", "kind": "", "reference": "", "as_of_date": "", "approved_by": "" },
+          { "field_name": "available_inventory_units", "kind": "", "reference": "", "as_of_date": "", "approved_by": "" },
+          { "field_name": "baseline_demand_units", "kind": "", "reference": "", "as_of_date": "", "approved_by": "" },
+          { "field_name": "projected_demand_units", "kind": "", "reference": "", "as_of_date": "", "approved_by": "" }
+        ]
+      }
+    ]
+  },
+  "policy": {
+    "minimum_incremental_profit": null,
+    "currency": "",
+    "reference": "",
+    "approved_by": "",
+    "as_of_date": ""
+  }
+}
