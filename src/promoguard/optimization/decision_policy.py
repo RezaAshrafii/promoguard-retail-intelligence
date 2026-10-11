@@ -9,10 +9,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from promoguard.optimization.feasibility import (
-    FeasibilityCode,
-    ScenarioComparisonReport,
-)
+from promoguard.optimization.economics import ConditionalEconomics, EconomicSensitivity
+from promoguard.optimization.feasibility import FeasibilityCode, ScenarioComparisonReport
 
 
 class ScenarioDecision(StrEnum):
@@ -57,6 +55,12 @@ class ScenarioDecisionAssessment(BaseModel):
     incremental_profit_lower: Decimal
     incremental_profit_point: Decimal
     incremental_profit_upper: Decimal
+    conditional_economics: ConditionalEconomics
+    economic_sensitivity: EconomicSensitivity
+    discount_rate: Decimal
+    projected_unit_contribution: Decimal
+    projected_trade_spend: Decimal
+    sellable_inventory_units: int
     explanation: str
 
 
@@ -123,6 +127,12 @@ def evaluate_manager_policy(
                 incremental_profit_lower=incremental.lower,
                 incremental_profit_point=incremental.point,
                 incremental_profit_upper=incremental.upper,
+                conditional_economics=scenario.conditional_economics,
+                economic_sensitivity=scenario.economic_sensitivity,
+                discount_rate=scenario.discount_rate,
+                projected_unit_contribution=scenario.projected_unit_contribution,
+                projected_trade_spend=scenario.projected_trade_spend,
+                sellable_inventory_units=scenario.sellable_inventory_units,
                 explanation=explanation,
             )
         )

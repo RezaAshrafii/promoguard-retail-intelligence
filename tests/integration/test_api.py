@@ -362,6 +362,14 @@ def test_manager_scenario_comparison_api_returns_bounded_policy_result(
     assert payload["selected_scenario_id"] is None
     assert payload["budget_scope"] == "per_scenario_screen_only"
     assert payload["assessments"][0]["blocking_reasons"] == []
+    assessment = payload["assessments"][0]
+    assert assessment["conditional_economics"]["baseline_profit"] == "2400000.0"
+    assert assessment["conditional_economics"]["promoted_profit"]["point"] == "2300000.0"
+    assert assessment["economic_sensitivity"]["cases"][1]["incremental_profit"] == "-100000.0"
+    assert assessment["discount_rate"] == "0.1"
+    assert assessment["projected_unit_contribution"] == "24000"
+    assert assessment["projected_trade_spend"] == "220000.0"
+    assert assessment["sellable_inventory_units"] == 180
     assert "میان سبد تقسیم نشده است" in payload["limitation"]
     assert "هویت او احراز نمی‌شود" in payload["limitation"]
     assert "نه بازهٔ اطمینان" in payload["limitation"]

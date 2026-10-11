@@ -367,6 +367,25 @@ def test_decision_policy_only_marks_candidate_when_lower_case_meets_hurdle() -> 
     assert "نامزدی" in result.assessments[0].explanation
 
 
+def test_manager_policy_response_preserves_auditable_economic_breakdown() -> None:
+    result = evaluate_manager_policy(compare_scenarios(request()), manager_policy())
+    assessment = result.assessments[0]
+
+    assert assessment.conditional_economics.baseline_profit == Decimal(2400000)
+    assert assessment.conditional_economics.promoted_profit.lower == Decimal(2060000)
+    assert assessment.conditional_economics.promoted_profit.point == Decimal(2300000)
+    assert assessment.conditional_economics.promoted_profit.upper == Decimal(2780000)
+    assert [case.case for case in assessment.economic_sensitivity.cases] == [
+        "downside",
+        "expected",
+        "upside",
+    ]
+    assert assessment.discount_rate == Decimal("0.1")
+    assert assessment.projected_unit_contribution == Decimal(24000)
+    assert assessment.projected_trade_spend == Decimal(220000)
+    assert assessment.sellable_inventory_units == 180
+
+
 def test_decision_policy_below_hurdle_is_not_automatic_rejection() -> None:
     weak = scenario(
         scenario_id="weak",
