@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:format": "node --test app/optimization/format.test.mjs app/optimization/api-errors.test.mjs",
+    "test:format": "node --test app/optimization/format.test.mjs app/optimization/api-errors.test.mjs app/optimization/request-builder.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

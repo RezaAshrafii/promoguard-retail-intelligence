@@ -716,6 +716,25 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Phase 8 remains ACTIVE. A permitted partner dataset and manager-reviewed economics are still
   needed for the real commercial decision gate.
 
+### Phase 8.2.7 — Guided manager-input builder (2026-10-11)
+
+- Added a three-step Persian form for campaign scope and constraints, scenario economics, and
+  per-field evidence plus the manager-approved hurdle. The existing JSON/file path remains available
+  as an advanced alternative; the guided path creates one scenario and never submits automatically.
+- The form starts entirely blank. Its serializer preserves decimal inputs as strings, rejects invalid
+  dates/currencies and unsafe integer quantities, requires provenance for all nine economic inputs,
+  and keeps human approval required / automatic execution disabled.
+- Added unit tests for empty-form abstention, complete contract construction, decimal precision,
+  evidence coverage, invalid values, and safe execution flags. The generated request is passed to the
+  existing API contract for authoritative cross-field and business-rule validation.
+- Validation on 2026-10-11: frontend utility tests **9 passed**, TypeScript passed, production build
+  passed, focused backend optimization/API tests **41 passed** (one existing Starlette/httpx
+  deprecation warning), `git diff --check` passed, and local API `/health` plus web `/optimization`
+  returned HTTP 200. No browser-driven interaction test was run. No company data, profit outcome,
+  manager approval, or analytical method is added by this UI work.
+- Phase 8 remains ACTIVE. The real decision gate still requires permitted company inputs and review
+  by the responsible manager; the form makes that handoff easier but does not replace it.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.
