@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useRef, useState } from "react";
 import { BrandLogo } from "../components/BrandLogo";
+import { formatApiValidationErrors } from "./api-errors.mjs";
 import { formatPersianDecimal } from "./format.mjs";
 import styles from "./optimization.module.css";
 
@@ -129,7 +130,12 @@ export default function OptimizationPage() {
       const payload = await response.json();
       if (!response.ok) {
         const detail = payload.detail;
-        const message = typeof detail === "string" ? detail : "ساختار یا مقادیر درخواست با قرارداد تحلیل سازگار نیست.";
+        const validationMessages = formatApiValidationErrors(detail);
+        const message = typeof detail === "string"
+          ? detail
+          : validationMessages.length > 0
+            ? validationMessages.join("\n")
+            : "ساختار یا مقادیر درخواست با قرارداد تحلیل سازگار نیست.";
         throw new Error(message);
       }
       if (requestVersion.current === submittedVersion) setResult(payload as Comparison);
@@ -200,7 +206,7 @@ export default function OptimizationPage() {
           </aside>
         </div>
 
-        {error && <section className={styles.error} role="alert"><strong>بررسی انجام نشد</strong><p>{error}</p><small>اگر پیام از API آمده، ورودی‌ها یا در دسترس بودن سرویس محلی را بررسی کن.</small></section>}
+        {error && <section className={styles.error} role="alert"><strong>بررسی انجام نشد</strong><p>{error}</p><small>اگر فیلد مشخصی نام برده شده، همان را در درخواست اصلاح کن. در خطای ارتباطی، سرویس محلی را بررسی کن.</small></section>}
 
         {result && <section className={styles.results} aria-live="polite">
           <div className={styles.resultHeader}><div><p className={styles.eyebrow}>COMPARISON RESULT</p><h2>خلاصهٔ بررسی</h2><p>درخواست: <bdi>{result.request_id}</bdi></p></div><span className={styles.manualBadge}>تصمیم نهایی با مدیر</span></div>

@@ -701,6 +701,21 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Phase 8 remains ACTIVE. No economics, feasibility, hurdle, or statistical formula changed. No
   approved partner data or business result is added by this correction.
 
+### Phase 8.2.6 — Actionable scenario-input validation
+
+- Translated structured API validation responses into Persian field-level guidance, including
+  manager-readable labels, scenario indices, common date/number/required-field cases, and a bounded
+  list when the request contains many errors.
+- Unknown validation types keep their input path and use safe generic wording; the backend remains
+  the validation authority. Unit tests cover translated paths, scenario indexing, and error-list caps.
+- Validation on 2026-10-11: 6 frontend utility tests passed; `npm run typecheck` and production
+  `npm run build` passed; focused Python optimization/API tests **41 passed** with one existing
+  Starlette/httpx deprecation warning; `git diff --check` passed; local `/optimization` and API
+  `/health` returned HTTP 200. No browser-driven interaction test was run.
+- No analytical method or business thresholds changed.
+- Phase 8 remains ACTIVE. A permitted partner dataset and manager-reviewed economics are still
+  needed for the real commercial decision gate.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.

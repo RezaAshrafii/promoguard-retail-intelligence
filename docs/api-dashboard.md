@@ -61,6 +61,11 @@ The review page clears a prior result as soon as its input changes and locks the
 request or file read is running. Main-page navigation links carry a section key so the requested
 readiness or promotion section opens after the dataset is loaded.
 
+When the comparison API rejects a request with structured validation details, the page translates
+the supported Pydantic error types into Persian guidance and maps common contract keys to manager-
+readable labels. It shows at most eight field errors at once and reports how many remain. Unknown
+validation types receive a safe generic message while retaining their field path.
+
 Example local validation:
 
 ```powershell
