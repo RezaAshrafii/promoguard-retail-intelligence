@@ -182,17 +182,18 @@ export default function OptimizationPage() {
           <section className={styles.panel}>
             <div className={styles.panelHeading}><div><span className={styles.step}>۰۱</span><div><h2>ورودی مستندشده</h2><p>درخواست JSON ساخته‌شده از داده و مفروضات تأییدشده را بارگذاری یا اینجا جای‌گذاری کن.</p></div></div><a className={styles.templateLink} href="/templates/manager-scenario-comparison.template.json" download>دریافت قالب خالی</a></div>
             <div className={styles.inputMode} aria-label="روش ورود اطلاعات">
-              <button type="button" aria-pressed={inputMode === "guided"} className={inputMode === "guided" ? styles.inputModeActive : styles.inputModeButton} onClick={() => setInputMode("guided")}>فرم مرحله‌ای</button>
-              <button type="button" aria-pressed={inputMode === "json"} className={inputMode === "json" ? styles.inputModeActive : styles.inputModeButton} onClick={() => setInputMode("json")}>ورود JSON</button>
+              <button type="button" disabled={busy} aria-pressed={inputMode === "guided"} className={inputMode === "guided" ? styles.inputModeActive : styles.inputModeButton} onClick={() => setInputMode("guided")}>فرم مرحله‌ای</button>
+              <button type="button" disabled={busy} aria-pressed={inputMode === "json"} className={inputMode === "json" ? styles.inputModeActive : styles.inputModeButton} onClick={() => setInputMode("json")}>ورود JSON</button>
             </div>
-            {inputMode === "guided" ? <ScenarioRequestBuilder onBuild={(json) => {
+            <div hidden={inputMode !== "guided"}><ScenarioRequestBuilder onBuild={(json) => {
               requestVersion.current += 1;
               setRequestText(json);
               setFileName("");
               setResult(null);
               setError("");
               setInputMode("json");
-            }} /> : <>
+            }} /></div>
+            <div hidden={inputMode !== "json"}>
             <label className={styles.filePicker}>
               <input type="file" accept=".json,application/json" disabled={busy} onChange={(event) => void readFile(event)} />
               <span className={styles.uploadIcon}>↑</span><span><strong>انتخاب فایل JSON</strong><small>{fileName || "فایل فقط در همین مرورگر خوانده می‌شود و به API محلی فرستاده می‌شود."}</small></span>
@@ -206,7 +207,7 @@ export default function OptimizationPage() {
             </div>
             <button className={styles.primary} type="button" disabled={busy || !requestText.trim()} onClick={() => void compare()}>{busy ? <><span className={styles.spinner} /> در حال بررسی…</> : "مقایسهٔ سناریوها"}</button>
             <p className={styles.privacyNote}>این صفحه درخواست را به API محلی تنظیم‌شده می‌فرستد؛ اطلاعات محرمانه را فقط در محیط مجاز خود وارد کن. این سرویس هنوز احراز هویت یا سطح دسترسی سازمانی ندارد.</p>
-            </>}
+            </div>
           </section>
 
           <aside className={`${styles.panel} ${styles.guide}`}>
