@@ -63,6 +63,7 @@ MAX_UPLOAD_BYTES = 120 * 1024 * 1024
 MAX_PANEL_ROWS = 1_000_000
 REPORT_RESULT_SCHEMA_VERSION = "2.2.0"
 HILLSTROM_REPORT_SCHEMA_VERSION = "1.3.0"
+HILLSTROM_PDF_SCHEMA_VERSION = "2"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 LOCAL_DATA_ROOT = (REPOSITORY_ROOT / "data").resolve()
 HILLSTROM_DATASET_PATH = LOCAL_DATA_ROOT / "raw" / "hillstrom" / "hillstrom-email-analytics-2008.csv"
@@ -717,11 +718,20 @@ def download_report_pdf(report_id: str) -> FileResponse:
     report = _report_record(report_id)
     if report is None or report["status"] != "ready":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="گزارش هنوز آماده نیست.")
-    pdf_path = REPORT_ROOT / f"{report_id}.pdf"
+    is_experiment = report.get("analysis_type") == "randomized_experiment"
+    pdf_name = (
+        f"{report_id}-experiment-v{HILLSTROM_PDF_SCHEMA_VERSION}.pdf"
+        if is_experiment else f"{report_id}.pdf"
+    )
+    pdf_path = REPORT_ROOT / pdf_name
     if not pdf_path.exists():
-        from apps.api.pdf import build_promotion_report_pdf
+        from apps.api.pdf import build_experiment_report_pdf, build_promotion_report_pdf
 
         pdf_path.parent.mkdir(parents=True, exist_ok=True)
-        pdf_path.write_bytes(build_promotion_report_pdf(report))
+        if is_experiment:
+            pdf_bytes = build_experiment_report_pdf(report)
+        else:
+            pdf_bytes = build_promotion_report_pdf(report)
+        pdf_path.write_bytes(pdf_bytes)
     return FileResponse(pdf_path, media_type="application/pdf", filename=f"{report_id}.pdf")
 

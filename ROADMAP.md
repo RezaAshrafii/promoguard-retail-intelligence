@@ -771,6 +771,25 @@ Phase 8.1.1 team execution overlay (2026-09-16):
   partner dataset with manager-verified financial inputs remain open. No actual profit, Iranian
   market fit, or rollout claim is supported.
 
+### Phase 8.3.3 — Shareable experiment PDF (2026-10-12)
+
+- Added a Persian/Vazirmatn PDF report for completed randomized-experiment jobs. It includes report
+  identity, arm sizes, primary outcome, all three planned contrasts and simultaneous intervals,
+  conditional financial outputs and user-entered source notes when present, method, source hash,
+  license note, and limitations. Currency values use explicit LTR formatting and parentheses for
+  negatives to avoid RTL sign ambiguity.
+- Routed ready randomized-experiment reports through the existing PDF endpoint while preserving
+  the prior retail-promotion PDF path. Non-ready reports remain unavailable. Added a download action
+  to the experiment dashboard only after the report is ready. User-provided strings are escaped
+  before PDF paragraph rendering. Experiment PDFs use a versioned cache filename so an older
+  same-ID PDF cannot mask the new template after a deploy.
+- Validation: full Python suite **256 passed** (one existing Starlette/httpx deprecation warning);
+  Ruff, `compileall`, and `git diff --check` passed; frontend typecheck and production build passed.
+  A ready public-benchmark report returned HTTP 200 with a valid two-page PDF, both pages were
+  rendered and visually inspected, and the dashboard showed the report-specific download link.
+  No financial or statistical calculation changed; PDF is a presentation/export layer only.
+- Learning: `learning/08-12-shareable-experiment-pdf/README.fa.md`. Phase 8 remains ACTIVE.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.

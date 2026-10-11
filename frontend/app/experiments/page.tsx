@@ -234,6 +234,7 @@ export default function ExperimentsPage() {
       <section className="content">
         <header className="topbar"><div className="top-actions">
           <button className="secondary" disabled={busy} onClick={() => job?.report_id && void openReport(job.report_id)}>بررسی وضعیت</button>
+          {summary && job?.status === "ready" && <a className="secondary experiment-pdf-link" href={`${API_BASE}/v1/reports/${job.report_id}/pdf`} target="_blank" rel="noreferrer">دریافت گزارش PDF</a>}
           <button className="primary" disabled={busy} onClick={() => void runAnalysis()}>{busy ? "در حال تحلیل…" : "اجرای ارزیابی کمپین"}</button>
         </div></header>
 

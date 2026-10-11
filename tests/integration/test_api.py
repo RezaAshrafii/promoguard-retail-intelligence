@@ -270,6 +270,60 @@ def test_hillstrom_report_rejects_financial_inputs_for_non_revenue_outcome(
     assert response.status_code == 422
 
 
+def test_hillstrom_ready_report_downloads_dedicated_pdf(
+    client: TestClient,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    report_id = "rpt_hillstrom_pdf"
+    runtime = tmp_path / "runtime"
+    monkeypatch.setattr(api_module, "RUNTIME_ROOT", runtime)
+    monkeypatch.setattr(api_module, "REPORT_ROOT", runtime / "reports")
+    record = {
+        "report_id": report_id,
+        "dataset_id": "hillstrom-test",
+        "analysis_type": "randomized_experiment",
+        "configuration": {"analysis": {"financial_assumptions": None}},
+        "status": "ready",
+        "progress": 100,
+        "result": {
+            "benchmark": "hillstrom-email-analytics-2008",
+            "source": {"sha256": "a" * 64, "license_status": "No explicit license stated", "dataset_page": "https://example.org"},
+            "design": {"sample_rows": 0, "outcome_window": "two weeks", "arm_counts": {}},
+            "primary_outcome": {"name": "spend", "unit": "USD gross revenue per assigned customer"},
+            "uncertainty": {"method": "Welch interval", "contrast_count": 3},
+            "comparisons": [],
+            "interpretation": ["Gross spend is not profit."],
+        },
+    }
+    api_module._save_report(record)
+
+    response = client.get(f"/v1/reports/{report_id}/pdf")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert response.headers["content-disposition"].endswith(f'filename="{report_id}.pdf"')
+    assert response.content.startswith(b"%PDF")
+    assert (runtime / "reports" / f"{report_id}-experiment-v2.pdf").is_file()
+
+
+def test_hillstrom_pdf_is_not_available_before_report_is_ready(
+    client: TestClient,
+) -> None:
+    api_module._save_report({
+        "report_id": "rpt_hillstrom_queued_pdf",
+        "dataset_id": "hillstrom-test",
+        "analysis_type": "randomized_experiment",
+        "status": "queued",
+        "progress": 30,
+        "result": None,
+    })
+
+    response = client.get("/v1/reports/rpt_hillstrom_queued_pdf/pdf")
+
+    assert response.status_code == 409
+
+
 def test_hillstrom_worker_caches_valid_result_by_source_and_config(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

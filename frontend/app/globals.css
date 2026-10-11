@@ -32,6 +32,7 @@ html, body { width:100%; height:100%; overflow:hidden; }
 .experiment-report-id { display:grid; gap:6px; flex:none; text-align:left; direction:ltr; }
 .experiment-report-id span { color:var(--muted); font-size:9px; }
 .experiment-report-id strong { font:11px monospace; }
+.experiment-pdf-link { display:inline-flex; align-items:center; text-decoration:none; white-space:nowrap; }
 .spend-panel { margin-bottom:17px; }
 .spend-bars { display:grid; gap:12px; max-width:800px; }
 .spend-bar-row { display:grid; grid-template-columns:130px minmax(100px,1fr) 95px; gap:12px; align-items:center; font-size:11px; }
