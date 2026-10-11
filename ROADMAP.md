@@ -735,6 +735,20 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Phase 8 remains ACTIVE. The real decision gate still requires permitted company inputs and review
   by the responsible manager; the form makes that handoff easier but does not replace it.
 
+### Phase 8.3.1 — Revenue drivers and hypothetical break-even (2026-10-11)
+
+- Added descriptive buyer/revenue profiles, symmetric product decomposition, buyer-count effects,
+  revenue concentration, and four explicitly hypothetical common-margin break-even scenarios.
+- Exposed optional details on spend comparisons and the experiments page; original ITT effects and
+  simultaneous intervals are unchanged. Old persisted reports remain readable; cache schema is 1.2.0.
+- Full Python suite: 244 passed with one existing warning; focused tests after the final integration
+  assertion: 17 passed. Ruff, compileall, frontend typecheck/build passed. Real 64,000-row report
+  `rpt_9bc5ef09020f40c7` reached ready; old report remained ready after restart; web returned HTTP 200.
+- Learning: `learning/08-10-revenue-drivers/README.fa.md`. No browser visual check or independent
+  second-model review is claimed. The session model/reasoning override is not exposed.
+- Phase 8 remains ACTIVE. Dedicated experiment PDF, explicit financial inputs, bootstrap stability
+  and limited subgroup analysis are remaining slices. No real profit, targeting or rollout is claimed.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.
