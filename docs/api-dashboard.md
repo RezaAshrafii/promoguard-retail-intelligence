@@ -34,6 +34,19 @@ resolved and restricted to the configured local `data/` root; paths outside it r
 | `POST` | `/v1/panels/validate-upload` | Validate a bounded CSV upload |
 | `POST` | `/v1/promotions` | Detect and return a bounded event list |
 | `POST` | `/v1/audits` | Audit an explicit or deterministically selected event |
+| `POST` | `/v1/optimization/comparisons` | Compare up to 100 evidenced economic scenarios against a recorded manager-set profit hurdle |
+
+The economics comparison request contains `optimization` (the typed scenario list and hard
+constraints) and `policy` (the non-negative `minimum_incremental_profit`, matching ISO currency,
+reference, caller-entered approver, and date). A successful response classifies each scenario as blocked,
+candidate for human review, below the hurdle, or unresolved. It never selects a scenario.
+
+The `lower`, `point`, and `upper` demand values are scenario projections, not a confidence
+interval or probability. The budget is screened independently for each scenario; this endpoint
+does not allocate a shared portfolio budget. The endpoint is intended for the existing local
+review API only. Do not expose it to the Internet or submit confidential company economics until
+authentication, access control, and approved storage are implemented.
+The recorded approver name/reference is caller-supplied metadata and is not identity verification.
 
 Example local validation:
 

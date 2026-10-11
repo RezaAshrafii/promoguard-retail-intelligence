@@ -6,15 +6,19 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
+from apps.api.contracts import ManagerScenarioComparisonRequest
 from promoguard.optimization import (
     EconomicsEvidence,
     EvidenceKind,
     FeasibilityCode,
+    ManagerHurdlePolicy,
     OptimizationInput,
     ProjectionInterval,
     PromotionScenario,
+    ScenarioDecision,
     assess_scenarios,
     compare_scenarios,
+    evaluate_manager_policy,
 )
 
 ECONOMICS_FIELDS = [
@@ -298,4 +302,107 @@ def test_multi_scenario_comparison_preserves_input_order_and_requires_review() -
     ]
     assert report.selection_status == "manual_review_required"
     assert report.selected_scenario_id is None
-    assert "no scenario is ranked" in report.limitation
+    assert report.budget_scope == "per_scenario_screen_only"
+    assert "not allocated across a portfolio" in report.limitation
+
+
+def manager_policy(hurdle: str = "0", currency: str = "IRR") -> ManagerHurdlePolicy:
+    return ManagerHurdlePolicy(
+        minimum_incremental_profit=hurdle,
+        currency=currency,
+        reference="sales-approved-hurdle-2026-10-11",
+        approved_by="sales-manager",
+        as_of_date=date(2026, 10, 11),
+    )
+
+
+def test_hurdle_policy_trims_approver_metadata_and_rejects_blank() -> None:
+    policy = ManagerHurdlePolicy(
+        minimum_incremental_profit=0,
+        currency="IRR",
+        reference="  finance-note  ",
+        approved_by="  manager  ",
+        as_of_date=date(2026, 10, 11),
+    )
+    assert policy.reference == "finance-note"
+    assert policy.approved_by == "manager"
+    with pytest.raises(ValidationError):
+        ManagerHurdlePolicy(
+            minimum_incremental_profit=0,
+            currency="IRR",
+            reference="  ",
+            approved_by="manager",
+            as_of_date=date(2026, 10, 11),
+        )
+
+
+def test_api_comparison_contract_caps_scenario_count() -> None:
+    many = [scenario(scenario_id=f"scenario-{index}") for index in range(101)]
+    with pytest.raises(ValidationError, match="at most 100 scenarios"):
+        ManagerScenarioComparisonRequest(
+            optimization=request(scenarios=many),
+            policy=manager_policy(),
+        )
+
+
+def test_decision_policy_abstains_when_sensitivity_interval_crosses_hurdle() -> None:
+    result = evaluate_manager_policy(compare_scenarios(request()), manager_policy())
+    assert result.assessments[0].decision == ScenarioDecision.HURDLE_NOT_RESOLVED
+    assert result.selection_status == "manual_review_required"
+    assert result.selected_scenario_id is None
+    assert "نه بازهٔ اطمینان" in result.limitation
+
+
+def test_decision_policy_only_marks_candidate_when_lower_case_meets_hurdle() -> None:
+    strong = scenario(
+        scenario_id="strong",
+        fixed_trade_spend="0",
+        projected_demand_units=ProjectionInterval(point=150, lower=140, upper=160),
+    )
+    result = evaluate_manager_policy(
+        compare_scenarios(request(strong)), manager_policy("500000")
+    )
+    assert result.assessments[0].decision == ScenarioDecision.CANDIDATE_FOR_HUMAN_REVIEW
+    assert result.assessments[0].incremental_profit_lower == Decimal(960000)
+    assert "نامزدی" in result.assessments[0].explanation
+
+
+def test_decision_policy_below_hurdle_is_not_automatic_rejection() -> None:
+    weak = scenario(
+        scenario_id="weak",
+        promotion_unit_price="70000",
+        supplier_funding_per_unit="0",
+        fixed_trade_spend="100000",
+        variable_trade_spend_per_unit="0",
+        projected_demand_units=ProjectionInterval(point=40, lower=30, upper=50),
+    )
+    result = evaluate_manager_policy(
+        compare_scenarios(
+            request(
+                weak,
+                maximum_discount_rate="0.4",
+                minimum_unit_contribution="-20000",
+            )
+        ),
+        manager_policy(),
+    )
+    assert result.assessments[0].decision == ScenarioDecision.BELOW_MANAGER_HURDLE
+    assert "دستور توقف" in result.assessments[0].explanation
+
+
+def test_decision_policy_reports_constraints_before_financial_hurdle() -> None:
+    blocked = scenario(
+        scenario_id="blocked",
+        available_inventory_units=50,
+        projected_demand_units=ProjectionInterval(point=60, lower=55, upper=70),
+    )
+    result = evaluate_manager_policy(
+        compare_scenarios(request(blocked)), manager_policy()
+    )
+    assert result.assessments[0].decision == ScenarioDecision.BLOCKED_BY_CONSTRAINTS
+    assert result.assessments[0].blocking_reasons
+
+
+def test_decision_policy_rejects_currency_mismatch() -> None:
+    with pytest.raises(ValueError, match="currency must match"):
+        evaluate_manager_policy(compare_scenarios(request()), manager_policy(currency="USD"))

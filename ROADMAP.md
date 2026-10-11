@@ -624,6 +624,29 @@ Phase 8.1.1 team execution overlay (2026-09-16):
   A permitted partner dataset and manager-approved economic definitions are still required
   before any commercial profit claim.
 
+### Phase 8.2.2 — manager-set hurdle and comparison API (2026-10-11)
+
+- Added `ManagerHurdlePolicy`; a minimum incremental-profit hurdle now requires a currency,
+  source/reference, named approver, and as-of date. The system does not invent the business
+  threshold.
+- Added four bounded scenario states: blocked by constraints, candidate for human review,
+  below the manager hurdle, and hurdle not resolved. The demand range is explicitly described
+  as a scenario range, not a confidence interval or probability statement.
+- Added `POST /v1/optimization/comparisons`. The request is limited to 100 scenarios, checks
+  policy/scenario currency consistency, returns typed economic intervals and the decision
+  explanation, and always requires manual review with no selected scenario.
+- The caller-supplied approver name and reference are metadata only; no identity or approval is
+  authenticated by this local API. Portfolio-wide budget allocation remains out of scope.
+- Focused tests passed **40 tests**; full pytest passed **239 tests** with one pre-existing
+  Starlette/httpx deprecation warning. Changed-scope Ruff, compileall, and `git diff --check`
+  passed.
+- The current GPT-6 runtime was used because the repository's recommended `gpt-5.6-sol` model
+  could not be selected in this session; the session does not expose a recordable reasoning
+  setting. No independent second-model review is claimed.
+- Phase 8 remains ACTIVE. The next slice is to connect this response to the manager-facing web
+  report and add serialized API contract examples. No real partner economics or manager-set
+  hurdle has yet been supplied; therefore no company profit claim is established.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.

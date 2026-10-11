@@ -283,6 +283,90 @@ def test_malformed_upload_is_reported_without_analysis(client: TestClient) -> No
     assert "units" in response.json()["missing_required_columns"]
 
 
+def test_manager_scenario_comparison_api_returns_bounded_policy_result(
+    client: TestClient,
+) -> None:
+    economics_fields = [
+        "regular_unit_price",
+        "promotion_unit_price",
+        "unit_cost",
+        "supplier_funding_per_unit",
+        "fixed_trade_spend",
+        "variable_trade_spend_per_unit",
+        "available_inventory_units",
+        "baseline_demand_units",
+        "projected_demand_units",
+    ]
+    response = client.post(
+        "/v1/optimization/comparisons",
+        json={
+            "optimization": {
+                "request_id": "api-review-1",
+                "currency": "IRR",
+                "total_trade_spend_budget": "250000",
+                "minimum_unit_contribution": "20000",
+                "maximum_discount_rate": "0.20",
+                "inventory_reserve_units": 20,
+                "scenarios": [
+                    {
+                        "scenario_id": "case-1",
+                        "store_id": "store-1",
+                        "sku_id": "sku-1",
+                        "start_date": "2026-10-01",
+                        "end_date": "2026-10-07",
+                        "currency": "IRR",
+                        "regular_unit_price": "100000",
+                        "promotion_unit_price": "90000",
+                        "unit_cost": "70000",
+                        "supplier_funding_per_unit": "5000",
+                        "fixed_trade_spend": "100000",
+                        "variable_trade_spend_per_unit": "1000",
+                        "available_inventory_units": 200,
+                        "baseline_demand_units": 80,
+                        "projected_demand_units": {
+                            "point": 100,
+                            "lower": 90,
+                            "upper": 120,
+                        },
+                        "evidence": [
+                            {
+                                "field_name": field,
+                                "kind": "model_output"
+                                if field == "projected_demand_units"
+                                else "partner_export",
+                                "reference": f"approved-export:{field}",
+                                "as_of_date": "2026-10-11",
+                                "approved_by": "sales-manager",
+                            }
+                            for field in economics_fields
+                        ],
+                    }
+                ],
+                "human_approval_required": True,
+                "automatic_execution_allowed": False,
+            },
+            "policy": {
+                "minimum_incremental_profit": "0",
+                "currency": "IRR",
+                "reference": "manager-approved-zero-hurdle",
+                "approved_by": "sales-manager",
+                "as_of_date": "2026-10-11",
+            },
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["request_id"] == "api-review-1"
+    assert payload["assessments"][0]["decision"] == "hurdle_not_resolved"
+    assert payload["selection_status"] == "manual_review_required"
+    assert payload["selected_scenario_id"] is None
+    assert payload["budget_scope"] == "per_scenario_screen_only"
+    assert payload["assessments"][0]["blocking_reasons"] == []
+    assert "میان سبد تقسیم نشده است" in payload["limitation"]
+    assert "هویت او احراز نمی‌شود" in payload["limitation"]
+    assert "نه بازهٔ اطمینان" in payload["limitation"]
+
+
 def test_empty_and_oversized_uploads_are_rejected(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:

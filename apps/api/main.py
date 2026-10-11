@@ -23,6 +23,7 @@ from apps.api.contracts import (
     DatasetPathRequest,
     DatasetResponse,
     HillstromReportCreateRequest,
+    ManagerScenarioComparisonRequest,
     PanelQualityResponse,
     PromotionListRequest,
     PromotionListResponse,
@@ -51,6 +52,11 @@ from promoguard.insights.promotion_audit import (
     audit_promotion_event,
     detect_promotion_episodes,
     select_representative_event,
+)
+from promoguard.optimization import (
+    ManagerPolicyComparison,
+    compare_scenarios,
+    evaluate_manager_policy,
 )
 
 MAX_UPLOAD_BYTES = 120 * 1024 * 1024
@@ -447,6 +453,26 @@ def _report_cache_key(dataset_sha256: str, selected_event: dict[str, object] | N
 @app.post("/v1/dashboard/summary")
 def dashboard_summary(request: DatasetPathRequest) -> dict[str, object]:
     return _dashboard_summary_for_path(request.input_path)
+
+
+@app.post(
+    "/v1/optimization/comparisons",
+    response_model=ManagerPolicyComparison,
+    tags=["promotion-economics"],
+)
+def compare_promotion_scenarios(
+    request: ManagerScenarioComparisonRequest,
+) -> ManagerPolicyComparison:
+    """Compare evidenced scenarios against a caller-supplied manager hurdle."""
+
+    comparison = compare_scenarios(request.optimization)
+    try:
+        return evaluate_manager_policy(comparison, request.policy)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(error),
+        ) from error
 
 
 def _run_report(

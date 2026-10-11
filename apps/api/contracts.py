@@ -8,6 +8,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, model_validator
 
 from promoguard.insights.promotion_audit import ContributionAssumption
+from promoguard.optimization import ManagerHurdlePolicy, OptimizationInput
 
 
 class DatasetPathRequest(BaseModel):
@@ -121,6 +122,21 @@ class HillstromReportCreateRequest(BaseModel):
 
     primary_outcome: Literal["spend", "conversion", "visit"] = "spend"
     minimum_effect_per_person: float | None = None
+
+
+class ManagerScenarioComparisonRequest(BaseModel):
+    """Synchronous, bounded scenario comparison with a manager-set hurdle."""
+
+    model_config = {"extra": "forbid"}
+
+    optimization: OptimizationInput
+    policy: ManagerHurdlePolicy
+
+    @model_validator(mode="after")
+    def validate_api_scope(self) -> ManagerScenarioComparisonRequest:
+        if len(self.optimization.scenarios) > 100:
+            raise ValueError("API accepts at most 100 scenarios per comparison")
+        return self
 
 
 class ReportResponse(BaseModel):

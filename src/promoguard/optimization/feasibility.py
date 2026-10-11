@@ -63,11 +63,16 @@ class ScenarioComparisonReport(BaseModel):
     request_id: str
     currency: str
     scenarios: list[ScenarioFeasibility]
+    budget_scope: Literal["per_scenario_screen_only"] = "per_scenario_screen_only"
     selection_status: Literal["manual_review_required"] = "manual_review_required"
     selected_scenario_id: None = None
     limitation: Literal[
-        "Comparison only; no scenario is ranked, selected, or approved for execution."
-    ] = "Comparison only; no scenario is ranked, selected, or approved for execution."
+        "Comparison only; budget is screened per scenario, not allocated across a portfolio; "
+        "no scenario is ranked, selected, or approved for execution."
+    ] = (
+        "Comparison only; budget is screened per scenario, not allocated across a portfolio; "
+        "no scenario is ranked, selected, or approved for execution."
+    )
 
 
 def _assess_one(request: OptimizationInput, scenario: PromotionScenario) -> ScenarioFeasibility:

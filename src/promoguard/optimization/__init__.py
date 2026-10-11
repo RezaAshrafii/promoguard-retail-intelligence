@@ -7,6 +7,13 @@ from promoguard.optimization.contracts import (
     ProjectionInterval,
     PromotionScenario,
 )
+from promoguard.optimization.decision_policy import (
+    ManagerHurdlePolicy,
+    ManagerPolicyComparison,
+    ScenarioDecision,
+    ScenarioDecisionAssessment,
+    evaluate_manager_policy,
+)
 from promoguard.optimization.economics import (
     ConditionalEconomics,
     EconomicSensitivity,
@@ -29,15 +36,20 @@ __all__ = [
     "EconomicsEvidence",
     "EvidenceKind",
     "FeasibilityCode",
+    "ManagerHurdlePolicy",
+    "ManagerPolicyComparison",
     "MonetaryInterval",
     "OptimizationInput",
     "ProjectionInterval",
     "PromotionScenario",
     "ScenarioComparisonReport",
+    "ScenarioDecision",
+    "ScenarioDecisionAssessment",
     "ScenarioFeasibility",
     "SensitivityCase",
     "assess_scenarios",
     "build_economic_sensitivity",
     "calculate_conditional_economics",
     "compare_scenarios",
+    "evaluate_manager_policy",
 ]
