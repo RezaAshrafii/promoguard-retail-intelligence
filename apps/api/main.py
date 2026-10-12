@@ -624,15 +624,15 @@ def create_hillstrom_report(
     request: HillstromReportCreateRequest, background_tasks: BackgroundTasks
 ) -> dict[str, object]:
     """Queue a randomized campaign evaluation of the locally available public dataset."""
+    try:
+        configuration = HillstromAnalysisConfig.model_validate(request.model_dump())
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
     if not HILLSTROM_DATASET_PATH.is_file():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="دادهٔ Hillstrom آماده نیست؛ ابتدا tools/download_hillstrom.py را اجرا کنید.",
         )
-    try:
-        configuration = HillstromAnalysisConfig.model_validate(request.model_dump())
-    except ValueError as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
     source_hash = hillstrom_sha256_file(HILLSTROM_DATASET_PATH)
     report_id = f"rpt_{uuid4().hex[:16]}"
     analysis_configuration = configuration.model_dump(mode="json")
