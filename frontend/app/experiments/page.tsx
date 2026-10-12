@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BrandLogo } from "../components/BrandLogo";
+import { directionText, experimentNarrative, goalText, reportFormValues } from "../report-view.mjs";
 
 type Outcome = "spend" | "conversion" | "visit";
 type RevenueDetails = {
@@ -68,6 +69,8 @@ type ExperimentSummary = {
   interpretation: string[];
 };
 type ReportJob = {
+  analysis_type?: string | null;
+  configuration?: Parameters<typeof reportFormValues>[0]["configuration"];
   report_id: string;
   status: string;
   progress: number;
@@ -96,17 +99,8 @@ function outcomeLabel(outcome: Outcome) {
 }
 
 function statusText(comparison: Comparison, configuredGoal: boolean, outcome: Outcome) {
-  if (comparison.statistical_direction_status === "insufficient_sample") return "تعداد نمونه برای حکم کافی نیست";
-  if (comparison.contrast_type === "treatment_vs_treatment") {
-    if (comparison.statistical_direction_status === "positive_evidence_vs_zero") return "نسخهٔ اول بالاتر است";
-    if (comparison.statistical_direction_status === "negative_evidence_vs_zero") return "نسخهٔ دوم بالاتر است";
-    return "تفاوت روشن نیست";
-  }
-  if (configuredGoal && comparison.business_goal_status === "goal_supported") return "به هدف تعیین‌شده رسیده";
-  if (configuredGoal && comparison.business_goal_status === "goal_not_supported") return "به هدف تعیین‌شده نرسیده";
-  if (comparison.statistical_direction_status === "positive_evidence_vs_zero") return `افزایش ${outcomeLabel(outcome)} دیده شده`;
-  if (comparison.statistical_direction_status === "negative_evidence_vs_zero") return `کاهش ${outcomeLabel(outcome)} دیده شده`;
-  return "نتیجه هنوز روشن نیست";
+  return configuredGoal && comparison.contrast_type === "treatment_vs_control"
+    ? goalText(comparison, true) : directionText(comparison, outcome);
 }
 
 function displayEffect(value: number, outcome: Outcome) {
@@ -126,12 +120,25 @@ export default function ExperimentsPage() {
   const [job, setJob] = useState<ReportJob | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestVersion = useRef(0);
 
-  async function poll(reportId: string) {
+  function restoreForm(report: ReportJob) {
+    const values = reportFormValues(report);
+    setOutcome(values.outcome); setThreshold(values.threshold);
+    setMarginPercent(values.marginPercent); setMarginSource(values.marginSource);
+    setMensCost(values.mensCost); setMensCostSource(values.mensCostSource);
+    setWomensCost(values.womensCost); setWomensCostSource(values.womensCostSource);
+  }
+
+  async function poll(reportId: string, version: number) {
     setBusy(true);
     for (let attempt = 0; attempt < 180; attempt += 1) {
       const next: ReportJob = await apiJson(`/v1/reports/${reportId}`);
+      if (requestVersion.current !== version) return;
+      if (next.analysis_type && next.analysis_type !== "randomized_experiment") throw new Error("این شناسه متعلق به گزارش آزمایش نیست؛ از تاریخچهٔ گزارش‌ها باز کنید.");
+      if (next.result && next.result.benchmark !== "hillstrom-email-analytics-2008") throw new Error("ساختار گزارش با این صفحه سازگار نیست.");
       setJob(next);
+      restoreForm(next);
       if (next.status === "ready" || next.status === "failed") {
         if (next.status === "failed") throw new Error(next.error ?? "تحلیل آزمایش کامل نشد.");
         setBusy(false);
@@ -142,11 +149,22 @@ export default function ExperimentsPage() {
     throw new Error("گزارش هنوز در حال اجراست؛ با «بررسی وضعیت» دوباره پیگیری کن.");
   }
 
-  async function openReport(reportId: string) {
+  async function openReport(reportId: string, retry = false) {
+    const version = ++requestVersion.current;
     setError(null);
     try {
-      await poll(reportId);
+      if (retry) {
+        setBusy(true);
+        const created: ReportJob = await apiJson(`/v1/reports/${reportId}/retry`, { method: "POST" });
+        if (requestVersion.current !== version) return;
+        reportId = created.report_id;
+        const url = new URL(window.location.href);
+        url.searchParams.set("report", reportId);
+        window.history.replaceState(null, "", url);
+      }
+      await poll(reportId, version);
     } catch (caught) {
+      if (requestVersion.current !== version) return;
       setBusy(false);
       setError(caught instanceof Error ? caught.message : "گزارش دریافت نشد.");
     }
@@ -194,18 +212,21 @@ export default function ExperimentsPage() {
     setBusy(true);
     setError(null);
     setJob(null);
+    const version = ++requestVersion.current;
     try {
       const created: ReportJob = await apiJson("/v1/experiments/hillstrom/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ primary_outcome: outcome, minimum_effect_per_person: parsedThreshold, financial_assumptions: financialAssumptions }),
       });
+      if (requestVersion.current !== version) return;
       setJob(created);
       const url = new URL(window.location.href);
       url.searchParams.set("report", created.report_id);
       window.history.replaceState(null, "", url);
-      await poll(created.report_id);
+      await poll(created.report_id, version);
     } catch (caught) {
+      if (requestVersion.current !== version) return;
       setBusy(false);
       setError(caught instanceof Error ? caught.message : "تحلیل آزمایش شروع نشد.");
     }
@@ -214,6 +235,7 @@ export default function ExperimentsPage() {
   useEffect(() => {
     const reportId = new URLSearchParams(window.location.search).get("report");
     if (reportId) void openReport(reportId);
+    return () => { requestVersion.current += 1; };
     // A report ID in the URL is the only automatic request on this page.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -252,9 +274,9 @@ export default function ExperimentsPage() {
 
         <div className="page-heading"><div>
           <p className="eyebrow">CAMPAIGN EXPERIMENT EVALUATION</p>
-          <h1>آیا کمپین درآمد افزوده ایجاد کرد؟</h1>
+          <h1>آیا کمپین {outcomeLabel(summary?.primary_outcome.name ?? outcome)} را افزایش داد؟</h1>
           <p className="subtitle">مقایسهٔ دو نسخهٔ ایمیل با گروه تصادفیِ بدون ایمیل، بر پایهٔ خرید ثبت‌شده در دو هفته</p>
-        </div><span className="large-status ready">دادهٔ آزمایشی واقعی · ۶۴٬۰۰۰ نفر</span></div>
+        </div><span className="large-status ready">دادهٔ آزمایشی واقعی{summary ? ` · ${number.format(summary.design.sample_rows)} نفر` : ""}</span></div>
 
         <div className="notice"><span className="notice-icon">i</span><div>
           <strong>این صفحه یک آزمایش بازاریابی عمومی را تحلیل می‌کند</strong>
@@ -262,7 +284,7 @@ export default function ExperimentsPage() {
         </div><a className="link-button" href="https://blog.minethatdata.com/2008/03/minethatdata-e-mail-analytics-and-data.html" target="_blank" rel="noreferrer">منبع داده ↗</a></div>
 
         <section className="panel experiment-controls">
-          <div><h2>معیار قضاوت را مشخص کن</h2><p>بدون هدف تجاری، محصول فقط می‌گوید افزایش یا کاهش درآمد از نظر آماری روشن است یا نه.</p></div>
+          <div><h2>معیار قضاوت را مشخص کن</h2><p>بدون هدف تجاری، فقط جهت تغییر پیامد انتخاب‌شده بررسی می‌شود. اجرای دوباره، گزارش تازه‌ای با تنظیمات این فرم می‌سازد.</p></div>
           <label>پیامد اصلی
             <select value={outcome} onChange={(event) => setOutcome(event.target.value as Outcome)} disabled={busy}>
               <option value="spend">درآمد ناخالص در دو هفته</option>
@@ -288,9 +310,10 @@ export default function ExperimentsPage() {
         </section>
 
         {busy && <section className="state-card" role="status" aria-live="polite"><div className="spinner" />در حال محاسبه و آماده‌سازی گزارش<div className="progress-track"><span style={{ width: `${job?.progress ?? 8}%` }} /></div><small>{number.format(job?.progress ?? 8)}٪ · شناسهٔ گزارش: {job?.report_id ?? "در حال ایجاد"}</small></section>}
-        {error && <section className="state-card error" role="alert"><strong>گزارش آماده نشد</strong><p>{error}</p></section>}
+        {error && <section className="state-card error" role="alert"><strong>گزارش آماده نشد</strong><p>{error}</p>{job?.status === "failed" && <button className="primary" disabled={busy} onClick={() => void openReport(job.report_id, true)}>تلاش مجدد تحلیل</button>}</section>}
 
         {summary && <>
+          <section className="panel"><h2>تنظیمات این گزارش</h2><p>پیامد: {outcomeLabel(summary.primary_outcome.name)} · هدف: {summary.primary_outcome.minimum_effect_per_person == null ? "تعیین نشده" : displayEffect(summary.primary_outcome.minimum_effect_per_person, summary.primary_outcome.name)} به‌ازای هر نفر</p><p>نتیجه‌های زیر مربوط به تنظیمات ثبت‌شدهٔ گزارش‌اند؛ تغییر فرم، گزارش قبلی را تغییر نمی‌دهد.</p></section>
           <section className="experiment-verdict">
             <div><span className="eyebrow">نتیجهٔ اصلی · {summary.primary_outcome.name === "spend" ? "درآمد ناخالص" : summary.primary_outcome.name === "conversion" ? "خرید" : "بازدید"}</span>
               <h2>{bothTreatmentsPositive ? `هر دو نسخه افزایش ${outcomeLabel(summary.primary_outcome.name)} نشان دادند` : bothTreatmentsNegative ? `هر دو نسخه کاهش ${outcomeLabel(summary.primary_outcome.name)} نشان دادند` : `نتیجهٔ ${outcomeLabel(summary.primary_outcome.name)} بین نسخه‌ها یکسان نیست یا هنوز روشن نشده`}</h2>
@@ -304,12 +327,14 @@ export default function ExperimentsPage() {
           </section>}
 
           <section className="experiment-comparison-grid">
-            {summary.comparisons.map((item, index) => {
+            {summary.comparisons.map((item) => {
               const direct = item.contrast_type === "treatment_vs_treatment";
               return <article className="panel experiment-comparison" key={`${item.treatment_arm}-${item.control_arm}`}>
                 <span className="comparison-kind">{direct ? "مقایسهٔ مستقیم دو نسخه" : "مقایسه با گروه کنترل"}</span>
                 <h3>{item.treatment_arm === "Mens E-Mail" ? "ایمیل محصولات مردانه" : "ایمیل محصولات زنانه"}<small> در برابر </small>{item.control_arm === "No E-Mail" ? "بدون ایمیل" : "ایمیل محصولات زنانه"}</h3>
                 <div className="comparison-status">{statusText(item, summary.primary_outcome.business_goal_configured, summary.primary_outcome.name)}</div>
+                <p>جهت تغییر: {directionText(item, summary.primary_outcome.name)}</p>
+                <p>هدف تجاری: {goalText(item, summary.primary_outcome.business_goal_configured)}</p>
                 <div className="comparison-main-number">{displayEffect(item.incremental_effect_per_person, summary.primary_outcome.name)} <small>به‌ازای هر نفر</small></div>
                 <p className="comparison-scaled">به‌ازای ۱٬۰۰۰ نفر: <strong>{displayEffect(item.incremental_effect_per_1000_people, summary.primary_outcome.name)}</strong></p>
                 <div className="comparison-ci"><span>بازهٔ هم‌زمان ۹۵٪</span><strong>{displayEffect(item.familywise_ci_lower_per_person, summary.primary_outcome.name)} تا {displayEffect(item.familywise_ci_upper_per_person, summary.primary_outcome.name)}</strong></div>
@@ -351,9 +376,9 @@ export default function ExperimentsPage() {
 
           <section className="notice experiment-caveat"><span className="notice-icon">!</span><div><strong>{summary.primary_outcome.business_goal_configured ? "هدف بررسی شد؛ تفسیر اقتصادی را با هزینه‌های واقعی کامل کن" : "هنوز هدف تجاری وارد نشده"}</strong><p>{summary.primary_outcome.business_goal_note} {summary.uncertainty.method}; تصحیح چندمقایسه‌ای برای {number.format(summary.uncertainty.contrast_count)} مقایسه اعمال شده است.</p></div></section>
           <section className="panel benchmark-details"><h2>این نتیجه دقیقاً از کجا آمده؟</h2>
-            <p>ناشر، آزمایش را به‌صورت تصادفی بین دو گروه ایمیل و یک گروه بدون ایمیل توصیف می‌کند. ما ۲۱٬۳۰۶ نفر کنترل، ۲۱٬۳۰۷ نفر ایمیل مردانه و ۲۱٬۳۸۷ نفر ایمیل زنانه را در محاسبه نگه داشتیم.</p>
-            <p>۶٬۵۶۲ ردیف کاملاً مشابه حذف نشده‌اند؛ فایل شناسهٔ فردی ندارد و افراد متفاوت می‌توانند نتیجه و مشخصات یکسان داشته باشند. بازه‌ها و محاسبه از کد ثابت محصول ساخته شده‌اند.</p>
-            <p>نسخهٔ مردانه و زنانه هر دو در برابر کنترل افزایش درآمد نشان دادند؛ اما تفاوت مستقیم دو نسخه بازه‌ای شامل صفر دارد، پس برتری یکی بر دیگری هنوز روشن نیست.</p>
+            <p>ناشر آزمایش را تصادفی توصیف می‌کند. افراد کنترل: {number.format(summary.design.arm_counts["No E-Mail"] ?? 0)}؛ ایمیل مردانه: {number.format(summary.design.arm_counts["Mens E-Mail"] ?? 0)}؛ ایمیل زنانه: {number.format(summary.design.arm_counts["Womens E-Mail"] ?? 0)}.</p>
+            <p>{number.format(summary.quality.duplicate_full_rows_retained)} ردیف کاملاً مشابه حذف نشده‌اند؛ فایل شناسهٔ فردی ندارد و افراد متفاوت می‌توانند مشخصات یکسان داشته باشند.</p>
+            <p>{experimentNarrative(summary)}</p>
             <div className="benchmark-provenance"><span>SHA-256 فایل</span><code>{summary.source.sha256}</code></div>
             <div className="benchmark-provenance"><span>مجوز</span><span>{summary.source.license_status}</span></div>
           </section>

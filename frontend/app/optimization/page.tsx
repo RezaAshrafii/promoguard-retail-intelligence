@@ -47,7 +47,6 @@ type Comparison = {
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
-const number = new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 2 });
 const decisionLabels: Record<Assessment["decision"], string> = {
   blocked_by_constraints: "رد شده در بررسی محدودیت‌ها",
   candidate_for_human_review: "نامزد بررسی مدیر",

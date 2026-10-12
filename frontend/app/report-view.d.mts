@@ -1,0 +1,10 @@
+type ComparisonView = { contrast_type: string; statistical_direction_status: string; business_goal_status: string; treatment_arm: string; control_arm: string };
+type SummaryView = { primary_outcome: { name: string; business_goal_configured: boolean; minimum_effect_per_person?: number | null }; comparisons: ComparisonView[] };
+type FormReport = { configuration?: { analysis?: { primary_outcome?: "spend" | "conversion" | "visit"; minimum_effect_per_person?: number | null; financial_assumptions?: { common_contribution_margin: number; margin_source: string; mens_campaign_cost_per_1000: number; mens_cost_source: string; womens_campaign_cost_per_1000: number; womens_cost_source: string } | null } } | null; result?: { primary_outcome?: { name: "spend" | "conversion" | "visit"; minimum_effect_per_person?: number | null } } | null };
+export function reportHref(report: { report_id: string; analysis_type?: string | null; result?: unknown }): string;
+export function isRetailResult(result: unknown): boolean;
+export function outcomeLabel(outcome: string): string;
+export function directionText(comparison: ComparisonView, outcome: string): string;
+export function goalText(comparison: ComparisonView, configured: boolean): string;
+export function experimentNarrative(summary: SummaryView): string;
+export function reportFormValues(report: FormReport): { outcome: "spend" | "conversion" | "visit"; threshold: string; marginPercent: string; marginSource: string; mensCost: string; mensCostSource: string; womensCost: string; womensCostSource: string };

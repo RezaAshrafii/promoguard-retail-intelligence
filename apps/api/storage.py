@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -17,7 +17,8 @@ class PilotStore:
     @contextmanager
     def connection(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(self.path, timeout=30) as connection:
+        # sqlite3's transaction context commits/rolls back but does not close.
+        with closing(sqlite3.connect(self.path, timeout=30)) as connection, connection:
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("""CREATE TABLE IF NOT EXISTS records (
                 kind TEXT NOT NULL, id TEXT NOT NULL, payload TEXT NOT NULL,

@@ -61,6 +61,8 @@ class PanelQualityResponse(BaseModel):
     negative_units_rows: int | None
     missing_units_rows: int | None
     non_finite_units_rows: int | None = None
+    invalid_inventory_rows: int | None = None
+    missing_inventory_rows: int | None = None
     invalid_promotion_rows: int | None
     promotion_rows: int | None
     series: int | None

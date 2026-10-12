@@ -185,6 +185,7 @@ def build_promotion_report_pdf(report: dict[str, Any]) -> bytes:
 
 def build_experiment_report_pdf(report: dict[str, Any]) -> bytes:
     """Build a shareable PDF for the public randomized Hillstrom evaluation."""
+    from promoguard.experiments.presentation import goal_label
     _register_fonts()
     result = report.get("result") or {}
     source = result.get("source") or {}
@@ -286,6 +287,10 @@ def build_experiment_report_pdf(report: dict[str, Any]) -> bytes:
         [para("افراد تخصیص‌یافته", identity_label), para(fmt(design.get("sample_rows"), 0), cell)],
         [para("پیامد اصلی", identity_label), para(outcome.get("unit", outcome.get("name", "ثبت نشده")), cell)],
         [para("بازهٔ پیامد", identity_label), para(design.get("outcome_window", "ثبت نشده"), cell)],
+        [para("هدف تجاری / هر نفر", identity_label),
+         ltr_para(effect(outcome["minimum_effect_per_person"]), ltr_cell)
+         if outcome.get("minimum_effect_per_person") is not None
+         else para("هدف تجاری تعیین نشده", cell)],
     ]
     story.append(Table(identity, colWidths=[48 * mm, 122 * mm], style=TableStyle([
         ("BACKGROUND", (0, 0), (0, -1), PALE),
@@ -327,7 +332,8 @@ def build_experiment_report_pdf(report: dict[str, Any]) -> bytes:
             para(f"{first} در برابر {second}", cell),
             ltr_para(effect(item.get("incremental_effect_per_person")), ltr_cell),
             ltr_para(f"{effect(item.get('familywise_ci_lower_per_person'))} - {effect(item.get('familywise_ci_upper_per_person'))}", ltr_cell),
-            para(status_text, cell),
+            [para(f"جهت تغییر: {status_text}", cell),
+             para(f"هدف تجاری: {goal_label(item.get('business_goal_status'))}", cell)],
         ])
     story.append(Table(result_rows, colWidths=[53 * mm, 34 * mm, 39 * mm, 44 * mm], repeatRows=1, style=TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), INK), ("GRID", (0, 0), (-1, -1), 0.4, LINE),
@@ -414,7 +420,7 @@ def build_experiment_report_pdf(report: dict[str, Any]) -> bytes:
             para("بررسی پایداری نتیجه با بازنمونه‌گیری", heading),
             para(
             f"از هر گروه جداگانه {fmt(bootstrap.get('repetitions'), 0)} بار نمونهٔ هم‌اندازه با جایگذاری ساخته شد. "
-            "این بازبینی مستقل از بازهٔ Welch است و فقط نشان می‌دهد نتیجه به روش محاسبه حساس هست یا نه؛ "
+            "این روش روی همان دادهٔ Welch اجرا شده و شاهد مستقل نیست؛ فقط حساسیت به روش محاسبه را بررسی می‌کند؛ "
             "جایگزین روش اصلی یا آستانهٔ تصمیم نیست.", body,
             ),
         ]

@@ -250,6 +250,82 @@ def test_hillstrom_report_rejects_margin_without_a_source(client: TestClient) ->
     assert response.status_code == 422
 
 
+def test_failed_experiment_retry_preserves_configuration_and_report_type(
+    client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "hillstrom.csv"
+    source.write_text("test-only source", encoding="utf-8")
+    monkeypatch.setattr(api_module, "HILLSTROM_DATASET_PATH", source)
+    monkeypatch.setattr(api_module, "RUNTIME_ROOT", tmp_path / "runtime")
+    monkeypatch.setattr(api_module, "_run_hillstrom_report", lambda _id: None)
+    configuration = {"primary_outcome": "spend", "minimum_effect_per_person": 0.5,
+                     "financial_assumptions": {
+                         "common_contribution_margin": 0.3, "margin_source": "test margin",
+                         "mens_campaign_cost_per_1000": 0, "mens_cost_source": "test mens",
+                         "womens_campaign_cost_per_1000": 60, "womens_cost_source": "test womens",
+                         "currency": "USD",
+                     }}
+    previous = {"report_id": "rpt_failed_experiment", "dataset_id": "hillstrom-test",
+                "analysis_type": "randomized_experiment", "status": "failed", "progress": 20,
+                "configuration": {"analysis": configuration}, "result": None}
+    api_module._save_report(previous)
+    response = client.post("/v1/reports/rpt_failed_experiment/retry")
+    assert response.status_code == 202
+    record = response.json()
+    assert record["report_id"] != previous["report_id"]
+    assert record["analysis_type"] == "randomized_experiment"
+    assert record["configuration"]["analysis"] == configuration
+    assert api_module._store().get("report", previous["report_id"])["status"] == "failed"
+
+
+@pytest.mark.parametrize("analysis", [None, {"primary_outcome": "unknown"}])
+def test_failed_experiment_retry_rejects_unrecoverable_settings(
+    client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, analysis: object,
+) -> None:
+    monkeypatch.setattr(api_module, "RUNTIME_ROOT", tmp_path / "runtime")
+    api_module._save_report({
+        "report_id": "rpt_bad_config", "dataset_id": "hillstrom-test",
+        "analysis_type": "randomized_experiment", "status": "failed", "progress": 20,
+        "configuration": {"analysis": analysis}, "result": None,
+    })
+    assert client.post("/v1/reports/rpt_bad_config/retry").status_code == 422
+
+
+def test_upload_padded_columns_reaches_selected_report_without_losing_ids(
+    client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(api_module, "RUNTIME_ROOT", tmp_path / "runtime")
+    monkeypatch.setattr(api_module, "UPLOAD_ROOT", tmp_path / "uploads")
+    monkeypatch.setattr(api_module, "REPORT_ROOT", tmp_path / "reports")
+    frame = realistic_panel().assign(store_id="001", upc="00010")
+    frame.columns = [f" {name} " for name in frame.columns]
+    response = client.post("/v1/datasets", files={"file": ("test.csv", frame.to_csv(index=False).encode(), "text/csv")})
+    assert response.status_code == 200
+    dataset = response.json()
+    assert dataset["status"] == "ready"
+    events = client.get(f"/v1/datasets/{dataset['dataset_id']}/promotions").json()["events"]
+    assert events[0]["store_id"] == "001" and events[0]["upc"] == "00010"
+    event = {key: events[0][key] for key in ("store_id", "upc", "start_date")}
+    created = client.post("/v1/reports", json={"dataset_id": dataset["dataset_id"], **event})
+    assert created.status_code == 202
+    ready = client.get(f"/v1/reports/{created.json()['report_id']}").json()
+    assert ready["status"] == "ready"
+    assert ready["result"]["audit"]["upc"] == "00010"
+
+
+def test_upload_bad_inventory_is_rejected_and_does_not_queue_analysis(
+    client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(api_module, "RUNTIME_ROOT", tmp_path / "runtime")
+    monkeypatch.setattr(api_module, "UPLOAD_ROOT", tmp_path / "uploads")
+    frame = realistic_panel().assign(inventory_on_hand="invalid")
+    response = client.post("/v1/datasets", files={"file": ("test.csv", frame.to_csv(index=False).encode(), "text/csv")})
+    dataset = response.json()
+    assert dataset["status"] == "rejected"
+    assert dataset["quality"]["invalid_inventory_rows"] == len(frame)
+    assert client.post("/v1/reports", json={"dataset_id": dataset["dataset_id"]}).status_code == 422
+
+
 def test_hillstrom_report_rejects_financial_inputs_for_non_revenue_outcome(
     client: TestClient,
 ) -> None:
@@ -304,7 +380,7 @@ def test_hillstrom_ready_report_downloads_dedicated_pdf(
     assert response.headers["content-type"].startswith("application/pdf")
     assert response.headers["content-disposition"].endswith(f'filename="{report_id}.pdf"')
     assert response.content.startswith(b"%PDF")
-    assert (runtime / "reports" / f"{report_id}-experiment-v5.pdf").is_file()
+    assert (runtime / "reports" / f"{report_id}-experiment-v6.pdf").is_file()
 
 
 def test_hillstrom_pdf_is_not_available_before_report_is_ready(

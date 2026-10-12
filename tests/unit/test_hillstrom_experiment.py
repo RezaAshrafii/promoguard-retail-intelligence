@@ -101,6 +101,13 @@ def test_primary_effect_is_itt_and_includes_every_assigned_row() -> None:
     assert mens_vs_womens["business_goal_status"] == "not_applicable_variant_comparison"
 
 
+def test_bootstrap_goal_preserves_insufficient_sample_with_declared_goal() -> None:
+    result = evaluate_hillstrom_frame(hillstrom_fixture(), HillstromAnalysisConfig(minimum_effect_per_person=1))
+    for comparison in result["comparisons"]:
+        assert comparison["bootstrap_business_goal_status"] == "insufficient_sample"
+        assert comparison["bootstrap_stability_status"] == "insufficient_sample"
+
+
 def test_declared_hurdle_changes_commercial_status_without_rewriting_effect() -> None:
     base = evaluate_hillstrom_frame(
         large_hillstrom_fixture(), HillstromAnalysisConfig()

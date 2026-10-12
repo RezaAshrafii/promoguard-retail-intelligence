@@ -815,6 +815,41 @@ Phase 8.1.1 team execution overlay (2026-09-16):
   A pre-bootstrap report also remained readable and exported without a bootstrap section.
 - Learning: `learning/08-13-bootstrap-stability/README.fa.md`. Phase 8 remains ACTIVE.
 
+### Phase 8.3.5 — Product stabilization gate (2026-10-12)
+
+- Shared CSV header normalization and identifier-safe reading now connect upload validation to
+  analysis. Inventory rejects malformed, negative, and infinite values; missing stock remains
+  unknown, not zero. Partial stock coverage and observed zero stock can emit separate warnings.
+- Report history uses typed routing; legacy experiment links redirect to the experiment page.
+  Failed experiment retry preserves outcome, goal, and financial assumptions and creates a new ID.
+  Missing or invalid saved settings return HTTP 422 instead of an internal validation error.
+- Experiment copy follows actual outcome and contrast. Statistical direction and achievement of
+  the declared business goal are separate. Saved settings are restored, including zero costs;
+  report settings remain distinguishable from edits to the next-run form.
+- Experiment PDF v6 includes the declared goal and per-contrast goal status; atomic PDF writes
+  and result schema bumps prevent reuse of pre-fix cache artifacts. Bootstrap small-sample goal
+  status is explicitly insufficient. Welch remains the primary gate; no estimand/formula changed.
+- Added deterministic Node presentation tests and Playwright browser regressions; frontend CI
+  now runs install, noninteractive lint, unit tests, typecheck, build, and browser tests.
+  Updated Next.js within major 15 and relevant dependency overrides after npm audit findings.
+- Coverage execution exposed SQLite connections not being explicitly closed. Added guaranteed
+  close after commit/rollback and regression tests for success, failure, and rollback preservation.
+- Validation: **279 Python tests**, **13 Node tests**, **5 browser tests** passed; coverage **80.74%**
+  exceeds the existing 70% gate. Bandit, Ruff, compileall,
+  production build, TypeScript check, ESLint and diff whitespace checks passed. npm audit reported
+  zero known vulnerabilities in the installed frontend dependency tree at review time.
+  Local Python was 3.13 and Node 24; configured CI uses Python 3.11 and Node 22 and has NOT run
+  remotely in this gate. Existing Starlette/httpx deprecation and absent Next-specific ESLint
+  plugin warnings remain disclosed; core JS/TS/hooks lint is active.
+- Real 64,000-row public-data smoke tests: reports `rpt_44fc591ffe4f49a5` (goal USD 0.50)
+  and `rpt_304d2339cb444277` (goal USD 99) reached ready. Their goal statuses and PDF text differ
+  correctly; both pages of the first PDF were rendered and inspected. Live browser showed saved
+  goal 0.5, two inconclusive goal statuses, and no page errors. Existing report
+  `rpt_8d86876df7644bfd` remains ready/readable. Backend and production frontend run locally.
+- Learning: `learning/08-14-product-stabilization/README.fa.md`. Phase 8 remains ACTIVE;
+  organization authentication, public deployment, external profit claims, and new features
+  are outside this stabilization gate. No commit or push was requested or performed.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.

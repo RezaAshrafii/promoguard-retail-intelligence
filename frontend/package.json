@@ -6,20 +6,32 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --max-warnings=0",
+    "test": "node --test app/optimization/*.test.mjs app/report-view.test.mjs",
+    "test:e2e": "playwright test",
     "test:format": "node --test app/optimization/format.test.mjs app/optimization/api-errors.test.mjs app/optimization/request-builder.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "^15.5.25",
+    "next": "15.5.27",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "recharts": "3.2.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.0",
+    "eslint": "9.39.4",
+    "@eslint/js": "9.39.4",
+    "typescript-eslint": "8.71.1",
+    "eslint-plugin-react-hooks": "7.1.1",
     "@types/node": "24.5.2",
     "@types/react": "19.1.13",
     "@types/react-dom": "19.1.9",
     "typescript": "5.9.2"
+  },
+  "overrides": {
+    "postcss": "8.5.29",
+    "source-map-js": "1.2.2",
+    "sharp": "0.35.5"
   }
 }

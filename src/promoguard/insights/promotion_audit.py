@@ -11,6 +11,7 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from promoguard.data.grain import normalize_required_identifiers
+from promoguard.data.panel import normalize_panel_columns, parse_inventory_values
 
 GROUP_COLUMNS = ["store_id", "upc"]
 REQUIRED_COLUMNS = ["week_end_date", "store_id", "upc", "units", "promotion_flag"]
@@ -193,10 +194,16 @@ class PromotionAuditResult(BaseModel):
 
 def prepare_audit_panel(panel: pd.DataFrame) -> pd.DataFrame:
     """Validate the audit grain while retaining optional business columns."""
+    panel = normalize_panel_columns(panel)
     missing = sorted(set(REQUIRED_COLUMNS) - set(panel.columns))
     if missing:
         raise ValueError(f"Audit panel is missing required columns: {', '.join(missing)}")
     result = panel.copy()
+    if "inventory_on_hand" in result.columns:
+        inventory, invalid_count, _ = parse_inventory_values(result["inventory_on_hand"])
+        if invalid_count:
+            raise ValueError("inventory_on_hand must contain non-negative finite numbers or missing values.")
+        result["inventory_on_hand"] = inventory
     result = normalize_required_identifiers(result, context="Audit panel")
     result["week_end_date"] = pd.to_datetime(result["week_end_date"], errors="coerce")
     if result["week_end_date"].isna().any():
@@ -550,15 +557,15 @@ def audit_promotion_event(
             "Full promotion economics are unavailable; any contribution output is sensitivity-only and cannot drive the recommendation.",
         )
     )
-    if "inventory_on_hand" not in prepared.columns:
+    if "inventory_on_hand" not in prepared.columns or during["inventory_on_hand"].isna().any():
         warnings.append(
             _warning(
                 "STOCKOUT_UNOBSERVABLE",
                 WarningSeverity.WARNING,
-                "The source has no inventory field, so stockout-censored demand cannot be diagnosed.",
+                "Inventory is absent or incomplete during the promotion; stockout-censored demand cannot be ruled out.",
             )
         )
-    elif during["inventory_on_hand"].le(0).any():
+    if "inventory_on_hand" in prepared.columns and during["inventory_on_hand"].le(0).any():
         warnings.append(
             _warning(
                 "STOCKOUT_RISK",

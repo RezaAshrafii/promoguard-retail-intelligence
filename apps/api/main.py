@@ -33,7 +33,7 @@ from apps.api.contracts import (
 from apps.api.storage import PilotStore
 from promoguard import __version__
 from promoguard.data.intake import assess_partner_intake
-from promoguard.data.panel import load_weekly_panel, validate_canonical_panel
+from promoguard.data.panel import load_weekly_panel, read_panel_csv, validate_canonical_panel
 from promoguard.experiments.hillstrom import (
     HILLSTROM_DATASET,
     HillstromAnalysisConfig,
@@ -61,9 +61,9 @@ from promoguard.optimization import (
 
 MAX_UPLOAD_BYTES = 120 * 1024 * 1024
 MAX_PANEL_ROWS = 1_000_000
-REPORT_RESULT_SCHEMA_VERSION = "2.2.0"
-HILLSTROM_REPORT_SCHEMA_VERSION = "1.4.0"
-HILLSTROM_PDF_SCHEMA_VERSION = "5"
+REPORT_RESULT_SCHEMA_VERSION = "2.3.0"
+HILLSTROM_REPORT_SCHEMA_VERSION = "1.4.1"
+HILLSTROM_PDF_SCHEMA_VERSION = "6"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 LOCAL_DATA_ROOT = (REPOSITORY_ROOT / "data").resolve()
 HILLSTROM_DATASET_PATH = LOCAL_DATA_ROOT / "raw" / "hillstrom" / "hillstrom-email-analytics-2008.csv"
@@ -220,8 +220,8 @@ async def _read_csv_upload(upload: UploadFile) -> pd.DataFrame:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded CSV is empty.")
     buffer.seek(0)
     try:
-        return pd.read_csv(buffer, dtype={"store_id": "string", "upc": "string"})
-    except (pd.errors.EmptyDataError, pd.errors.ParserError, UnicodeDecodeError) as error:
+        return read_panel_csv(buffer)
+    except (ValueError, UnicodeDecodeError) as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Uploaded CSV is empty, malformed, or has unsupported encoding.",
@@ -246,8 +246,8 @@ async def _read_upload_bytes(upload: UploadFile) -> bytes:
 
 def _quality_for_bytes(content: bytes) -> tuple[pd.DataFrame, dict[str, object]]:
     try:
-        panel = pd.read_csv(BytesIO(content), dtype={"store_id": "string", "upc": "string"})
-    except (pd.errors.EmptyDataError, pd.errors.ParserError, UnicodeDecodeError) as error:
+        panel = read_panel_csv(BytesIO(content))
+    except (ValueError, UnicodeDecodeError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ساختار CSV قابل خواندن نیست.") from error
     if assess_partner_intake(panel)["privacy_columns"]:
         raise HTTPException(status_code=422, detail="ستون‌های اطلاعات شخصی را پیش از بارگذاری حذف کنید؛ این تحلیل فقط به فروش تجمیعی نیاز دارد.")
@@ -709,6 +709,15 @@ def retry_report(report_id: str, background_tasks: BackgroundTasks) -> dict[str,
         raise HTTPException(status_code=404, detail="گزارش پیدا نشد.")
     if previous["status"] != "failed":
         raise HTTPException(status_code=409, detail="فقط تحلیل ناموفق قابل تلاش مجدد است.")
+    if previous.get("analysis_type") == "randomized_experiment":
+        analysis = (previous.get("configuration") or {}).get("analysis")
+        if not isinstance(analysis, dict):
+            raise HTTPException(status_code=422, detail="تنظیمات گزارش قبلی قابل بازیابی نیست.")
+        try:
+            request = HillstromReportCreateRequest.model_validate(analysis)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="تنظیمات گزارش قبلی معتبر نیست؛ گزارش تازه‌ای بسازید.") from exc
+        return create_hillstrom_report(request, background_tasks)
     event = previous.get("selected_event") or {}
     return create_report(ReportCreateRequest(dataset_id=str(previous["dataset_id"]), **event), background_tasks)
 
@@ -732,6 +741,6 @@ def download_report_pdf(report_id: str) -> FileResponse:
             pdf_bytes = build_experiment_report_pdf(report)
         else:
             pdf_bytes = build_promotion_report_pdf(report)
-        pdf_path.write_bytes(pdf_bytes)
+        _write_snapshot(pdf_path, pdf_bytes)
     return FileResponse(pdf_path, media_type="application/pdf", filename=f"{report_id}.pdf")
 

@@ -5,6 +5,7 @@ from io import BytesIO
 from pypdf import PdfReader
 
 from apps.api.pdf import build_experiment_report_pdf
+from promoguard.experiments.presentation import goal_label
 
 
 def experiment_report() -> dict:
@@ -134,3 +135,32 @@ def test_experiment_pdf_still_renders_legacy_report_without_bootstrap_fields() -
     reader = PdfReader(BytesIO(build_experiment_report_pdf(report)))
 
     assert len(reader.pages) >= 1
+
+
+def test_pdf_records_goal_value_and_distinguishes_unresolved_from_failed_goal(monkeypatch) -> None:
+    import copy
+
+    import apps.api.pdf as pdf_module
+
+    rendered = []
+    original_rtl = pdf_module._rtl
+
+    def record_paragraph(text):
+        rendered.append(str(text))
+        return original_rtl(text)
+
+    monkeypatch.setattr(pdf_module, "_rtl", record_paragraph)
+
+    first = experiment_report()
+    first["result"]["primary_outcome"].update(minimum_effect_per_person=0.5, business_goal_configured=True)
+    for item in first["result"]["comparisons"][:2]:
+        item["business_goal_status"] = "inconclusive_vs_goal"
+    second = copy.deepcopy(first)
+    second["result"]["primary_outcome"]["minimum_effect_per_person"] = 99
+    for item in second["result"]["comparisons"][:2]:
+        item["business_goal_status"] = "goal_not_supported"
+    texts = ["\n".join(page.extract_text() for page in PdfReader(BytesIO(build_experiment_report_pdf(r))).pages) for r in (first, second)]
+    assert texts[0] != texts[1]
+    assert "USD 0.50" in texts[0] and "USD 99.00" in texts[1]
+    for status in ("inconclusive_vs_goal", "goal_not_supported"):
+        assert any(goal_label(status) in paragraph for paragraph in rendered)

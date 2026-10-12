@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { isRetailResult, reportHref } from "./report-view.mjs";
 import { BrandLogo } from "./components/BrandLogo";
 import {
   CartesianGrid,
@@ -19,7 +20,7 @@ type WindowSummary = { requested_weeks: number; observed_weeks: number; total_un
 type PromotionEvent = { audit_id: string; store_id: string; upc: string; start_date: string; end_date: string; duration_weeks: number };
 type DecisionOption = { action: "repeat" | "modify" | "more_testing" | "deprioritize"; label: string; availability: string; explanation: string };
 type DecisionSupport = { recommended_action: DecisionOption["action"]; label: string; explanation: string; evidence_basis: string; options: DecisionOption[]; limitation: string };
-type ReportRecord = { report_id: string; dataset_id: string; status: string; progress: number; result?: Summary; error?: string; created_at?: string };
+type ReportRecord = { report_id: string; dataset_id: string; status: string; progress: number; analysis_type?: string; result?: Summary; error?: string; created_at?: string };
 type Summary = {
   dataset_name?: string;
   source_notes?: string[];
@@ -139,9 +140,14 @@ export default function Home() {
     window.history.replaceState(null, "", url);
     for (let attempt = 0; attempt < 90; attempt += 1) {
       const report: ReportRecord = await apiJson(`/v1/reports/${id}`);
+      if (reportHref(report).startsWith("/experiments")) {
+        window.location.assign(reportHref(report));
+        return;
+      }
       setProgress(report.progress);
       setReportStatus(report.status);
       if (report.status === "ready" && report.result) {
+        if (!isRetailResult(report.result)) throw new Error("ساختار گزارش با تحلیل خرده‌فروشی سازگار نیست.");
         setSummary(report.result);
         setDatasetId(report.dataset_id);
         await refreshReports();
@@ -241,11 +247,13 @@ export default function Home() {
       if (startupSection) setActive(startupSection);
     })();
     void refreshReports().catch(() => {});
+    // Restore the initial URL once; rerunning on render would restart report polling.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const chartData = useMemo(
     () =>
-      summary?.trend.map((point) => ({
+      summary?.trend?.map((point) => ({
         ...point,
         label: new Intl.DateTimeFormat("fa-IR", { month: "short", day: "numeric" }).format(
           new Date(point.week_end_date),
@@ -311,7 +319,7 @@ export default function Home() {
         )}
         {summary && active === "readiness" && <Readiness quality={summary.quality} />}
         {summary && audit && active === "promotion" && <><div className="report-toolbar"><span>شناسه گزارش: {reportId}</span></div><Promotion audit={audit} trend={chartData} onDownload={() => window.open(`${API_BASE}/v1/reports/${reportId}/pdf`, "_blank", "noopener,noreferrer")} /></>}
-        {active === "history" && <section className="panel"><h2>گزارش‌های ذخیره‌شده</h2>{reports.length === 0 && <p>هنوز گزارشی ذخیره نشده است.</p>}{reports.map((report) => <div className="report-history-row" key={report.report_id}><span className="mono">{report.report_id}</span><span>{report.status === "ready" ? "آماده" : report.status === "failed" ? "نیازمند تلاش مجدد" : "در حال پردازش"}</span><button className="secondary" onClick={() => void openReport(report.report_id)}>باز کردن گزارش</button></div>)}</section>}
+        {active === "history" && <section className="panel"><h2>گزارش‌های ذخیره‌شده</h2>{reports.length === 0 && <p>هنوز گزارشی ذخیره نشده است.</p>}{reports.map((report) => <div className="report-history-row" key={report.report_id}><span className="mono">{report.report_id}</span><span>{report.analysis_type === "randomized_experiment" ? "آزمایش با گروه کنترل" : "ممیزی خرده‌فروشی"}</span><span>{report.status === "ready" ? "آماده" : report.status === "failed" ? "نیازمند تلاش مجدد" : "در حال پردازش"}</span><a className="secondary" href={reportHref(report)}>باز کردن گزارش</a></div>)}</section>}
       </section>
     </main>
   );

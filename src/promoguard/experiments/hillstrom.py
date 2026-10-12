@@ -327,6 +327,9 @@ def evaluate_hillstrom_frame(
             else "insufficient_sample"
         )
         bootstrap_goal = (
+            "insufficient_sample"
+            if not enough_sample
+            else
             _decision_for_threshold(
                 float(bootstrap_lower),
                 float(bootstrap_upper),
