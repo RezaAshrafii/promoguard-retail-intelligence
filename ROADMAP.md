@@ -746,8 +746,9 @@ Phase 8.1.1 team execution overlay (2026-09-16):
   `rpt_9bc5ef09020f40c7` reached ready; old report remained ready after restart; web returned HTTP 200.
 - Learning: `learning/08-10-revenue-drivers/README.fa.md`. No browser visual check or independent
   second-model review is claimed. The session model/reasoning override is not exposed.
-- Phase 8 remains ACTIVE. Dedicated experiment PDF, explicit financial inputs, bootstrap stability
-  and limited subgroup analysis are remaining slices. No real profit, targeting or rollout is claimed.
+- At this phase checkpoint, a dedicated experiment PDF, bootstrap stability, limited subgroup
+  analysis, and a permitted partner dataset were still open. The PDF and bootstrap checks were
+  completed in Phases 8.3.3 and 8.3.4; no real profit, targeting, or rollout is claimed.
 
 ### Phase 8.3.2 — User-sourced conditional financial inputs (2026-10-12)
 
@@ -789,6 +790,30 @@ Phase 8.1.1 team execution overlay (2026-09-16):
   rendered and visually inspected, and the dashboard showed the report-specific download link.
   No financial or statistical calculation changed; PDF is a presentation/export layer only.
 - Learning: `learning/08-12-shareable-experiment-pdf/README.fa.md`. Phase 8 remains ACTIVE.
+
+### Phase 8.3.4 — Bootstrap stability diagnostic (2026-10-12)
+
+- Added a reproducible, empirical nonparametric percentile bootstrap over observed customer
+  outcomes, resampled independently within each randomized assignment arm. Multinomial counts over
+  the observed outcome support keep 10,000 repetitions fast without materializing large row copies.
+- The same three predeclared contrasts use Bonferroni-adjusted marginal percentile quantiles for an
+  approximate 95% family-wise interval. Welch remains the prespecified primary interval and
+  business-decision gate; bootstrap only reports whether direction/declared-goal status agrees.
+  A mismatch is explicitly marked method-sensitive; groups below the existing 1,000-person gate
+  remain insufficient regardless of the raw bootstrap interval.
+- Bumped the Hillstrom result cache schema to 1.4.0 and experiment PDF schema to v5. Old ready
+  reports remain readable: the UI and PDF render the bootstrap section only when fields exist.
+- Public 64,000-row Hillstrom run: all three method comparisons were directionally consistent.
+  Bootstrap intervals were **$0.428–$1.125** (Mens vs control), **$0.108–$0.738** (Womens vs
+  control), and **−$0.032–$0.721** (Mens vs Womens). The final comparison remains inconclusive;
+  these are gross email-campaign revenue results, not retail promotion or profit evidence.
+- Validation: full Python suite **259 passed** (one existing Starlette/httpx deprecation warning),
+  Ruff, `compileall`, and `git diff --check` passed; frontend typecheck and production build passed.
+  The current dashboard displayed all three bootstrap intervals and agreement states. A fresh
+  64,000-row report `rpt_587edadf2cb04272` reached `ready`, PDF returned HTTP 200, and both pages
+  were rendered and visually reviewed for reports with and without test-only financial inputs.
+  A pre-bootstrap report also remained readable and exported without a bootstrap section.
+- Learning: `learning/08-13-bootstrap-stability/README.fa.md`. Phase 8 remains ACTIVE.
 
 ## Phase 9 — PENDING — Production and verified AI layer
 

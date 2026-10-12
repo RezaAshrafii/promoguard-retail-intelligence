@@ -36,6 +36,9 @@ HILLSTROM_SEGMENTS = ("Mens E-Mail", "Womens E-Mail", "No E-Mail")
 CONTROL_SEGMENT = "No E-Mail"
 TREATMENT_SEGMENTS = ("Mens E-Mail", "Womens E-Mail")
 MINIMUM_ARM_SIZE_FOR_DECISION = 1_000
+BOOTSTRAP_RESAMPLES = 10_000
+BOOTSTRAP_SEED = 20_261_012
+BOOTSTRAP_BATCH_SIZE = 1_000
 REQUIRED_COLUMNS = (
     "recency",
     "history_segment",
@@ -195,6 +198,35 @@ def _welch_difference_interval(
     )
 
 
+def _bootstrap_arm_means(
+    values: np.ndarray,
+    *,
+    rng: np.random.Generator,
+    repetitions: int = BOOTSTRAP_RESAMPLES,
+) -> np.ndarray:
+    """Draw empirical means using multinomial counts over observed outcome values.
+
+    This is exactly the ordinary nonparametric row bootstrap for the empirical distribution,
+    but it avoids storing a full resampled row matrix. The calculation is batched to bound memory.
+    """
+    support, counts = np.unique(values, return_counts=True)
+    probabilities = counts / values.size
+    means = np.empty(repetitions, dtype=np.float64)
+    for start in range(0, repetitions, BOOTSTRAP_BATCH_SIZE):
+        stop = min(start + BOOTSTRAP_BATCH_SIZE, repetitions)
+        frequencies = rng.multinomial(values.size, probabilities, size=stop - start)
+        means[start:stop] = frequencies @ support / values.size
+    return means
+
+
+def _interval_direction(lower: float, upper: float) -> str:
+    if lower > 0:
+        return "positive_evidence_vs_zero"
+    if upper < 0:
+        return "negative_evidence_vs_zero"
+    return "inconclusive_vs_zero"
+
+
 def _decision_for_threshold(
     lower: float, upper: float, threshold: float | None
 ) -> tuple[str, str]:
@@ -239,6 +271,15 @@ def evaluate_hillstrom_frame(
     # Bonferroni controls family-wise coverage across the two treatment-control contrasts and
     # the preplanned direct comparison of the two treatments.
     tail_probability = (1 - confidence_level) / (2 * comparisons_count)
+    bootstrap_rng = np.random.default_rng(BOOTSTRAP_SEED)
+    bootstrap_arm_means = {
+        arm: _bootstrap_arm_means(
+            pd.to_numeric(frame.loc[frame["segment"].eq(arm), config.primary_outcome])
+            .to_numpy(dtype=np.float64),
+            rng=bootstrap_rng,
+        )
+        for arm in ("Mens E-Mail", "Womens E-Mail", CONTROL_SEGMENT)
+    }
     for index, (segment, control_segment, contrast_type) in enumerate(contrast_specs):
         if progress_callback is not None:
             progress_callback(20 + index * 20)
@@ -257,6 +298,14 @@ def evaluate_hillstrom_frame(
         estimate, standard_error, lower, upper = _welch_difference_interval(
             treatment, comparison_control, tail_probability=tail_probability
         )
+        bootstrap_differences = (
+            bootstrap_arm_means[segment] - bootstrap_arm_means[control_segment]
+        )
+        bootstrap_lower, bootstrap_upper = np.quantile(
+            bootstrap_differences,
+            [tail_probability, 1 - tail_probability],
+            method="linear",
+        ).tolist()
         enough_sample = min(treatment.size, comparison_control.size) >= MINIMUM_ARM_SIZE_FOR_DECISION
         if enough_sample:
             evidence, reason = _decision_for_threshold(
@@ -271,6 +320,42 @@ def evaluate_hillstrom_frame(
             reason = (
                 f"At least {MINIMUM_ARM_SIZE_FOR_DECISION} assigned observations per arm are "
                 "required before the manager-facing decision is shown."
+            )
+        bootstrap_direction = (
+            _interval_direction(float(bootstrap_lower), float(bootstrap_upper))
+            if enough_sample
+            else "insufficient_sample"
+        )
+        bootstrap_goal = (
+            _decision_for_threshold(
+                float(bootstrap_lower),
+                float(bootstrap_upper),
+                config.minimum_effect_per_person,
+            )[0]
+            if enough_sample
+            and contrast_type == "treatment_vs_control"
+            and config.minimum_effect_per_person is not None
+            else "not_applicable_variant_comparison"
+            if contrast_type == "treatment_vs_treatment"
+            else "not_set"
+        )
+        if not enough_sample:
+            bootstrap_stability = "insufficient_sample"
+        else:
+            reference_status = (
+                evidence
+                if contrast_type == "treatment_vs_control"
+                and config.minimum_effect_per_person is not None
+                else _interval_direction(lower, upper)
+            )
+            bootstrap_status = (
+                bootstrap_goal
+                if contrast_type == "treatment_vs_control"
+                and config.minimum_effect_per_person is not None
+                else bootstrap_direction
+            )
+            bootstrap_stability = (
+                "consistent" if reference_status == bootstrap_status else "sensitive_to_method"
             )
         treatment_mean = float(treatment.mean())
         control_mean = float(comparison_control.mean())
@@ -304,6 +389,12 @@ def evaluate_hillstrom_frame(
                 "familywise_ci_upper_per_person": upper,
                 "familywise_confidence_level": confidence_level,
                 "multiplicity_method": "Welch normal approximation; Bonferroni across three preplanned campaign contrasts",
+                "bootstrap_ci_lower_per_person": float(bootstrap_lower),
+                "bootstrap_ci_upper_per_person": float(bootstrap_upper),
+                "bootstrap_standard_error_per_person": float(bootstrap_differences.std(ddof=1)),
+                "bootstrap_direction_status": bootstrap_direction,
+                "bootstrap_business_goal_status": bootstrap_goal,
+                "bootstrap_stability_status": bootstrap_stability,
                 "business_goal_status": (
                     "not_applicable_variant_comparison"
                     if contrast_type == "treatment_vs_treatment"
@@ -385,6 +476,16 @@ def evaluate_hillstrom_frame(
             "familywise_confidence_level": confidence_level,
             "contrast_count": comparisons_count,
             "multiple_comparison_adjustment": "Bonferroni",
+            "bootstrap": {
+                "method": "Empirical nonparametric percentile bootstrap of group means",
+                "resampling_unit": "customer rows resampled independently within assigned arm",
+                "repetitions": BOOTSTRAP_RESAMPLES,
+                "seed": BOOTSTRAP_SEED,
+                "interval_quantile_method": "linear percentile quantiles",
+                "multiple_comparison_adjustment": "Bonferroni-adjusted two-sided marginal quantiles",
+                "familywise_confidence_level": confidence_level,
+                "role": "stability diagnostic; does not replace the prespecified Welch interval or decision gate",
+            },
         },
         "quality": quality,
         "comparisons": comparisons,

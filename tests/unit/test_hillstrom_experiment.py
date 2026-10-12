@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import pytest
 
+import promoguard.experiments.hillstrom as hillstrom_module
 from promoguard.experiments.hillstrom import (
+    BOOTSTRAP_RESAMPLES,
+    BOOTSTRAP_SEED,
     HillstromAnalysisConfig,
     evaluate_hillstrom_frame,
     validate_hillstrom_frame,
@@ -108,8 +112,66 @@ def test_declared_hurdle_changes_commercial_status_without_rewriting_effect() ->
 
     assert target["comparisons"][0]["incremental_effect_per_person"] == base["comparisons"][0]["incremental_effect_per_person"]
     assert target["comparisons"][0]["business_goal_status"] == "goal_not_supported"
+    assert target["comparisons"][0]["bootstrap_business_goal_status"] == "goal_not_supported"
 
 
+def test_bootstrap_is_reproducible_familywise_and_only_a_stability_diagnostic() -> None:
+    frame = large_hillstrom_fixture()
+
+    first = evaluate_hillstrom_frame(frame)
+    second = evaluate_hillstrom_frame(frame)
+
+    bootstrap = first["uncertainty"]["bootstrap"]
+    assert bootstrap["repetitions"] == 10_000
+    assert bootstrap["seed"] == 20_261_012
+    assert "Bonferroni-adjusted" in bootstrap["multiple_comparison_adjustment"]
+    assert "does not replace" in bootstrap["role"]
+    rng = np.random.default_rng(BOOTSTRAP_SEED)
+    bootstrap_means = {}
+    for arm in ("Mens E-Mail", "Womens E-Mail", "No E-Mail"):
+        values = frame.loc[frame.segment.eq(arm), "spend"].to_numpy(dtype=float)
+        support, counts = np.unique(values, return_counts=True)
+        frequencies = rng.multinomial(
+            len(values), counts / len(values), size=BOOTSTRAP_RESAMPLES
+        )
+        bootstrap_means[arm] = frequencies @ support / len(values)
+    expected_lower, expected_upper = np.quantile(
+        bootstrap_means["Mens E-Mail"] - bootstrap_means["No E-Mail"],
+        [0.05 / 6, 1 - 0.05 / 6],
+        method="linear",
+    )
+    assert first["comparisons"][0]["bootstrap_ci_lower_per_person"] == expected_lower
+    assert first["comparisons"][0]["bootstrap_ci_upper_per_person"] == expected_upper
+    for first_comparison, second_comparison in zip(
+        first["comparisons"], second["comparisons"], strict=True
+    ):
+        assert first_comparison["incremental_effect_per_person"] == second_comparison[
+            "incremental_effect_per_person"
+        ]
+        assert first_comparison["bootstrap_ci_lower_per_person"] == second_comparison[
+            "bootstrap_ci_lower_per_person"
+        ]
+        assert first_comparison["bootstrap_ci_upper_per_person"] == second_comparison[
+            "bootstrap_ci_upper_per_person"
+        ]
+        assert first_comparison["bootstrap_stability_status"] == "consistent"
+        assert first_comparison["bootstrap_ci_lower_per_person"] <= first_comparison[
+            "incremental_effect_per_person"
+        ] <= first_comparison["bootstrap_ci_upper_per_person"]
+
+
+def test_disagreement_with_welch_is_explicitly_flagged(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        hillstrom_module,
+        "_welch_difference_interval",
+        lambda *_args, **_kwargs: (-1.0, 0.1, -1.2, -0.8),
+    )
+
+    result = evaluate_hillstrom_frame(large_hillstrom_fixture())
+
+    assert result["comparisons"][0]["statistical_direction_status"] == "negative_evidence_vs_zero"
+    assert result["comparisons"][0]["bootstrap_direction_status"] == "positive_evidence_vs_zero"
+    assert result["comparisons"][0]["bootstrap_stability_status"] == "sensitive_to_method"
 def test_adjusted_welch_interval_matches_hand_calculation() -> None:
     result = evaluate_hillstrom_frame(large_hillstrom_fixture())
     comparison = result["comparisons"][0]
@@ -166,5 +228,9 @@ def test_small_groups_never_receive_a_business_verdict_even_with_a_large_effect(
     assert all(
         item["business_goal_status"] == "insufficient_sample"
         for item in result["comparisons"][:2]
+    )
+    assert all(
+        item["bootstrap_stability_status"] == "insufficient_sample"
+        for item in result["comparisons"]
     )
     assert result["comparisons"][2]["business_goal_status"] == "not_applicable_variant_comparison"

@@ -34,6 +34,12 @@ type Comparison = {
   standard_error_per_person: number;
   familywise_ci_lower_per_person: number;
   familywise_ci_upper_per_person: number;
+  bootstrap_ci_lower_per_person?: number;
+  bootstrap_ci_upper_per_person?: number;
+  bootstrap_standard_error_per_person?: number;
+  bootstrap_direction_status?: string;
+  bootstrap_business_goal_status?: string;
+  bootstrap_stability_status?: string;
   statistical_direction_status: string;
   business_goal_status: string;
   decision_explanation: string;
@@ -50,7 +56,13 @@ type ExperimentSummary = {
     business_goal_configured: boolean;
     business_goal_note: string;
   };
-  uncertainty: { method: string; critical_value: number; familywise_confidence_level: number; contrast_count: number };
+  uncertainty: {
+    method: string;
+    critical_value: number;
+    familywise_confidence_level: number;
+    contrast_count: number;
+    bootstrap?: { method: string; repetitions: number; seed: number; familywise_confidence_level: number; role: string };
+  };
   quality: { valid: boolean; rows: number; duplicate_full_rows_retained: number };
   comparisons: Comparison[];
   interpretation: string[];
@@ -301,6 +313,10 @@ export default function ExperimentsPage() {
                 <div className="comparison-main-number">{displayEffect(item.incremental_effect_per_person, summary.primary_outcome.name)} <small>به‌ازای هر نفر</small></div>
                 <p className="comparison-scaled">به‌ازای ۱٬۰۰۰ نفر: <strong>{displayEffect(item.incremental_effect_per_1000_people, summary.primary_outcome.name)}</strong></p>
                 <div className="comparison-ci"><span>بازهٔ هم‌زمان ۹۵٪</span><strong>{displayEffect(item.familywise_ci_lower_per_person, summary.primary_outcome.name)} تا {displayEffect(item.familywise_ci_upper_per_person, summary.primary_outcome.name)}</strong></div>
+                {item.bootstrap_ci_lower_per_person !== undefined && item.bootstrap_ci_upper_per_person !== undefined && <div className="comparison-ci bootstrap-ci"><span>بازهٔ bootstrap خانوادگی ۹۵٪</span><strong>{displayEffect(item.bootstrap_ci_lower_per_person, summary.primary_outcome.name)} تا {displayEffect(item.bootstrap_ci_upper_per_person, summary.primary_outcome.name)}</strong></div>}
+                {item.bootstrap_stability_status && <small className={`bootstrap-stability ${item.bootstrap_stability_status}`}>
+                  {item.bootstrap_stability_status === "consistent" ? "بررسی پایداری: با روش اصلی هم‌سو" : item.bootstrap_stability_status === "sensitive_to_method" ? "بررسی پایداری: نتیجه به روش محاسبه حساس است" : "بررسی پایداری: نمونه برای قضاوت کافی نیست"}
+                </small>}
                 <p className="comparison-sample">نمونه: {number.format(item.treatment_n)} در گروه اول و {number.format(item.control_n)} در گروه مقایسه</p>
                 <div className="comparison-secondary"><span>تغییر احتمال خرید</span><strong>{displayEffect(item.descriptive_outcomes.conversion.difference, "conversion")}</strong><span>تغییر احتمال بازدید</span><strong>{displayEffect(item.descriptive_outcomes.visit.difference, "visit")}</strong></div>
                 {item.revenue_details && <details>
@@ -326,6 +342,12 @@ export default function ExperimentsPage() {
               </article>;
             })}
           </section>
+
+          {summary.uncertainty.bootstrap && <section className="panel bootstrap-method-panel">
+            <div className="panel-heading"><div><h2>آیا نتیجه به روش محاسبه حساس است؟</h2><p>یک بازبینی دوم با بازنمونه‌گیری از مشتریان داخل هر گروه؛ نتیجهٔ اصلی را جایگزین نمی‌کند.</p></div><span>{number.format(summary.uncertainty.bootstrap.repetitions)} تکرار</span></div>
+            <p>در هر تکرار، از هر گروه جداگانه یک نمونهٔ هم‌اندازه با جایگذاری ساخته شده و اختلاف میانگین‌ها دوباره محاسبه شده است. بازه‌ها برای سه مقایسه با Bonferroni تعدیل شده‌اند.</p>
+            <small>اگر وضعیت «هم‌سو» باشد، دو روش در تشخیص جهت نتیجه به یک پاسخ رسیده‌اند. «حساس به روش» یعنی نتیجهٔ مدیریتی بین دو روش فرق کرده و باید محتاطانه تفسیر شود. این بررسی اثبات سود یا تضمین پوشش آماری نیست.</small>
+          </section>}
 
           <section className="notice experiment-caveat"><span className="notice-icon">!</span><div><strong>{summary.primary_outcome.business_goal_configured ? "هدف بررسی شد؛ تفسیر اقتصادی را با هزینه‌های واقعی کامل کن" : "هنوز هدف تجاری وارد نشده"}</strong><p>{summary.primary_outcome.business_goal_note} {summary.uncertainty.method}; تصحیح چندمقایسه‌ای برای {number.format(summary.uncertainty.contrast_count)} مقایسه اعمال شده است.</p></div></section>
           <section className="panel benchmark-details"><h2>این نتیجه دقیقاً از کجا آمده؟</h2>

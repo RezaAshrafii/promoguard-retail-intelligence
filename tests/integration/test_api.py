@@ -304,7 +304,7 @@ def test_hillstrom_ready_report_downloads_dedicated_pdf(
     assert response.headers["content-type"].startswith("application/pdf")
     assert response.headers["content-disposition"].endswith(f'filename="{report_id}.pdf"')
     assert response.content.startswith(b"%PDF")
-    assert (runtime / "reports" / f"{report_id}-experiment-v2.pdf").is_file()
+    assert (runtime / "reports" / f"{report_id}-experiment-v5.pdf").is_file()
 
 
 def test_hillstrom_pdf_is_not_available_before_report_is_ready(

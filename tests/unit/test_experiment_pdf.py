@@ -37,6 +37,11 @@ def experiment_report() -> dict:
                 "method": "Welch normal interval",
                 "contrast_count": 3,
                 "multiple_comparison_adjustment": "Bonferroni",
+                "bootstrap": {
+                    "method": "Empirical nonparametric percentile bootstrap",
+                    "repetitions": 10_000,
+                    "seed": 20_261_012,
+                },
             },
             "comparisons": [
                 {
@@ -45,6 +50,9 @@ def experiment_report() -> dict:
                     "incremental_effect_per_person": 0.77,
                     "familywise_ci_lower_per_person": 0.42,
                     "familywise_ci_upper_per_person": 1.12,
+                    "bootstrap_ci_lower_per_person": 0.40,
+                    "bootstrap_ci_upper_per_person": 1.14,
+                    "bootstrap_stability_status": "consistent",
                     "statistical_direction_status": "positive_evidence_vs_zero",
                     "revenue_details": {"conditional_economics": {
                         "incremental_campaign_cost_per_1000": 90,
@@ -57,6 +65,9 @@ def experiment_report() -> dict:
                     "incremental_effect_per_person": 0.42,
                     "familywise_ci_lower_per_person": 0.11,
                     "familywise_ci_upper_per_person": 0.74,
+                    "bootstrap_ci_lower_per_person": 0.09,
+                    "bootstrap_ci_upper_per_person": 0.76,
+                    "bootstrap_stability_status": "consistent",
                     "statistical_direction_status": "positive_evidence_vs_zero",
                     "revenue_details": {"conditional_economics": {
                         "incremental_campaign_cost_per_1000": 60,
@@ -69,6 +80,9 @@ def experiment_report() -> dict:
                     "incremental_effect_per_person": 0.35,
                     "familywise_ci_lower_per_person": -0.04,
                     "familywise_ci_upper_per_person": 0.73,
+                    "bootstrap_ci_lower_per_person": -0.06,
+                    "bootstrap_ci_upper_per_person": 0.75,
+                    "bootstrap_stability_status": "sensitive_to_method",
                     "statistical_direction_status": "inconclusive_vs_zero",
                     "revenue_details": {"conditional_economics": {
                         "incremental_campaign_cost_per_1000": 30,
@@ -90,13 +104,15 @@ def test_experiment_pdf_contains_evidence_financial_sources_and_limits() -> None
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
 
     assert pdf_bytes.startswith(b"%PDF")
-    assert len(reader.pages) >= 1
+    assert len(reader.pages) == 2
     assert reader.metadata.title == "PromoGuard | گزارش ارزیابی آزمایش کمپین"
     assert "rpt_pdf_test_1234" in text
     assert "USD 140.95" in text
     assert any("\ufb50" <= char <= "\ufdff" for char in text)
     assert "USD (0.04)" in text
     assert "https://example.org/hillstrom?a=1&b=2" in text
+    assert "USD 0.40" in text
+    assert "USD 1.14" in text
 
 
 def test_experiment_pdf_escapes_user_source_markup() -> None:
@@ -104,4 +120,17 @@ def test_experiment_pdf_escapes_user_source_markup() -> None:
     reader = PdfReader(BytesIO(pdf_bytes))
 
     assert pdf_bytes.startswith(b"%PDF")
+    assert len(reader.pages) >= 1
+
+
+def test_experiment_pdf_still_renders_legacy_report_without_bootstrap_fields() -> None:
+    report = experiment_report()
+    report["result"]["uncertainty"].pop("bootstrap")
+    for comparison in report["result"]["comparisons"]:
+        comparison.pop("bootstrap_ci_lower_per_person")
+        comparison.pop("bootstrap_ci_upper_per_person")
+        comparison.pop("bootstrap_stability_status")
+
+    reader = PdfReader(BytesIO(build_experiment_report_pdf(report)))
+
     assert len(reader.pages) >= 1

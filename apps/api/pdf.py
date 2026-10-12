@@ -16,7 +16,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 ROOT = Path(__file__).resolve().parents[2]
 FONT_DIR = ROOT / "assets" / "fonts" / "Vazirmatn"
@@ -407,6 +407,49 @@ def build_experiment_report_pdf(report: dict[str, Any]) -> bytes:
             "این فایل فقط درآمد ناخالص را می‌سنجد. بدون حاشیهٔ مشارکت و هزینهٔ واقعی کمپین، "
             "سود یا مشارکت خالص محاسبه نمی‌شود.", body,
         ))
+
+    bootstrap = uncertainty.get("bootstrap") or {}
+    if bootstrap:
+        bootstrap_story: list[Any] = [
+            para("بررسی پایداری نتیجه با بازنمونه‌گیری", heading),
+            para(
+            f"از هر گروه جداگانه {fmt(bootstrap.get('repetitions'), 0)} بار نمونهٔ هم‌اندازه با جایگذاری ساخته شد. "
+            "این بازبینی مستقل از بازهٔ Welch است و فقط نشان می‌دهد نتیجه به روش محاسبه حساس هست یا نه؛ "
+            "جایگزین روش اصلی یا آستانهٔ تصمیم نیست.", body,
+            ),
+        ]
+        bootstrap_rows = [[
+            para("مقایسه", header), para("بازهٔ bootstrap خانوادگی ۹۵٪", header),
+            para("سازگاری با Welch", header),
+        ]]
+        stability_labels = {
+            "consistent": "هم‌سو",
+            "sensitive_to_method": "حساس به روش",
+            "insufficient_sample": "نمونه ناکافی",
+        }
+        for item in result.get("comparisons", []):
+            first = arm_fa.get(item.get("treatment_arm"), "نامشخص")
+            second = arm_fa.get(item.get("control_arm"), "نامشخص")
+            bootstrap_rows.append([
+                para(f"{first} در برابر {second}", cell),
+                ltr_para(
+                    f"{effect(item.get('bootstrap_ci_lower_per_person'))} - "
+                    f"{effect(item.get('bootstrap_ci_upper_per_person'))}", ltr_cell,
+                ),
+                para(stability_labels.get(item.get("bootstrap_stability_status"), "ثبت نشده"), cell),
+            ])
+        bootstrap_story.append(Table(bootstrap_rows, colWidths=[63 * mm, 65 * mm, 42 * mm], repeatRows=1, style=TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), INK), ("GRID", (0, 0), (-1, -1), 0.4, LINE),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5), ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ])))
+        bootstrap_story.append(para(
+            f"روش: {bootstrap.get('method', 'ثبت نشده')}؛ بازنمونه‌گیری درون هر گروه، "
+            f"تصحیح Bonferroni برای {fmt(uncertainty.get('contrast_count'), 0)} مقایسه، "
+            f"بذر ثابت {fmt(bootstrap.get('seed'), 0)}. بازه‌ها تقریبی‌اند و به فرض استقلال افراد در هر گروه تکیه دارند.", small,
+        ))
+        story.append(KeepTogether(bootstrap_story))
 
     story.append(para("روش و مرز تفسیر", heading))
     story.append(para(
