@@ -661,7 +661,7 @@ def test_manager_scenario_pdf_is_downloadable_and_preserves_limits(client: TestC
     assert any("\ufb50" <= char <= "\ufdff" for char in text)
 
 
-def test_manager_scenario_pdf_paginates_multiple_scenarios_and_keeps_each_id(
+def test_manager_scenario_pdf_handles_api_maximum_and_rejects_over_limit(
     client: TestClient,
 ) -> None:
     import copy
@@ -672,7 +672,7 @@ def test_manager_scenario_pdf_paginates_multiple_scenarios_and_keeps_each_id(
     request_body = manager_scenario_request_body()
     template = request_body["optimization"]["scenarios"][0]
     scenarios = []
-    for index in range(1, 9):
+    for index in range(1, 101):
         scenario = copy.deepcopy(template)
         scenario["scenario_id"] = f"case-{index}"
         scenario["store_id"] = f"store-{index}"
@@ -687,10 +687,18 @@ def test_manager_scenario_pdf_paginates_multiple_scenarios_and_keeps_each_id(
     assert response.status_code == 200
     reader = PdfReader(BytesIO(response.content))
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
-    assert len(reader.pages) > 2
-    for index in range(1, 9):
+    assert len(reader.pages) > 10
+    for index in range(1, 101):
         assert f"case-{index}" in text
         assert f"case-{index}:projected_demand_units" in text
+
+    over_limit_body = copy.deepcopy(request_body)
+    extra_scenario = copy.deepcopy(template)
+    extra_scenario["scenario_id"] = "case-101"
+    over_limit_body["optimization"]["scenarios"].append(extra_scenario)
+    rejected = client.post("/v1/optimization/comparisons/pdf", json=over_limit_body)
+    assert rejected.status_code == 422
+    assert "at most 100 scenarios" in str(rejected.json()["detail"])
 
 
 def test_manager_scenario_pdf_rejects_currency_mismatch_without_returning_file(

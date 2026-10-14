@@ -68,3 +68,41 @@ test("downloads a PDF from the exact request that produced the visible scenario 
   expect(download.suggestedFilename()).toBe("promoguard-scenario-comparison.pdf");
   expect(submittedBodies).toEqual([submittedRequest, submittedRequest]);
 });
+
+test("shows PDF export failure and allows retry with the same reviewed request", async ({ page }) => {
+  await page.route("**/v1/optimization/comparisons", async (route) => {
+    await route.fulfill({ json: comparison });
+  });
+
+  let pdfAttempt = 0;
+  const pdfBodies: string[] = [];
+  await page.route("**/v1/optimization/comparisons/pdf", async (route) => {
+    pdfBodies.push(route.request().postData() ?? "");
+    pdfAttempt += 1;
+    if (pdfAttempt === 1) {
+      await route.fulfill({ status: 503, json: { detail: "خروجی PDF موقتاً در دسترس نیست" } });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/pdf", body: Buffer.from("%PDF-1.4 test-only") });
+  });
+
+  await page.goto("/optimization");
+  await page.getByRole("button", { name: "ورود JSON" }).click();
+  const submittedRequest = '{"test_only":true,"request_id":"e2e-retry"}';
+  await page.getByLabel("متن درخواست").fill(submittedRequest);
+  await page.getByRole("button", { name: "مقایسهٔ سناریوها" }).click();
+  await expect(page.getByRole("heading", { name: "خلاصهٔ بررسی" })).toBeVisible();
+
+  const exportButton = page.getByRole("button", { name: "دانلود گزارش PDF برای بازبینی" });
+  await exportButton.click();
+  const exportError = page.getByText("خروجی PDF موقتاً در دسترس نیست", { exact: true });
+  await expect(exportError).toBeVisible();
+  await expect(exportButton).toBeEnabled();
+
+  const downloadPromise = page.waitForEvent("download");
+  await exportButton.click();
+  const download = await downloadPromise;
+  await expect(exportError).toHaveCount(0);
+  expect(download.suggestedFilename()).toBe("promoguard-scenario-comparison.pdf");
+  expect(pdfBodies).toEqual([submittedRequest, submittedRequest]);
+});

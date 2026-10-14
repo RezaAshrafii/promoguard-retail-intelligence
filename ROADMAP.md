@@ -937,14 +937,22 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Phase 8 remains ACTIVE. A permitted company dataset and manager review are still required for
   business validation; the PDF capability does not create a profit or customer-impact claim.
 
-### Phase 8.2.9 — Multi-scenario PDF pagination regression (2026-10-15)
+### Phase 8.2.9 — Maximum-size scenario PDF guard (2026-10-15)
 
-- Added an API integration regression with eight distinct scenarios and their own evidence references.
-  It verifies that the generated PDF spans pages while retaining every scenario identity and its
-  evidence reference. The API's no-selection behavior remains covered by the existing JSON contract test.
+- Added an API integration regression at the configured 100-scenario limit. It verifies multi-page
+  generation and retention of every scenario identity and demand-source reference. A 101-scenario
+  PDF request must be rejected before document rendering.
 - This is output-integrity coverage only: the fixtures do not represent a retailer and do not validate
   the economic assumptions or the business usefulness of the report.
 - Phase 8 remains ACTIVE; permitted company data and manager review remain the next business gate.
+
+### Phase 8.2.10 — PDF export retry behavior (2026-10-15)
+
+- Added a browser test for a temporary export-service failure followed by a successful retry. It
+  checks that the error is visible, the control becomes usable again, the error clears after success,
+  and both attempts use the exact request that produced the displayed assessment.
+- The browser test uses mocked responses and confirms UI behavior only; it is not a real API or
+  retailer-data validation.
 
 ## Phase 9 — PENDING — Production and verified AI layer
 
