@@ -63,6 +63,7 @@ def test_contract_accepts_real_publisher_schema_and_keeps_repeated_rows() -> Non
     [
         (lambda frame: frame.drop(columns="spend"), "missing required columns"),
         (lambda frame: frame.assign(segment="unknown"), "unsupported labels"),
+        (lambda frame: frame.assign(history_segment="unknown"), "history_segment contains"),
         (lambda frame: frame.assign(spend=-1.0), "negative values"),
         (lambda frame: frame.assign(conversion=0, spend=2.0), "zero conversion rows"),
         (lambda frame: frame.assign(conversion=1, visit=0), "conversion cannot be 1"),
@@ -99,6 +100,14 @@ def test_primary_effect_is_itt_and_includes_every_assigned_row() -> None:
     assert mens_vs_womens["control_arm"] == "Womens E-Mail"
     assert mens_vs_womens["incremental_effect_per_person"] == pytest.approx(4.25)
     assert mens_vs_womens["business_goal_status"] == "not_applicable_variant_comparison"
+    subgroup = result["subgroup_analysis"]
+    assert subgroup["attribute"] == "history_segment"
+    assert subgroup["pre_treatment"] is True
+    assert subgroup["contrast_count"] == 14
+    assert len(subgroup["contrasts"]) == 14
+    assert all(item["status"] == "insufficient_sample" for item in subgroup["contrasts"])
+    assert all(not item["interpretation_allowed"] for item in subgroup["contrasts"])
+    assert any("no interaction test" in item for item in subgroup["limitations"])
 
 
 def test_bootstrap_goal_preserves_insufficient_sample_with_declared_goal() -> None:
@@ -241,3 +250,43 @@ def test_small_groups_never_receive_a_business_verdict_even_with_a_large_effect(
         for item in result["comparisons"]
     )
     assert result["comparisons"][2]["business_goal_status"] == "not_applicable_variant_comparison"
+
+
+def test_subgroup_family_uses_fixed_multiplicity_and_hides_small_stratum_verdicts() -> None:
+    result = evaluate_hillstrom_frame(large_hillstrom_fixture())
+    subgroup = result["subgroup_analysis"]
+    populated = [
+        item for item in subgroup["contrasts"] if item["history_segment"] == "1) $0 - $100"
+    ]
+    sparse = [
+        item for item in subgroup["contrasts"] if item["history_segment"] == "7) $1,000 +"
+    ]
+
+    assert len(populated) == 2
+    assert all(item["status"] == "positive_evidence_vs_zero" for item in populated)
+    assert all(item["treatment_n"] == item["control_n"] == 1_200 for item in populated)
+    assert len(sparse) == 2
+    assert all(item["status"] == "insufficient_sample" for item in sparse)
+    assert all(item["estimated_effect_per_person"] is None for item in sparse)
+    assert subgroup["contrast_count"] == 14
+    assert "all 14" in subgroup["multiplicity_method"]
+    from statistics import NormalDist
+
+    frame = large_hillstrom_fixture()
+    treatment = frame.loc[
+        frame.segment.eq("Mens E-Mail") & frame.history_segment.eq("1) $0 - $100"),
+        "spend",
+    ].to_numpy()
+    control = frame.loc[
+        frame.segment.eq("No E-Mail") & frame.history_segment.eq("1) $0 - $100"),
+        "spend",
+    ].to_numpy()
+    standard_error = (
+        treatment.var(ddof=1) / len(treatment) + control.var(ddof=1) / len(control)
+    ) ** 0.5
+    critical = NormalDist().inv_cdf(1 - 0.05 / (2 * 14))
+    expected_lower = treatment.mean() - control.mean() - critical * standard_error
+    expected_upper = treatment.mean() - control.mean() + critical * standard_error
+    first = populated[0]
+    assert first["familywise_ci_lower_per_person"] == pytest.approx(expected_lower)
+    assert first["familywise_ci_upper_per_person"] == pytest.approx(expected_upper)

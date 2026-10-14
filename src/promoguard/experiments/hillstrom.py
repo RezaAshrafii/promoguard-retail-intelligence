@@ -33,6 +33,15 @@ HILLSTROM_DOWNLOAD_URL = (
 )
 HILLSTROM_LICENSE_STATUS = "No explicit dataset license found on the publisher page; do not redistribute."
 HILLSTROM_SEGMENTS = ("Mens E-Mail", "Womens E-Mail", "No E-Mail")
+HISTORY_SEGMENTS = (
+    "1) $0 - $100",
+    "2) $100 - $200",
+    "3) $200 - $350",
+    "4) $350 - $500",
+    "5) $500 - $750",
+    "6) $750 - $1,000",
+    "7) $1,000 +",
+)
 CONTROL_SEGMENT = "No E-Mail"
 TREATMENT_SEGMENTS = ("Mens E-Mail", "Womens E-Mail")
 MINIMUM_ARM_SIZE_FOR_DECISION = 1_000
@@ -123,6 +132,11 @@ def validate_hillstrom_frame(frame: pd.DataFrame) -> dict[str, Any]:
         segment_invalid = int((~frame["segment"].isin(HILLSTROM_SEGMENTS)).sum())
         if segment_invalid:
             errors.append(f"segment contains {segment_invalid} unsupported labels")
+        history_invalid = int((~frame["history_segment"].isin(HISTORY_SEGMENTS)).sum())
+        if history_invalid:
+            errors.append(
+                f"history_segment contains {history_invalid} unsupported labels"
+            )
         if any(invalid_numeric.values()):
             errors.append(f"numeric columns contain invalid or non-finite values: {invalid_numeric}")
         if any(invalid_binary.values()):
@@ -241,6 +255,89 @@ def _decision_for_threshold(
     if upper < threshold:
         return "goal_not_supported", "The adjusted interval is entirely below the declared goal."
     return "inconclusive_vs_goal", "The adjusted interval overlaps the declared goal."
+
+
+def _evaluate_history_subgroups(
+    frame: pd.DataFrame,
+    outcome: str,
+    *,
+    confidence_level: float,
+) -> dict[str, Any]:
+    """Estimate pre-treatment history-stratum contrasts as exploratory diagnostics.
+
+    All 14 treatment-versus-control contrasts are declared by the data contract, including
+    strata below the interpretation threshold. The Bonferroni family therefore does not shrink
+    when sparse strata are encountered.
+    """
+    contrast_count = len(HISTORY_SEGMENTS) * len(TREATMENT_SEGMENTS)
+    tail_probability = (1 - confidence_level) / (2 * contrast_count)
+    contrasts: list[dict[str, Any]] = []
+
+    for history_segment in HISTORY_SEGMENTS:
+        stratum = frame.loc[frame["history_segment"].eq(history_segment)]
+        control_frame = stratum.loc[stratum["segment"].eq(CONTROL_SEGMENT)]
+        control = pd.to_numeric(control_frame[outcome]).to_numpy(dtype=np.float64)
+        for treatment_arm in TREATMENT_SEGMENTS:
+            treatment_frame = stratum.loc[stratum["segment"].eq(treatment_arm)]
+            treatment = pd.to_numeric(treatment_frame[outcome]).to_numpy(dtype=np.float64)
+            treatment_n = int(treatment.size)
+            control_n = int(control.size)
+            enough_sample = min(treatment_n, control_n) >= MINIMUM_ARM_SIZE_FOR_DECISION
+
+            estimate: float | None = None
+            standard_error: float | None = None
+            lower: float | None = None
+            upper: float | None = None
+            if treatment_n >= 2 and control_n >= 2:
+                estimate, standard_error, lower, upper = _welch_difference_interval(
+                    treatment, control, tail_probability=tail_probability
+                )
+
+            if enough_sample and lower is not None and upper is not None:
+                status = _interval_direction(lower, upper)
+            else:
+                status = "insufficient_sample"
+
+            contrasts.append(
+                {
+                    "history_segment": history_segment,
+                    "treatment_arm": treatment_arm,
+                    "control_arm": CONTROL_SEGMENT,
+                    "treatment_n": treatment_n,
+                    "control_n": control_n,
+                    "treatment_mean_per_person": (
+                        float(treatment.mean()) if treatment_n else None
+                    ),
+                    "control_mean_per_person": float(control.mean()) if control_n else None,
+                    "estimated_effect_per_person": estimate,
+                    "estimated_effect_per_1000_people": (
+                        estimate * 1_000 if estimate is not None else None
+                    ),
+                    "standard_error_per_person": standard_error,
+                    "familywise_ci_lower_per_person": lower,
+                    "familywise_ci_upper_per_person": upper,
+                    "status": status,
+                    "interpretation_allowed": enough_sample,
+                }
+            )
+
+    return {
+        "attribute": "history_segment",
+        "label": "customer purchase history before assignment",
+        "pre_treatment": True,
+        "outcome": outcome,
+        "familywise_confidence_level": confidence_level,
+        "contrast_count": contrast_count,
+        "multiplicity_method": "Bonferroni across all 14 predeclared treatment-versus-control contrasts",
+        "interval_method": "Welch large-sample normal approximation",
+        "minimum_arm_size_for_interpretation": MINIMUM_ARM_SIZE_FOR_DECISION,
+        "contrasts": contrasts,
+        "limitations": [
+            "Exploratory stratum-level assignment comparisons; they are not validated targeting rules.",
+            "A significant result in one stratum and not another does not prove the strata differ; no interaction test is performed.",
+            "No recommendation to target individuals or deploy a campaign is produced.",
+        ],
+    }
 
 
 def evaluate_hillstrom_frame(
@@ -436,6 +533,11 @@ def evaluate_hillstrom_frame(
         if config.primary_outcome == "spend"
         else f"{config.primary_outcome} probability per assigned customer"
     )
+    subgroup_analysis = _evaluate_history_subgroups(
+        frame,
+        config.primary_outcome,
+        confidence_level=confidence_level,
+    )
     return {
         "benchmark": HILLSTROM_DATASET,
         "analysis_type": "randomized intention-to-treat campaign evaluation",
@@ -492,11 +594,12 @@ def evaluate_hillstrom_frame(
         },
         "quality": quality,
         "comparisons": comparisons,
+        "subgroup_analysis": subgroup_analysis,
         "interpretation": [
             "Effects are intention-to-treat differences by randomized assignment, including people who did not visit or buy.",
             "Spend is gross revenue in the publisher's data, not contribution margin or profit; campaign cost is absent.",
             "The published challenge is an email campaign benchmark, not a retail discount or Iranian-market study.",
-            "Subgroup targeting and individual treatment effects are not evaluated in this report.",
+            "The report includes exploratory assignment comparisons within pre-treatment purchase-history strata; it does not establish subgroup differences, individual treatment effects, or targeting rules.",
         ],
     }
 

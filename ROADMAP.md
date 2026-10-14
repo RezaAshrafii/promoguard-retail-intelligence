@@ -1,6 +1,6 @@
 # PromoGuard active development roadmap
 
-Last updated: 2026-10-03
+Last updated: 2026-10-13
 Roadmap owner: Reza  
 Execution rule: exactly one phase or release gate is `ACTIVE`.
 
@@ -849,6 +849,37 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Learning: `learning/08-14-product-stabilization/README.fa.md`. Phase 8 remains ACTIVE;
   organization authentication, public deployment, external profit claims, and new features
   are outside this stabilization gate. No commit or push was requested or performed.
+
+### Phase 8.3.6 — Predeclared purchase-history subgroup analysis (2026-10-13)
+
+- Model: GPT-6, current execution runtime; the host did not expose a reasoning-level setting.
+  The method was kept to pre-treatment strata, the existing minimum-per-arm guard, Welch intervals,
+  and a fixed Bonferroni family. No independent second-model review is claimed.
+- Hillstrom results now include two assignment-versus-control comparisons in each of seven
+  publisher-defined purchase-history segments. All 14 contrasts are fixed in advance for the
+  multiplicity denominator; segments under 1,000 people per arm receive `insufficient_sample` and
+  never receive a directional interpretation.
+- Estimates are exploratory, conditional assignment comparisons. The report explicitly says it
+  does not run an interaction test, prove differences between segments, produce individual effects,
+  select a target audience, or recommend deployment.
+- API result cache schema changed to `1.5.0` and experiment PDF schema to `7`; cache entries without
+  the complete 14-contrast section are recomputed. Existing report payloads remain readable because
+  the UI and PDF treat the subgroup section as optional.
+- The 64,000-row public file passed its data contract. Ten of 14 subgroup contrasts met the sample
+  gate; all ten adjusted Welch intervals included zero. Four low-sample contrasts were not
+  interpreted. This is a public email benchmark result, not retail-promotion, profit, or Iranian
+  customer evidence.
+- Validation: full Python suite **282 passed** (one existing Starlette/httpx deprecation warning),
+  Ruff and Python compile checks passed; frontend lint, unit tests (**13 passed**), typecheck, and
+  production build passed. Playwright passed **5 tests** with one worker; the default five-worker
+  run hit this host's slow Next.js startup and timed out, so it was rerun serially successfully.
+  The public 64,000-row file reproduced 14 contrasts (10 sample-eligible, 4 suppressed). The API
+  created report `rpt_36bef3d8b5484b1f`, reached `ready`, and served its 3-page PDF successfully;
+  PDF pages were rendered and visually reviewed. `git diff --check` passed. A separate full
+  dependency audit was not claimed; runtime-only `npm audit --omit=dev` reported no advisories.
+- Learning guide: `learning/08-15-predeclared-subgroup-analysis/README.fa.md`.
+- Phase 8 remains ACTIVE. A subgroup result does not unblock partner-data validation, manager review,
+  or the optimization gate.
 
 ## Phase 9 — PENDING — Production and verified AI layer
 

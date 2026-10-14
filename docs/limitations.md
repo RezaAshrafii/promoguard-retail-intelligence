@@ -20,3 +20,7 @@
 - Phase 8.1 validates real promotion-economics inputs and screens constraints only. `eligible` does
   not mean profitable, causal, optimal, or approved; scenario ranking and portfolio optimization
   remain unimplemented, and the public demo has no partner economics data.
+- Hillstrom's new purchase-history breakdown is an exploratory randomized email assignment analysis
+  with 14 Bonferroni-adjusted contrasts. It does not test effect heterogeneity, provide individual
+  treatment effects, identify a profitable audience, or validate targeting. Its 1,000-per-arm
+  display threshold is a conservative UI gate, not a statistical power guarantee.

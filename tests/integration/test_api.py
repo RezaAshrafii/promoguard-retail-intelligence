@@ -380,7 +380,7 @@ def test_hillstrom_ready_report_downloads_dedicated_pdf(
     assert response.headers["content-type"].startswith("application/pdf")
     assert response.headers["content-disposition"].endswith(f'filename="{report_id}.pdf"')
     assert response.content.startswith(b"%PDF")
-    assert (runtime / "reports" / f"{report_id}-experiment-v6.pdf").is_file()
+    assert (runtime / "reports" / f"{report_id}-experiment-v7.pdf").is_file()
 
 
 def test_hillstrom_pdf_is_not_available_before_report_is_ready(
@@ -416,6 +416,7 @@ def test_hillstrom_worker_caches_valid_result_by_source_and_config(
         "benchmark": "hillstrom-email-analytics-2008",
         "source": {"sha256": api_module.hillstrom_sha256_file(source)},
         "comparisons": [{"arm": "a"}, {"arm": "b"}, {"arm": "c"}],
+        "subgroup_analysis": {"contrasts": [{} for _ in range(14)]},
     }
 
     def evaluate(*_args, **_kwargs):

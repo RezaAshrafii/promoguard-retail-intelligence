@@ -22,7 +22,8 @@ readiness from public observational data.
   intention-to-treat effects with balance diagnostics while keeping it separate from retail;
 - evaluates the public three-arm Hillstrom email experiment in a separate report/API/web flow,
   including two treatment-vs-control comparisons, a direct version comparison, simultaneous
-  uncertainty intervals, and a human-set business hurdle; optional user-entered common contribution
+  uncertainty intervals, exploratory comparisons within pre-treatment purchase-history segments,
+  and a human-set business hurdle; optional user-entered common contribution
   margin and per-version campaign costs produce a clearly conditional contribution scenario with
   source notes that are recorded but not independently verified;
 - benchmarks logistic and nonlinear uplift learners on a deterministic real-data split with corrected

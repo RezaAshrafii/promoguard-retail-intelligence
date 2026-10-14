@@ -13,6 +13,21 @@
 7. Business evaluation prioritizes decision regret and harmful approvals over a single accuracy metric.
 8. A real retail causal/business-impact claim requires a design partner and an approved experiment.
 
+## Hillstrom subgroup diagnostic
+
+- `history_segment` is treated as a pre-assignment characteristic. The report compares each of two
+  assigned email arms with the no-email arm inside each of the seven publisher-defined categories.
+- The confirmatory primary report remains the three overall predeclared contrasts. Subgroup estimates
+  are exploratory and do not replace or revise those overall results.
+- The family is fixed at 14 contrasts (seven strata times two treatment arms). Welch normal intervals
+  use a Bonferroni two-sided tail probability based on all 14, even when one or more strata have too
+  few observations to interpret.
+- Direction is withheld unless each arm has at least 1,000 assigned rows. This product guardrail is
+  not a power calculation and does not guarantee useful precision.
+- No interaction test is performed. “Evidence in one subgroup but not another” is not evidence that
+  subgroup effects differ. The output must not be used to target people, select a rollout audience,
+  or claim a validated CATE model.
+
 ## Forecasting baseline protocol
 
 - The source calendar is weekly, so the seasonal-naive lag is 52 weeks; no daily frequency is

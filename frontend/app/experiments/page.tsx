@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { BrandLogo } from "../components/BrandLogo";
 import { directionText, experimentNarrative, goalText, reportFormValues } from "../report-view.mjs";
 
@@ -46,6 +47,18 @@ type Comparison = {
   decision_explanation: string;
   descriptive_outcomes: Record<string, { treatment_mean: number; control_mean: number; difference: number }>;
 };
+type SubgroupContrast = {
+  history_segment: string;
+  treatment_arm: string;
+  control_arm: string;
+  treatment_n: number;
+  control_n: number;
+  estimated_effect_per_person: number | null;
+  familywise_ci_lower_per_person: number | null;
+  familywise_ci_upper_per_person: number | null;
+  status: string;
+  interpretation_allowed: boolean;
+};
 type ExperimentSummary = {
   benchmark: string;
   source: { dataset_page: string; filename: string; sha256: string; license_status: string };
@@ -66,6 +79,17 @@ type ExperimentSummary = {
   };
   quality: { valid: boolean; rows: number; duplicate_full_rows_retained: number };
   comparisons: Comparison[];
+  subgroup_analysis?: {
+    attribute: string;
+    label: string;
+    pre_treatment: boolean;
+    outcome: Outcome;
+    contrast_count: number;
+    multiplicity_method: string;
+    minimum_arm_size_for_interpretation: number;
+    contrasts: SubgroupContrast[];
+    limitations: string[];
+  };
   interpretation: string[];
 };
 type ReportJob = {
@@ -96,6 +120,26 @@ function outcomeLabel(outcome: Outcome) {
   if (outcome === "spend") return "درآمد ناخالص";
   if (outcome === "conversion") return "نرخ خرید";
   return "نرخ بازدید";
+}
+
+function historySegmentLabel(value: string) {
+  const labels: Record<string, string> = {
+    "1) $0 - $100": "۰ تا ۱۰۰ دلار",
+    "2) $100 - $200": "۱۰۰ تا ۲۰۰ دلار",
+    "3) $200 - $350": "۲۰۰ تا ۳۵۰ دلار",
+    "4) $350 - $500": "۳۵۰ تا ۵۰۰ دلار",
+    "5) $500 - $750": "۵۰۰ تا ۷۵۰ دلار",
+    "6) $750 - $1,000": "۷۵۰ تا ۱٬۰۰۰ دلار",
+    "7) $1,000 +": "بیش از ۱٬۰۰۰ دلار",
+  };
+  return labels[value] ?? value;
+}
+
+function subgroupStatusText(status: string, allowed: boolean) {
+  if (!allowed || status === "insufficient_sample") return "نمونهٔ کم؛ بدون تفسیر";
+  if (status === "positive_evidence_vs_zero") return "بازه بالاتر از صفر";
+  if (status === "negative_evidence_vs_zero") return "بازه پایین‌تر از صفر";
+  return "بازه شامل صفر است";
 }
 
 function statusText(comparison: Comparison, configuredGoal: boolean, outcome: Outcome) {
@@ -256,11 +300,11 @@ export default function ExperimentsPage() {
       <aside className="sidebar">
         <div className="brand"><BrandLogo size={44} /></div>
         <nav aria-label="مسیرهای اصلی">
-          <a className="nav-item" href="/">⌂ <span>نمای کلی</span></a>
-          <a className="nav-item" href="/">▣ <span>آمادگی داده</span></a>
-          <a className="nav-item" href="/">▥ <span>ممیزی پروموشن</span></a>
-          <a className="nav-item active" href="/experiments">◉ <span>ارزیابی با گروه کنترل</span></a>
-          <a className="nav-item" href="/optimization">↗ <span>بررسی سناریوها</span></a>
+          <Link className="nav-item" href="/">⌂ <span>نمای کلی</span></Link>
+          <Link className="nav-item" href="/?section=readiness">▣ <span>آمادگی داده</span></Link>
+          <Link className="nav-item" href="/?section=promotion">▥ <span>ممیزی پروموشن</span></Link>
+          <Link className="nav-item active" href="/experiments">◉ <span>ارزیابی با گروه کنترل</span></Link>
+          <Link className="nav-item" href="/optimization">↗ <span>بررسی سناریوها</span></Link>
         </nav>
         <div className="sidebar-footer"><small>آزمایش تصادفی عمومی · تحلیل محلی</small></div>
       </aside>
@@ -372,6 +416,23 @@ export default function ExperimentsPage() {
             <div className="panel-heading"><div><h2>آیا نتیجه به روش محاسبه حساس است؟</h2><p>یک بازبینی دوم با بازنمونه‌گیری از مشتریان داخل هر گروه؛ نتیجهٔ اصلی را جایگزین نمی‌کند.</p></div><span>{number.format(summary.uncertainty.bootstrap.repetitions)} تکرار</span></div>
             <p>در هر تکرار، از هر گروه جداگانه یک نمونهٔ هم‌اندازه با جایگذاری ساخته شده و اختلاف میانگین‌ها دوباره محاسبه شده است. بازه‌ها برای سه مقایسه با Bonferroni تعدیل شده‌اند.</p>
             <small>اگر وضعیت «هم‌سو» باشد، دو روش در تشخیص جهت نتیجه به یک پاسخ رسیده‌اند. «حساس به روش» یعنی نتیجهٔ مدیریتی بین دو روش فرق کرده و باید محتاطانه تفسیر شود. این بررسی اثبات سود یا تضمین پوشش آماری نیست.</small>
+          </section>}
+
+          {summary.subgroup_analysis && <section className="panel subgroup-analysis-panel">
+            <div className="panel-heading"><div><h2>نتیجه بر اساس سابقهٔ خرید پیشین</h2><p>مقایسهٔ هر نسخه با کنترل در دسته‌های ثبت‌شده پیش از تخصیص کمپین</p></div><span>{number.format(summary.subgroup_analysis.contrast_count)} مقایسهٔ ازپیش‌تعریف‌شده</span></div>
+            <div className="table-scroll"><table className="subgroup-table">
+              <thead><tr><th>سابقهٔ خرید قبلی</th><th>نسخه</th><th>نمونهٔ نسخه / کنترل</th><th>تفاوت {outcomeLabel(summary.primary_outcome.name)}</th><th>بازهٔ هم‌زمان ۹۵٪</th><th>برداشت آماری</th></tr></thead>
+              <tbody>{summary.subgroup_analysis.contrasts.map((item) => <tr key={`${item.history_segment}-${item.treatment_arm}`}>
+                <td>{historySegmentLabel(item.history_segment)}</td>
+                <td>{item.treatment_arm === "Mens E-Mail" ? "ایمیل مردانه" : "ایمیل زنانه"}</td>
+                <td>{number.format(item.treatment_n)} / {number.format(item.control_n)}</td>
+                <td>{item.estimated_effect_per_person === null ? "—" : displayEffect(item.estimated_effect_per_person, summary.primary_outcome.name)}</td>
+                <td>{item.familywise_ci_lower_per_person === null || item.familywise_ci_upper_per_person === null ? "—" : `${displayEffect(item.familywise_ci_lower_per_person, summary.primary_outcome.name)} تا ${displayEffect(item.familywise_ci_upper_per_person, summary.primary_outcome.name)}`}</td>
+                <td>{subgroupStatusText(item.status, item.interpretation_allowed)}</td>
+              </tr>)}</tbody>
+            </table></div>
+            <p className="subgroup-method-note">بازه‌ها با Welch و تصحیح Bonferroni روی همهٔ ۱۴ مقایسه ساخته شده‌اند. حداقل {number.format(summary.subgroup_analysis.minimum_arm_size_for_interpretation)} نفر در هر بازو برای تفسیر آماری لازم است؛ دسته‌های کوچک فقط با وضعیت «بدون تفسیر» نمایش داده می‌شوند.</p>
+            <div className="notice subgroup-caveat"><span className="notice-icon">!</span><div><strong>این جدول برای انتخاب خودکار مشتری یا هدف‌گیری کمپین نیست</strong><p>تفاوت معنادار در یک دسته و نامعنادار بودن دستهٔ دیگر، به‌تنهایی ثابت نمی‌کند اثر این دو دسته با هم فرق دارد. آزمون تعامل انجام نشده و همهٔ نتایج به همین دادهٔ عمومی وابسته‌اند.</p></div></div>
           </section>}
 
           <section className="notice experiment-caveat"><span className="notice-icon">!</span><div><strong>{summary.primary_outcome.business_goal_configured ? "هدف بررسی شد؛ تفسیر اقتصادی را با هزینه‌های واقعی کامل کن" : "هنوز هدف تجاری وارد نشده"}</strong><p>{summary.primary_outcome.business_goal_note} {summary.uncertainty.method}; تصحیح چندمقایسه‌ای برای {number.format(summary.uncertainty.contrast_count)} مقایسه اعمال شده است.</p></div></section>

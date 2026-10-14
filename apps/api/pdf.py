@@ -16,7 +16,15 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import (
+    KeepTogether,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 FONT_DIR = ROOT / "assets" / "fonts" / "Vazirmatn"
@@ -361,6 +369,62 @@ def build_experiment_report_pdf(report: dict[str, Any]) -> bytes:
         ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
     ])))
 
+    subgroup = result.get("subgroup_analysis") or {}
+    subgroup_contrasts = subgroup.get("contrasts") or []
+    if subgroup_contrasts:
+        subgroup_heading = ParagraphStyle(
+            "PGExperimentSubgroupHeading", parent=heading, keepWithNext=1,
+        )
+        subgroup_intro = ParagraphStyle(
+            "PGExperimentSubgroupIntro", parent=small, keepWithNext=1,
+        )
+        story.append(para("نتیجه بر اساس سابقهٔ خرید پیشین", subgroup_heading))
+        story.append(para(
+            "مقایسهٔ هر نسخه با کنترل در دسته‌هایی که پیش از تخصیص ثبت شده‌اند. بازه‌ها برای همهٔ "
+            "مقایسه‌های ازپیش‌تعریف‌شده با Bonferroni تعدیل شده‌اند؛ دستهٔ کم‌نمونه تفسیر نمی‌شود.", subgroup_intro,
+        ))
+        subgroup_rows = [[
+            para("سابقهٔ خرید", header), para("نسخه", header), para("تعداد نسخه/کنترل", header),
+            para("اثر هر نفر", header), para("بازهٔ هم‌زمان ۹۵٪", header), para("وضعیت", header),
+        ]]
+        subgroup_status = {
+            "positive_evidence_vs_zero": "بازه بالاتر از صفر",
+            "negative_evidence_vs_zero": "بازه پایین‌تر از صفر",
+            "inconclusive_vs_zero": "بازه شامل صفر",
+            "insufficient_sample": "نمونه ناکافی؛ بدون تفسیر",
+        }
+        for item in subgroup_contrasts:
+            arm = arm_fa.get(item.get("treatment_arm"), "نامشخص")
+            estimate = item.get("estimated_effect_per_person")
+            lower = item.get("familywise_ci_lower_per_person")
+            upper = item.get("familywise_ci_upper_per_person")
+            interval = (
+                f"{effect(lower)} - {effect(upper)}"
+                if lower is not None and upper is not None else "ثبت نشده"
+            )
+            status = (
+                subgroup_status.get(item.get("status"), "ثبت نشده")
+                if item.get("interpretation_allowed") else "نمونه ناکافی؛ بدون تفسیر"
+            )
+            subgroup_rows.append([
+                para(item.get("history_segment", "نامشخص"), cell),
+                para(arm, cell),
+                para(f"{fmt(item.get('treatment_n'), 0)} / {fmt(item.get('control_n'), 0)}", cell),
+                ltr_para(effect(estimate), ltr_cell) if estimate is not None else para("—", cell),
+                ltr_para(interval, ltr_cell),
+                para(status, cell),
+            ])
+        story.append(Table(subgroup_rows, colWidths=[34 * mm, 30 * mm, 27 * mm, 25 * mm, 33 * mm, 21 * mm], repeatRows=1, style=TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), INK), ("GRID", (0, 0), (-1, -1), 0.4, LINE),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 3), ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+            ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ])))
+        story.append(para(
+            f"تعداد لازم برای تفسیر: دست‌کم {fmt(subgroup.get('minimum_arm_size_for_interpretation'), 0)} نفر در هر بازو. "
+            "این جدول گروه برنده یا قانون هدف‌گیری نمی‌سازد؛ تفاوت وضعیت معناداری بین دسته‌ها آزمون تعامل نیست.", small,
+        ))
+
     if assumptions:
         story.append(para("محاسبهٔ مالیِ مشروط", heading))
         margin = assumptions.get("common_contribution_margin")
@@ -457,6 +521,8 @@ def build_experiment_report_pdf(report: dict[str, Any]) -> bytes:
         ))
         story.append(KeepTogether(bootstrap_story))
 
+    if subgroup_contrasts:
+        story.append(PageBreak())
     story.append(para("روش و مرز تفسیر", heading))
     story.append(para(
         f"واحد تخصیص: مشتری. نتیجه بر اساس گروه تخصیص‌یافته (ITT) است. بازه با روش "
@@ -464,6 +530,8 @@ def build_experiment_report_pdf(report: dict[str, Any]) -> bytes:
         "مقایسه تصحیح چندگانه اعمال شده است. افراد در هر گروه باید مستقل باشند و توصیف ناشر دربارهٔ تصادفی‌سازی را می‌پذیریم.", body,
     ))
     for limitation in result.get("interpretation", []):
+        if subgroup_contrasts and "does not establish subgroup differences" in limitation:
+            continue
         story.append(para(f"- {limitation}", small))
     story.append(para(f"SHA-256 فایل: {source.get('sha256', 'ثبت نشده')}", small))
     story.append(para(f"وضعیت مجوز: {source.get('license_status', 'ثبت نشده')}", small))

@@ -164,3 +164,52 @@ def test_pdf_records_goal_value_and_distinguishes_unresolved_from_failed_goal(mo
     assert "USD 0.50" in texts[0] and "USD 99.00" in texts[1]
     for status in ("inconclusive_vs_goal", "goal_not_supported"):
         assert any(goal_label(status) in paragraph for paragraph in rendered)
+
+
+def test_pdf_renders_predeclared_subgroup_analysis_and_guardrails(monkeypatch) -> None:
+    import apps.api.pdf as pdf_module
+
+    report = experiment_report()
+    report["result"]["subgroup_analysis"] = {
+        "attribute": "history_segment",
+        "pre_treatment": True,
+        "contrast_count": 14,
+        "minimum_arm_size_for_interpretation": 1_000,
+        "multiplicity_method": "Bonferroni",
+        "contrasts": [{
+            "history_segment": "1) $0 - $100",
+            "treatment_arm": "Mens E-Mail",
+            "treatment_n": 1_200,
+            "control_n": 1_100,
+            "estimated_effect_per_person": 0.25,
+            "familywise_ci_lower_per_person": 0.05,
+            "familywise_ci_upper_per_person": 0.45,
+            "status": "positive_evidence_vs_zero",
+            "interpretation_allowed": True,
+        }, {
+            "history_segment": "7) $1,000 +",
+            "treatment_arm": "Womens E-Mail",
+            "treatment_n": 500,
+            "control_n": 400,
+            "estimated_effect_per_person": None,
+            "familywise_ci_lower_per_person": None,
+            "familywise_ci_upper_per_person": None,
+            "status": "insufficient_sample",
+            "interpretation_allowed": False,
+        }],
+    }
+    rendered: list[str] = []
+    original_rtl = pdf_module._rtl
+
+    def record_paragraph(text):
+        rendered.append(str(text))
+        return original_rtl(text)
+
+    monkeypatch.setattr(pdf_module, "_rtl", record_paragraph)
+    pdf_bytes = build_experiment_report_pdf(report)
+
+    assert pdf_bytes.startswith(b"%PDF")
+    assert any("نتیجه بر اساس سابقهٔ خرید پیشین" in item for item in rendered)
+    assert any("1) $0 - $100" in item for item in rendered)
+    assert any("نمونه ناکافی؛ بدون تفسیر" in item for item in rendered)
+    assert any("آزمون تعامل نیست" in item for item in rendered)

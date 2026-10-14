@@ -9,6 +9,22 @@ function experiment(outcome = "conversion", status = "ready") {
     quality: { valid: true, rows: 3600, duplicate_full_rows_retained: 0 },
     primary_outcome: { name: outcome, unit: "test", minimum_effect_per_person: 0.01, business_goal_configured: true, business_goal_note: "test only" },
     uncertainty: { method: "Welch", critical_value: 2.4, contrast_count: 3, familywise_confidence_level: 0.95 },
+    subgroup_analysis: {
+      attribute: "history_segment", label: "purchase history", pre_treatment: true,
+      outcome, contrast_count: 14, multiplicity_method: "Bonferroni",
+      minimum_arm_size_for_interpretation: 1000,
+      contrasts: Array.from({ length: 14 }, (_, index) => ({
+        history_segment: index < 2 ? "1) $0 - $100" : "7) $1,000 +",
+        treatment_arm: index % 2 === 0 ? "Mens E-Mail" : "Womens E-Mail", control_arm: "No E-Mail",
+        treatment_n: index < 2 ? 1200 : 400, control_n: index < 2 ? 1200 : 400,
+        estimated_effect_per_person: index < 2 ? 0.01 : null,
+        familywise_ci_lower_per_person: index < 2 ? 0.005 : null,
+        familywise_ci_upper_per_person: index < 2 ? 0.015 : null,
+        status: index < 2 ? "positive_evidence_vs_zero" : "insufficient_sample",
+        interpretation_allowed: index < 2,
+      })),
+      limitations: ["test only"],
+    },
     interpretation: [],
     comparisons: ["No E-Mail", "No E-Mail", "Womens E-Mail"].map((control_arm, index) => ({
       treatment_arm: index === 1 ? "Womens E-Mail" : "Mens E-Mail", control_arm,
@@ -62,6 +78,10 @@ test("restores outcome and goal, uses dynamic direct-comparison copy, and links 
   await expect(page.locator('a[href$="/rpt_e2e/pdf"]')).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("نرخ خرید");
   await expect(page.locator(".large-status")).toContainText("۳٬۶۰۰");
+  await expect(page.locator(".subgroup-table tbody tr")).toHaveCount(14);
+  await expect(page.locator(".subgroup-analysis-panel")).toContainText("۰ تا ۱۰۰ دلار");
+  await expect(page.locator(".subgroup-analysis-panel")).toContainText("بدون تفسیر");
+  await expect(page.locator(".subgroup-analysis-panel")).toContainText("آزمون تعامل انجام نشده");
 });
 
 test("restores financial references and a zero cost without inventing defaults", async ({ page }) => {

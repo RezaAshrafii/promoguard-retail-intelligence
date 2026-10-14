@@ -62,8 +62,8 @@ from promoguard.optimization import (
 MAX_UPLOAD_BYTES = 120 * 1024 * 1024
 MAX_PANEL_ROWS = 1_000_000
 REPORT_RESULT_SCHEMA_VERSION = "2.3.0"
-HILLSTROM_REPORT_SCHEMA_VERSION = "1.4.1"
-HILLSTROM_PDF_SCHEMA_VERSION = "6"
+HILLSTROM_REPORT_SCHEMA_VERSION = "1.5.0"
+HILLSTROM_PDF_SCHEMA_VERSION = "7"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 LOCAL_DATA_ROOT = (REPOSITORY_ROOT / "data").resolve()
 HILLSTROM_DATASET_PATH = LOCAL_DATA_ROOT / "raw" / "hillstrom" / "hillstrom-email-analytics-2008.csv"
@@ -573,6 +573,8 @@ def _run_hillstrom_report(report_id: str) -> None:
                     and cached.get("benchmark") == HILLSTROM_DATASET
                     and cached.get("source", {}).get("sha256") == expected_sha256
                     and len(cached.get("comparisons", [])) == 3
+                    and isinstance(cached.get("subgroup_analysis"), dict)
+                    and len(cached["subgroup_analysis"].get("contrasts", [])) == 14
                 ):
                     result = cached
                     report["cache_hit"] = True
