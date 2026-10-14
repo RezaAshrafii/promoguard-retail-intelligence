@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useRef, useState } from "react";
+import Link from "next/link";
 import { BrandLogo } from "../components/BrandLogo";
 import { formatApiValidationErrors } from "./api-errors.mjs";
 import { formatPersianDecimal } from "./format.mjs";
@@ -199,11 +200,11 @@ export default function OptimizationPage() {
         <div className={styles.brand}><BrandLogo size={43} /></div>
         <p className={styles.navCaption}>محصول</p>
         <nav aria-label="مسیرهای اصلی">
-          <a className={styles.navItem} href="/?section=overview">⌂ <span>نمای کلی</span></a>
-          <a className={styles.navItem} href="/?section=readiness">▣ <span>آمادگی داده</span></a>
-          <a className={styles.navItem} href="/?section=promotion">▥ <span>ممیزی پروموشن</span></a>
-          <a className={styles.navItem} href="/experiments">◉ <span>ارزیابی با گروه کنترل</span></a>
-          <a className={`${styles.navItem} ${styles.active}`} href="/optimization" aria-current="page">↗ <span>بررسی سناریوها</span></a>
+          <Link className={styles.navItem} href="/?section=overview">⌂ <span>نمای کلی</span></Link>
+          <Link className={styles.navItem} href="/?section=readiness">▣ <span>آمادگی داده</span></Link>
+          <Link className={styles.navItem} href="/?section=promotion">▥ <span>ممیزی پروموشن</span></Link>
+          <Link className={styles.navItem} href="/experiments">◉ <span>ارزیابی با گروه کنترل</span></Link>
+          <Link className={`${styles.navItem} ${styles.active}`} href="/optimization" aria-current="page">↗ <span>بررسی سناریوها</span></Link>
         </nav>
         <div className={styles.sidebarFooter}>محیط محلی بررسی<br />بدون اجرای خودکار کمپین</div>
       </aside>
