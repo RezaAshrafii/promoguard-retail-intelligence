@@ -18,7 +18,6 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     KeepTogether,
-    PageBreak,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -420,10 +419,51 @@ def build_experiment_report_pdf(report: dict[str, Any]) -> bytes:
             ("LEFTPADDING", (0, 0), (-1, -1), 3), ("RIGHTPADDING", (0, 0), (-1, -1), 3),
             ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ])))
+        heterogeneity_tests = subgroup.get("heterogeneity_tests") or []
+        heterogeneity_intro = (
+            "این جدول گروه برنده یا قانون هدف‌گیری نمی‌سازد؛ آزمون کلی تفاوت اثر در بخش بعد آمده است."
+            if heterogeneity_tests
+            else "این گزارش قدیمی است و آزمون کلی تفاوت اثر را ندارد؛ برای دریافت آن، تحلیل را دوباره اجرا کنید."
+        )
         story.append(para(
             f"تعداد لازم برای تفسیر: دست‌کم {fmt(subgroup.get('minimum_arm_size_for_interpretation'), 0)} نفر در هر بازو. "
-            "این جدول گروه برنده یا قانون هدف‌گیری نمی‌سازد؛ تفاوت وضعیت معناداری بین دسته‌ها آزمون تعامل نیست.", small,
+            f"{heterogeneity_intro}", small,
         ))
+        if heterogeneity_tests:
+            story.append(para("آزمون کلیِ تفاوت اثر میان دسته‌ها", ParagraphStyle(
+                "PGExperimentHeterogeneityHeading", parent=heading, keepWithNext=1,
+            )))
+            heterogeneity_rows = [[
+                para("نسخه در برابر کنترل", header), para("کمترین تعداد در سلول", header),
+                para("p تعدیل‌شده", header), para("نتیجهٔ اکتشافی", header),
+            ]]
+            heterogeneity_status = {
+                "evidence_of_heterogeneity": "نشانهٔ تفاوت اثر بین دسته‌ها",
+                "no_clear_heterogeneity_evidence": "شواهد روشن پیدا نشد؛ برابری ثابت نیست",
+                "insufficient_sample": "نمونه کمتر از حد تفسیر است",
+                "not_estimable": "آزمون قابل محاسبه نیست",
+                "numerical_error": "خطای عددی؛ نتیجه قابل تفسیر نیست",
+            }
+            for item in heterogeneity_tests:
+                p_adjusted = item.get("familywise_adjusted_p_value")
+                heterogeneity_rows.append([
+                    para(arm_fa.get(item.get("treatment_arm"), "نامشخص"), cell),
+                    para(fmt(item.get("minimum_cell_size"), 0), cell),
+                    ltr_para(fmt(p_adjusted, 4), ltr_cell) if p_adjusted is not None else para("—", cell),
+                    para(heterogeneity_status.get(item.get("status"), "ثبت نشده"), cell),
+                ])
+            story.append(Table(heterogeneity_rows, colWidths=[43 * mm, 35 * mm, 29 * mm, 58 * mm], repeatRows=1, style=TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), INK), ("GRID", (0, 0), (-1, -1), 0.4, LINE),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ])))
+            story.append(para(
+                "روش برنامه‌ریزی‌شده: Cochran Q با تقریب کای‌دو و تصحیح Bonferroni برای دو آزمون نسخه؛ "
+                f"تفسیر فقط وقتی انجام می‌شود که در هر دسته و هر بازو دست‌کم {fmt(subgroup.get('minimum_arm_size_for_interpretation'), 0)} نفر باشند. "
+                "این آزمون اکتشافی است؛ "
+                "p تعدیل‌شدهٔ بالا، برابری اثرها را ثابت نمی‌کند و نتیجه مجوز هدف‌گیری یا اجرا نیست.", small,
+            ))
 
     if assumptions:
         story.append(para("محاسبهٔ مالیِ مشروط", heading))
@@ -521,8 +561,6 @@ def build_experiment_report_pdf(report: dict[str, Any]) -> bytes:
         ))
         story.append(KeepTogether(bootstrap_story))
 
-    if subgroup_contrasts:
-        story.append(PageBreak())
     story.append(para("روش و مرز تفسیر", heading))
     story.append(para(
         f"واحد تخصیص: مشتری. نتیجه بر اساس گروه تخصیص‌یافته (ITT) است. بازه با روش "

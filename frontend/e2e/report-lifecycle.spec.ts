@@ -13,6 +13,14 @@ function experiment(outcome = "conversion", status = "ready") {
       attribute: "history_segment", label: "purchase history", pre_treatment: true,
       outcome, contrast_count: 14, multiplicity_method: "Bonferroni",
       minimum_arm_size_for_interpretation: 1000,
+      heterogeneity_tests: ["Mens E-Mail", "Womens E-Mail"].map((treatment_arm) => ({
+        treatment_arm, control_arm: "No E-Mail", method: "Cochran Q", strata_count: 7,
+        estimable_strata_count: 7, degrees_of_freedom: 6, minimum_cell_size: 1000,
+        minimum_cell_size_for_interpretation: 1000, interpretation_allowed: true,
+        statistic: 0.1, p_value: 1,
+        familywise_adjusted_p_value: 1, familywise_test_count: 2,
+        status: "no_clear_heterogeneity_evidence", reason_code: null,
+      })),
       contrasts: Array.from({ length: 14 }, (_, index) => ({
         history_segment: index < 2 ? "1) $0 - $100" : "7) $1,000 +",
         treatment_arm: index % 2 === 0 ? "Mens E-Mail" : "Womens E-Mail", control_arm: "No E-Mail",
@@ -81,7 +89,39 @@ test("restores outcome and goal, uses dynamic direct-comparison copy, and links 
   await expect(page.locator(".subgroup-table tbody tr")).toHaveCount(14);
   await expect(page.locator(".subgroup-analysis-panel")).toContainText("۰ تا ۱۰۰ دلار");
   await expect(page.locator(".subgroup-analysis-panel")).toContainText("بدون تفسیر");
-  await expect(page.locator(".subgroup-analysis-panel")).toContainText("آزمون تعامل انجام نشده");
+  await expect(page.locator(".subgroup-analysis-panel")).toContainText("Cochran Q");
+  await expect(page.locator(".heterogeneity-grid")).toContainText("p پس از تعدیل دو آزمون");
+  const cardStyle = await page.locator(".heterogeneity-card").first().evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { background: style.backgroundColor, border: style.borderTopColor };
+  });
+  expect(cardStyle).toEqual({ background: "rgb(255, 255, 255)", border: "rgb(223, 233, 234)" });
+});
+
+test("opens a historical subgroup report created before heterogeneity fields existed", async ({ page }) => {
+  const prior = experiment();
+  const priorResult = prior.result;
+  if (!priorResult) throw new Error("ready fixture must include a report result");
+  const priorSubgroups = priorResult.subgroup_analysis as Omit<typeof priorResult.subgroup_analysis, "heterogeneity_tests"> & {
+    heterogeneity_tests?: unknown[];
+  };
+  delete priorSubgroups.heterogeneity_tests;
+  await page.route("**/v1/reports/**", route => route.fulfill({ json: prior }));
+  await page.goto("/experiments?report=rpt_e2e");
+  await expect(page.locator(".subgroup-analysis-panel")).toContainText("این گزارش پیش از اضافه‌شدن آزمون کلی ساخته شده است");
+});
+
+test("shows an explicit rerun message for a corrupted historical heterogeneity payload", async ({ page }) => {
+  const corrupted = experiment();
+  const corruptedResult = corrupted.result;
+  if (!corruptedResult) throw new Error("ready fixture must include a report result");
+  const subgroup = corruptedResult.subgroup_analysis as Omit<typeof corruptedResult.subgroup_analysis, "heterogeneity_tests"> & {
+    heterogeneity_tests?: unknown[];
+  };
+  subgroup.heterogeneity_tests = [null, null];
+  await page.route("**/v1/reports/**", route => route.fulfill({ json: corrupted }));
+  await page.goto("/experiments?report=rpt_corrupt_legacy");
+  await expect(page.locator(".subgroup-analysis-panel")).toContainText("این گزارش با قالب تازهٔ آزمون سازگار نیست");
 });
 
 test("restores financial references and a zero cost without inventing defaults", async ({ page }) => {

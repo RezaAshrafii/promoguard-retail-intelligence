@@ -197,6 +197,19 @@ def test_pdf_renders_predeclared_subgroup_analysis_and_guardrails(monkeypatch) -
             "status": "insufficient_sample",
             "interpretation_allowed": False,
         }],
+        "heterogeneity_tests": [{
+            "treatment_arm": "Mens E-Mail",
+            "minimum_cell_size_for_interpretation": 1_000,
+            "minimum_cell_size": 400,
+            "familywise_adjusted_p_value": None,
+            "status": "insufficient_sample",
+        }, {
+            "treatment_arm": "Womens E-Mail",
+            "minimum_cell_size_for_interpretation": 1_000,
+            "minimum_cell_size": 400,
+            "familywise_adjusted_p_value": None,
+            "status": "insufficient_sample",
+        }],
     }
     rendered: list[str] = []
     original_rtl = pdf_module._rtl
@@ -212,4 +225,42 @@ def test_pdf_renders_predeclared_subgroup_analysis_and_guardrails(monkeypatch) -
     assert any("نتیجه بر اساس سابقهٔ خرید پیشین" in item for item in rendered)
     assert any("1) $0 - $100" in item for item in rendered)
     assert any("نمونه ناکافی؛ بدون تفسیر" in item for item in rendered)
-    assert any("آزمون تعامل نیست" in item for item in rendered)
+    assert any("آزمون کلیِ تفاوت اثر میان دسته‌ها" in item for item in rendered)
+    assert any("Cochran Q" in item for item in rendered)
+    pdf_text = "\n".join(page.extract_text() for page in PdfReader(BytesIO(pdf_bytes)).pages)
+    assert "نمونه کمتر از حد تفسیر است" in "\n".join(rendered)
+    assert "0.0832" not in pdf_text
+
+
+def test_legacy_pdf_does_not_promise_a_missing_heterogeneity_section(monkeypatch) -> None:
+    import copy
+
+    import apps.api.pdf as pdf_module
+
+    report = experiment_report()
+    subgroup = {
+        "attribute": "history_segment",
+        "minimum_arm_size_for_interpretation": 1_000,
+        "contrasts": [{
+            "history_segment": "1) $0 - $100",
+            "treatment_arm": "Mens E-Mail",
+            "treatment_n": 500,
+            "control_n": 500,
+            "status": "insufficient_sample",
+            "interpretation_allowed": False,
+        }],
+    }
+    report["result"]["subgroup_analysis"] = subgroup
+    rendered: list[str] = []
+    original_rtl = pdf_module._rtl
+
+    def record_paragraph(text):
+        rendered.append(str(text))
+        return original_rtl(text)
+
+    monkeypatch.setattr(pdf_module, "_rtl", record_paragraph)
+    pdf_bytes = build_experiment_report_pdf(copy.deepcopy(report))
+
+    assert pdf_bytes.startswith(b"%PDF")
+    assert any("این گزارش قدیمی است" in item for item in rendered)
+    assert not any("در بخش بعد آمده است" in item for item in rendered)

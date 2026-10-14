@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -8,6 +9,7 @@ from fastapi.testclient import TestClient
 
 import apps.api.main as api_module
 from apps.api.main import app
+from promoguard.experiments.hillstrom import HISTORY_SEGMENTS, TREATMENT_SEGMENTS
 
 
 def realistic_panel() -> pd.DataFrame:
@@ -26,6 +28,65 @@ def realistic_panel() -> pd.DataFrame:
             "inventory_on_hand": 100,
         }
     )
+
+
+def valid_hillstrom_result(source_sha256: str) -> dict:
+    comparisons = [
+        {
+            "treatment_arm": treatment,
+            "control_arm": control,
+            "contrast_type": contrast_type,
+            "treatment_n": 4,
+            "control_n": 4,
+            "incremental_effect_per_person": 0.1,
+        }
+        for treatment, control, contrast_type in (
+            ("Mens E-Mail", "No E-Mail", "treatment_vs_control"),
+            ("Womens E-Mail", "No E-Mail", "treatment_vs_control"),
+            ("Mens E-Mail", "Womens E-Mail", "treatment_vs_treatment"),
+        )
+    ]
+    contrasts = [
+        {
+            "history_segment": history_segment,
+            "treatment_arm": treatment,
+            "control_arm": "No E-Mail",
+            "treatment_n": 4,
+            "control_n": 4,
+            "interpretation_allowed": False,
+        }
+        for history_segment in HISTORY_SEGMENTS
+        for treatment in TREATMENT_SEGMENTS
+    ]
+    heterogeneity_tests = [
+        {
+            "treatment_arm": treatment,
+            "control_arm": "No E-Mail",
+            "method": "inverse-variance Cochran Q with asymptotic chi-square reference",
+            "strata_count": 7,
+            "estimable_strata_count": 7,
+            "degrees_of_freedom": 6,
+            "minimum_cell_size": 4,
+            "minimum_cell_size_for_interpretation": 1_000,
+            "interpretation_allowed": False,
+            "statistic": None,
+            "p_value": None,
+            "familywise_adjusted_p_value": None,
+            "familywise_test_count": 2,
+            "status": "insufficient_sample",
+            "reason_code": "below_minimum_cell_size_for_interpretation",
+        }
+        for treatment in TREATMENT_SEGMENTS
+    ]
+    return {
+        "benchmark": api_module.HILLSTROM_DATASET,
+        "source": {"sha256": source_sha256},
+        "comparisons": comparisons,
+        "subgroup_analysis": {
+            "contrasts": contrasts,
+            "heterogeneity_tests": heterogeneity_tests,
+        },
+    }
 
 
 @pytest.fixture
@@ -380,7 +441,7 @@ def test_hillstrom_ready_report_downloads_dedicated_pdf(
     assert response.headers["content-type"].startswith("application/pdf")
     assert response.headers["content-disposition"].endswith(f'filename="{report_id}.pdf"')
     assert response.content.startswith(b"%PDF")
-    assert (runtime / "reports" / f"{report_id}-experiment-v7.pdf").is_file()
+    assert (runtime / "reports" / f"{report_id}-experiment-v9.pdf").is_file()
 
 
 def test_hillstrom_pdf_is_not_available_before_report_is_ready(
@@ -412,12 +473,7 @@ def test_hillstrom_worker_caches_valid_result_by_source_and_config(
     monkeypatch.setattr(api_module, "REPORT_ROOT", reports)
     monkeypatch.setattr(api_module, "HILLSTROM_DATASET_PATH", source)
     calls = 0
-    expected = {
-        "benchmark": "hillstrom-email-analytics-2008",
-        "source": {"sha256": api_module.hillstrom_sha256_file(source)},
-        "comparisons": [{"arm": "a"}, {"arm": "b"}, {"arm": "c"}],
-        "subgroup_analysis": {"contrasts": [{} for _ in range(14)]},
-    }
+    expected = valid_hillstrom_result(api_module.hillstrom_sha256_file(source))
 
     def evaluate(*_args, **_kwargs):
         nonlocal calls
@@ -426,7 +482,7 @@ def test_hillstrom_worker_caches_valid_result_by_source_and_config(
 
     monkeypatch.setattr(api_module, "evaluate_hillstrom_csv", evaluate)
     configuration = {"primary_outcome": "spend", "minimum_effect_per_person": None}
-    for report_id in ("rpt_first", "rpt_second"):
+    def create_report(report_id: str) -> None:
         api_module._save_report(
             {
                 "report_id": report_id,
@@ -443,14 +499,39 @@ def test_hillstrom_worker_caches_valid_result_by_source_and_config(
         )
         api_module._run_hillstrom_report(report_id)
 
+    create_report("rpt_first")
+    cache_path = next((reports / "cache").glob("hillstrom-*.json"))
+    damaged_cache = json.loads(cache_path.read_text(encoding="utf-8"))
+    damaged_cache["subgroup_analysis"]["heterogeneity_tests"] = [None, None]
+    cache_path.write_text(json.dumps(damaged_cache), encoding="utf-8")
+    create_report("rpt_second")
+    create_report("rpt_third")
+
     first = api_module._store().get("report", "rpt_first")
     second = api_module._store().get("report", "rpt_second")
-    assert first["status"] == second["status"] == "ready"
+    third = api_module._store().get("report", "rpt_third")
+    assert first["status"] == second["status"] == third["status"] == "ready"
     assert first["cache_hit"] is False
-    assert second["cache_hit"] is True
-    assert calls == 1
+    assert second["cache_hit"] is False
+    assert third["cache_hit"] is True
+    assert calls == 2
     assert second["result"] == expected
     assert (reports / "rpt_first.json").is_file()
+
+
+def test_hillstrom_result_contract_rejects_malformed_nested_tests_and_non_finite_numbers() -> None:
+    import copy
+
+    result = valid_hillstrom_result("a" * 64)
+    assert api_module._valid_hillstrom_result(result, "a" * 64)
+
+    malformed = copy.deepcopy(result)
+    malformed["subgroup_analysis"]["heterogeneity_tests"] = [None, None]
+    assert not api_module._valid_hillstrom_result(malformed, "a" * 64)
+
+    non_finite = copy.deepcopy(result)
+    non_finite["comparisons"][0]["incremental_effect_per_person"] = float("nan")
+    assert not api_module._valid_hillstrom_result(non_finite, "a" * 64)
 
 
 def test_malformed_upload_is_reported_without_analysis(client: TestClient) -> None:

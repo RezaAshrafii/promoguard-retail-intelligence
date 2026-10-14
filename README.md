@@ -23,9 +23,10 @@ readiness from public observational data.
 - evaluates the public three-arm Hillstrom email experiment in a separate report/API/web flow,
   including two treatment-vs-control comparisons, a direct version comparison, simultaneous
   uncertainty intervals, exploratory comparisons within pre-treatment purchase-history segments,
-  and a human-set business hurdle; optional user-entered common contribution
-  margin and per-version campaign costs produce a clearly conditional contribution scenario with
-  source notes that are recorded but not independently verified;
+  a global exploratory heterogeneity test across those segments (p-values are suppressed below the
+  1,000-assigned-people-per-cell product gate), and a human-set business hurdle;
+  optional user-entered common contribution margin and per-version campaign costs produce a clearly
+  conditional contribution scenario with source notes that are recorded but not independently verified;
 - benchmarks logistic and nonlinear uplift learners on a deterministic real-data split with corrected
   Qini metrics, convergence, fixed-ranking bootstrap uncertainty, and overlap diagnostics;
 - validates evidenced promotion-economics candidates with decimal money, consistent currency,

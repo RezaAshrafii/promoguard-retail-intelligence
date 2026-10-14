@@ -24,9 +24,19 @@
   few observations to interpret.
 - Direction is withheld unless each arm has at least 1,000 assigned rows. This product guardrail is
   not a power calculation and does not guarantee useful precision.
-- No interaction test is performed. “Evidence in one subgroup but not another” is not evidence that
-  subgroup effects differ. The output must not be used to target people, select a rollout audience,
-  or claim a validated CATE model.
+- A separate inverse-variance Cochran Q test checks global effect heterogeneity across all seven
+  strata for each treatment-vs-control comparison. Stratum-level effects are independent because
+  the strata do not overlap; the reference distribution is asymptotic chi-square with six degrees
+  of freedom. Its two p-values are Bonferroni-adjusted as one family. The method is exploratory.
+- Inferential Q and p-values are suppressed unless all treatment/control cells across the seven
+  strata contain at least 1,000 assigned rows. This reuses the existing subgroup display gate as a
+  conservative product policy; it is not a power calculation, calibration guarantee, or proof that
+  the asymptotic approximation is adequate in every data regime. Below the gate the report shows the
+  minimum cell count and `insufficient_sample`. Missing cells, unestimable variance, and numerical
+  failure have distinct abstention statuses; none is converted to p=1.
+- A non-significant global test is not evidence that effects are equal. A significant global test
+  does not identify which stratum differs, estimate individual treatment effects, or validate a
+  targeting rule. The output must not be used to target people or select a rollout audience.
 
 ## Forecasting baseline protocol
 

@@ -3,6 +3,7 @@
 import hashlib
 import json
 import logging
+import math
 import os
 import sqlite3
 from contextlib import asynccontextmanager
@@ -62,8 +63,8 @@ from promoguard.optimization import (
 MAX_UPLOAD_BYTES = 120 * 1024 * 1024
 MAX_PANEL_ROWS = 1_000_000
 REPORT_RESULT_SCHEMA_VERSION = "2.3.0"
-HILLSTROM_REPORT_SCHEMA_VERSION = "1.5.0"
-HILLSTROM_PDF_SCHEMA_VERSION = "7"
+HILLSTROM_REPORT_SCHEMA_VERSION = "1.7.0"
+HILLSTROM_PDF_SCHEMA_VERSION = "9"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 LOCAL_DATA_ROOT = (REPOSITORY_ROOT / "data").resolve()
 HILLSTROM_DATASET_PATH = LOCAL_DATA_ROOT / "raw" / "hillstrom" / "hillstrom-email-analytics-2008.csv"
@@ -73,6 +74,202 @@ REPORT_ROOT = RUNTIME_ROOT / "reports"
 DATASETS: dict[str, dict[str, object]] = {}
 REPORTS: dict[str, dict[str, object]] = {}
 LOGGER = logging.getLogger(__name__)
+
+
+def _contains_only_finite_json_values(value: object) -> bool:
+    """Reject non-finite floats before a report reaches JSON storage or the API."""
+    if isinstance(value, float):
+        return math.isfinite(value)
+    if isinstance(value, dict):
+        return all(
+            isinstance(key, str) and _contains_only_finite_json_values(item)
+            for key, item in value.items()
+        )
+    if isinstance(value, list):
+        return all(_contains_only_finite_json_values(item) for item in value)
+    return True
+
+
+def _valid_heterogeneity_tests(value: object) -> bool:
+    """Validate the complete, versioned shape used by the UI and experiment PDF."""
+    if not isinstance(value, list) or len(value) != 2:
+        return False
+    expected_arms = {"Mens E-Mail", "Womens E-Mail"}
+    seen_arms: set[str] = set()
+    valid_statuses = {
+        "evidence_of_heterogeneity",
+        "no_clear_heterogeneity_evidence",
+        "insufficient_sample",
+        "not_estimable",
+        "numerical_error",
+    }
+    required_fields = {
+        "treatment_arm", "control_arm", "method", "strata_count", "estimable_strata_count",
+        "degrees_of_freedom", "minimum_cell_size", "minimum_cell_size_for_interpretation",
+        "interpretation_allowed", "statistic", "p_value", "familywise_adjusted_p_value",
+        "familywise_test_count", "status", "reason_code",
+    }
+    for item in value:
+        if not isinstance(item, dict):
+            return False
+        if not required_fields.issubset(item):
+            return False
+        arm = item.get("treatment_arm")
+        if not isinstance(arm, str) or arm not in expected_arms or arm in seen_arms:
+            return False
+        seen_arms.add(arm)
+        status = item.get("status")
+        if (
+            item.get("control_arm") != "No E-Mail"
+            or item.get("method") != "inverse-variance Cochran Q with asymptotic chi-square reference"
+            or item.get("familywise_test_count") != 2
+            or item.get("minimum_cell_size_for_interpretation") != 1_000
+            or not isinstance(status, str)
+            or status not in valid_statuses
+            or not isinstance(item.get("interpretation_allowed"), bool)
+            or not isinstance(item.get("strata_count"), int)
+            or isinstance(item.get("strata_count"), bool)
+            or not 0 <= item["strata_count"] <= 7
+            or not isinstance(item.get("estimable_strata_count"), int)
+            or isinstance(item.get("estimable_strata_count"), bool)
+            or not 0 <= item["estimable_strata_count"] <= 7
+            or (
+                item.get("degrees_of_freedom") is not None
+                and (
+                    not isinstance(item["degrees_of_freedom"], int)
+                    or isinstance(item["degrees_of_freedom"], bool)
+                )
+            )
+        ):
+            return False
+        minimum = item.get("minimum_cell_size")
+        if minimum is not None and (
+            not isinstance(minimum, int) or isinstance(minimum, bool) or minimum < 0
+        ):
+            return False
+        statistic = item.get("statistic")
+        p_value = item.get("p_value")
+        adjusted = item.get("familywise_adjusted_p_value")
+        for probability in (p_value, adjusted):
+            if probability is not None and (
+                not isinstance(probability, (int, float))
+                or isinstance(probability, bool)
+                or not 0 <= probability <= 1
+            ):
+                return False
+        if statistic is not None and (
+            not isinstance(statistic, (int, float))
+            or isinstance(statistic, bool)
+            or statistic < 0
+        ):
+            return False
+        status = item["status"]
+        allowed = item["interpretation_allowed"]
+        if status in {"evidence_of_heterogeneity", "no_clear_heterogeneity_evidence"}:
+            if (
+                not allowed
+                or item["strata_count"] != 7
+                or item["estimable_strata_count"] != 7
+                or item["degrees_of_freedom"] != 6
+                or minimum is None
+                or minimum < 1_000
+                or not all(value is not None for value in (statistic, p_value, adjusted))
+            ):
+                return False
+            expected_adjusted = min(1.0, float(p_value) * 2)
+            if not math.isclose(float(adjusted), expected_adjusted, rel_tol=1e-12, abs_tol=1e-15):
+                return False
+            expected_status = (
+                "evidence_of_heterogeneity"
+                if float(adjusted) < 0.05
+                else "no_clear_heterogeneity_evidence"
+            )
+            if status != expected_status:
+                return False
+        elif allowed or any(value is not None for value in (statistic, p_value, adjusted)):
+            return False
+        reason = item.get("reason_code")
+        if reason is not None and not isinstance(reason, str):
+            return False
+    return seen_arms == expected_arms
+
+
+def _valid_hillstrom_result(result: object, expected_sha256: str) -> bool:
+    """Check report essentials before accepting either a cache entry or fresh analysis."""
+    if not isinstance(result, dict) or not _contains_only_finite_json_values(result):
+        return False
+    source = result.get("source")
+    comparisons = result.get("comparisons")
+    subgroup = result.get("subgroup_analysis")
+    if (
+        result.get("benchmark") != HILLSTROM_DATASET
+        or not isinstance(source, dict)
+        or source.get("sha256") != expected_sha256
+        or not isinstance(comparisons, list)
+        or len(comparisons) != 3
+        or not isinstance(subgroup, dict)
+        or not isinstance(subgroup.get("contrasts"), list)
+        or len(subgroup["contrasts"]) != 14
+        or not _valid_heterogeneity_tests(subgroup.get("heterogeneity_tests"))
+    ):
+        return False
+    expected_comparisons = {
+        ("Mens E-Mail", "No E-Mail", "treatment_vs_control"),
+        ("Womens E-Mail", "No E-Mail", "treatment_vs_control"),
+        ("Mens E-Mail", "Womens E-Mail", "treatment_vs_treatment"),
+    }
+    actual_comparisons = set()
+    for item in comparisons:
+        if not isinstance(item, dict):
+            return False
+        comparison_key = (
+            item.get("treatment_arm"), item.get("control_arm"), item.get("contrast_type")
+        )
+        if not all(isinstance(value, str) for value in comparison_key):
+            return False
+        actual_comparisons.add(comparison_key)
+        if (
+            not isinstance(item.get("treatment_n"), int)
+            or isinstance(item.get("treatment_n"), bool)
+            or item["treatment_n"] <= 0
+            or not isinstance(item.get("control_n"), int)
+            or isinstance(item.get("control_n"), bool)
+            or item["control_n"] <= 0
+        ):
+            return False
+        if not isinstance(item.get("incremental_effect_per_person"), (int, float)):
+            return False
+    if actual_comparisons != expected_comparisons:
+        return False
+    expected_contrasts = {
+        (segment, treatment)
+        for segment in (
+            "1) $0 - $100", "2) $100 - $200", "3) $200 - $350",
+            "4) $350 - $500", "5) $500 - $750", "6) $750 - $1,000",
+            "7) $1,000 +",
+        )
+        for treatment in ("Mens E-Mail", "Womens E-Mail")
+    }
+    actual_contrasts = set()
+    for item in subgroup["contrasts"]:
+        if not isinstance(item, dict):
+            return False
+        contrast_key = (item.get("history_segment"), item.get("treatment_arm"))
+        if not all(isinstance(value, str) for value in contrast_key):
+            return False
+        actual_contrasts.add(contrast_key)
+        if (
+            item.get("control_arm") != "No E-Mail"
+            or not isinstance(item.get("treatment_n"), int)
+            or isinstance(item.get("treatment_n"), bool)
+            or item["treatment_n"] <= 0
+            or not isinstance(item.get("control_n"), int)
+            or isinstance(item.get("control_n"), bool)
+            or item["control_n"] <= 0
+            or not isinstance(item.get("interpretation_allowed"), bool)
+        ):
+            return False
+    return actual_contrasts == expected_contrasts
 
 
 def _store() -> PilotStore:
@@ -568,14 +765,7 @@ def _run_hillstrom_report(report_id: str) -> None:
         if cache_path.is_file():
             try:
                 cached = json.loads(cache_path.read_text(encoding="utf-8"))
-                if (
-                    isinstance(cached, dict)
-                    and cached.get("benchmark") == HILLSTROM_DATASET
-                    and cached.get("source", {}).get("sha256") == expected_sha256
-                    and len(cached.get("comparisons", [])) == 3
-                    and isinstance(cached.get("subgroup_analysis"), dict)
-                    and len(cached["subgroup_analysis"].get("contrasts", [])) == 14
-                ):
+                if _valid_hillstrom_result(cached, expected_sha256):
                     result = cached
                     report["cache_hit"] = True
             except (OSError, ValueError, TypeError):
@@ -594,6 +784,8 @@ def _run_hillstrom_report(report_id: str) -> None:
                 configuration,
                 progress_callback=update_progress,
             )
+            if not _valid_hillstrom_result(result, expected_sha256):
+                raise ValueError("خروجی تحلیل با قرارداد گزارش Hillstrom سازگار نیست.")
             cache_path.parent.mkdir(parents=True, exist_ok=True)
             temporary_cache_path = cache_path.with_name(f"{cache_path.name}.{report_id}.tmp")
             temporary_cache_path.write_text(

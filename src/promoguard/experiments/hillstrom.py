@@ -257,6 +257,190 @@ def _decision_for_threshold(
     return "inconclusive_vs_goal", "The adjusted interval overlaps the declared goal."
 
 
+def _chi_square_6_survival(statistic: float) -> float | None:
+    """Return a numerically stable chi-square(6) survival probability.
+
+    ``None`` marks a value outside the statistic's domain. Log-sum-exp avoids intermediate
+    overflow for very large finite statistics; underflow of the final probability to zero is valid.
+    """
+    if not math.isfinite(statistic) or statistic < 0:
+        return None
+    half = statistic / 2
+    if half == 0:
+        return 1.0
+    log_half = math.log(half)
+    log_terms = (0.0, log_half, 2 * log_half - math.log(2))
+    largest = max(log_terms)
+    log_polynomial = largest + math.log(sum(math.exp(term - largest) for term in log_terms))
+    log_probability = -half + log_polynomial
+    if log_probability < math.log(float.fromhex("0x0.0000000000001p-1022")):
+        return 0.0
+    probability = math.exp(log_probability)
+    return probability if math.isfinite(probability) else None
+
+
+def _evaluate_history_heterogeneity(
+    frame: pd.DataFrame,
+    outcome: str,
+    *,
+    confidence_level: float,
+) -> list[dict[str, Any]]:
+    """Run a predeclared inverse-variance Q test for each treatment-vs-control contrast.
+
+    Strata are disjoint, so stratum-level treatment-control estimates are independent under the
+    randomized benchmark design. The asymptotic chi-square test is exploratory and is not a
+    targeting rule. The two treatment-arm tests form one Bonferroni-adjusted family.
+    """
+    tests: list[dict[str, Any]] = []
+    for treatment_arm in TREATMENT_SEGMENTS:
+        effects: list[float] = []
+        variances: list[float] = []
+        minimum_cell_size: int | None = None
+        present_strata = 0
+        estimable_strata = 0
+        invalid_variance = False
+        for history_segment in HISTORY_SEGMENTS:
+            stratum = frame.loc[frame["history_segment"].eq(history_segment)]
+            treatment = pd.to_numeric(
+                stratum.loc[stratum["segment"].eq(treatment_arm), outcome]
+            ).to_numpy(dtype=np.float64)
+            control = pd.to_numeric(
+                stratum.loc[stratum["segment"].eq(CONTROL_SEGMENT), outcome]
+            ).to_numpy(dtype=np.float64)
+            cell_size = min(treatment.size, control.size)
+            minimum_cell_size = (
+                cell_size if minimum_cell_size is None else min(minimum_cell_size, cell_size)
+            )
+            if treatment.size and control.size:
+                present_strata += 1
+            if treatment.size < 2 or control.size < 2:
+                invalid_variance = True
+                continue
+            with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+                variance = float(
+                    treatment.var(ddof=1) / treatment.size
+                    + control.var(ddof=1) / control.size
+                )
+            if not math.isfinite(variance) or variance <= 0:
+                invalid_variance = True
+                continue
+            estimable_strata += 1
+            effects.append(float(treatment.mean() - control.mean()))
+            variances.append(variance)
+
+        minimum_cell_size_for_interpretation = MINIMUM_ARM_SIZE_FOR_DECISION
+        common = {
+            "treatment_arm": treatment_arm,
+            "control_arm": CONTROL_SEGMENT,
+            "method": "inverse-variance Cochran Q with asymptotic chi-square reference",
+            "strata_count": present_strata,
+            "estimable_strata_count": estimable_strata,
+            "degrees_of_freedom": (
+                len(HISTORY_SEGMENTS) - 1
+                if present_strata == len(HISTORY_SEGMENTS)
+                else None
+            ),
+            "minimum_cell_size": minimum_cell_size,
+            "minimum_cell_size_for_interpretation": minimum_cell_size_for_interpretation,
+            "interpretation_allowed": False,
+            "statistic": None,
+            "p_value": None,
+            "familywise_adjusted_p_value": None,
+            "familywise_test_count": len(TREATMENT_SEGMENTS),
+        }
+        if present_strata != len(HISTORY_SEGMENTS):
+            tests.append(
+                {
+                    **common,
+                    "status": "not_estimable",
+                    "reason_code": "predeclared_stratum_or_arm_missing",
+                }
+            )
+            continue
+
+        if minimum_cell_size is None or minimum_cell_size < minimum_cell_size_for_interpretation:
+            tests.append(
+                {
+                    **common,
+                    "status": "insufficient_sample",
+                    "reason_code": "below_minimum_cell_size_for_interpretation",
+                }
+            )
+            continue
+
+        if invalid_variance or len(effects) != len(HISTORY_SEGMENTS):
+            tests.append(
+                {
+                    **common,
+                    "status": "not_estimable",
+                    "reason_code": "stratum_variance_not_estimable",
+                }
+            )
+            continue
+
+        variance_array = np.asarray(variances, dtype=np.float64)
+        estimates = np.asarray(effects, dtype=np.float64)
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+            # Ratios stay in [0, 1], unlike raw inverse variances for tiny measurement scales.
+            minimum_variance = float(variance_array.min())
+            weights = minimum_variance / variance_array
+            normalized_weights = weights / weights.sum()
+            effect_scale = float(np.max(np.abs(estimates)))
+            if effect_scale == 0:
+                statistic = 0.0
+            else:
+                scaled_estimates = estimates / effect_scale
+                weighted_mean_scaled = float(np.dot(normalized_weights, scaled_estimates))
+                dispersion = float(
+                    np.dot(normalized_weights, np.square(scaled_estimates - weighted_mean_scaled))
+                )
+                if dispersion == 0:
+                    statistic = 0.0
+                else:
+                    log_statistic = (
+                        math.log(dispersion)
+                        + 2 * math.log(effect_scale)
+                        - math.log(minimum_variance)
+                    )
+                    if log_statistic > math.log(float.fromhex("0x1.fffffffffffffp+1023")):
+                        statistic = math.inf
+                    elif log_statistic < math.log(float.fromhex("0x0.0000000000001p-1022")):
+                        statistic = 0.0
+                    else:
+                        statistic = math.exp(log_statistic)
+        p_value = _chi_square_6_survival(statistic)
+        if (
+            not math.isfinite(statistic)
+            or p_value is None
+        ):
+            tests.append(
+                {
+                    **common,
+                    "status": "numerical_error",
+                    "reason_code": "non_finite_test_statistic_or_probability",
+                }
+            )
+            continue
+        p_value = min(1.0, p_value)
+        adjusted_p_value = min(1.0, p_value * len(TREATMENT_SEGMENTS))
+        tests.append(
+            {
+                **common,
+                "interpretation_allowed": True,
+                "statistic": statistic,
+                "p_value": p_value,
+                "familywise_adjusted_p_value": adjusted_p_value,
+                "status": (
+                    "evidence_of_heterogeneity"
+                    if adjusted_p_value < 1 - confidence_level
+                    else "no_clear_heterogeneity_evidence"
+                ),
+                "reason_code": None,
+            }
+        )
+    return tests
+
+
 def _evaluate_history_subgroups(
     frame: pd.DataFrame,
     outcome: str,
@@ -332,9 +516,12 @@ def _evaluate_history_subgroups(
         "interval_method": "Welch large-sample normal approximation",
         "minimum_arm_size_for_interpretation": MINIMUM_ARM_SIZE_FOR_DECISION,
         "contrasts": contrasts,
+        "heterogeneity_tests": _evaluate_history_heterogeneity(
+            frame, outcome, confidence_level=confidence_level
+        ),
         "limitations": [
             "Exploratory stratum-level assignment comparisons; they are not validated targeting rules.",
-            "A significant result in one stratum and not another does not prove the strata differ; no interaction test is performed.",
+            "The global heterogeneity test is exploratory and asymptotic; a non-significant result does not prove equal effects.",
             "No recommendation to target individuals or deploy a campaign is produced.",
         ],
     }

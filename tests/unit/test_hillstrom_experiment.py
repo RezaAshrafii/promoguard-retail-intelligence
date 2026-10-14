@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -9,6 +11,8 @@ from promoguard.experiments.hillstrom import (
     BOOTSTRAP_RESAMPLES,
     BOOTSTRAP_SEED,
     HillstromAnalysisConfig,
+    _chi_square_6_survival,
+    _evaluate_history_heterogeneity,
     evaluate_hillstrom_frame,
     validate_hillstrom_frame,
 )
@@ -41,6 +45,19 @@ def hillstrom_fixture() -> pd.DataFrame:
                 }
             )
     return pd.DataFrame(rows)
+
+
+def heterogeneity_fixture(rows_per_cell: int = 1_000) -> pd.DataFrame:
+    """Build balanced test-only cells; the values are not business evidence."""
+    source = hillstrom_fixture()
+    cells = []
+    for history_segment in hillstrom_module.HISTORY_SEGMENTS:
+        for arm in hillstrom_module.HILLSTROM_SEGMENTS:
+            arm_rows = source.loc[source["segment"].eq(arm)]
+            selected = arm_rows.iloc[np.arange(rows_per_cell) % len(arm_rows)].copy()
+            selected["history_segment"] = history_segment
+            cells.append(selected)
+    return pd.concat(cells, ignore_index=True)
 
 
 def large_hillstrom_fixture() -> pd.DataFrame:
@@ -107,7 +124,7 @@ def test_primary_effect_is_itt_and_includes_every_assigned_row() -> None:
     assert len(subgroup["contrasts"]) == 14
     assert all(item["status"] == "insufficient_sample" for item in subgroup["contrasts"])
     assert all(not item["interpretation_allowed"] for item in subgroup["contrasts"])
-    assert any("no interaction test" in item for item in subgroup["limitations"])
+    assert any("global heterogeneity test" in item for item in subgroup["limitations"])
 
 
 def test_bootstrap_goal_preserves_insufficient_sample_with_declared_goal() -> None:
@@ -290,3 +307,118 @@ def test_subgroup_family_uses_fixed_multiplicity_and_hides_small_stratum_verdict
     first = populated[0]
     assert first["familywise_ci_lower_per_person"] == pytest.approx(expected_lower)
     assert first["familywise_ci_upper_per_person"] == pytest.approx(expected_upper)
+
+
+def test_global_heterogeneity_test_does_not_mistake_equal_effects_for_segment_winners() -> None:
+    frame = heterogeneity_fixture()
+
+    tests = _evaluate_history_heterogeneity(frame, "spend", confidence_level=0.95)
+
+    assert len(tests) == 2
+    assert all(item["strata_count"] == 7 for item in tests)
+    assert all(item["degrees_of_freedom"] == 6 for item in tests)
+    assert all(item["familywise_test_count"] == 2 for item in tests)
+    assert all(item["p_value"] == pytest.approx(1.0) for item in tests)
+    assert all(item["familywise_adjusted_p_value"] == pytest.approx(1.0) for item in tests)
+    assert all(item["status"] == "no_clear_heterogeneity_evidence" for item in tests)
+    assert all(item["interpretation_allowed"] for item in tests)
+
+
+def test_global_heterogeneity_test_detects_large_predeclared_effect_difference() -> None:
+    frame = heterogeneity_fixture()
+    shifted = (
+        frame["history_segment"].eq(hillstrom_module.HISTORY_SEGMENTS[-1])
+        & frame["segment"].eq("Womens E-Mail")
+        & frame["conversion"].eq(1)
+    )
+    frame.loc[shifted, "spend"] += 100
+
+    tests = _evaluate_history_heterogeneity(frame, "spend", confidence_level=0.95)
+    womens = next(item for item in tests if item["treatment_arm"] == "Womens E-Mail")
+
+    assert womens["familywise_adjusted_p_value"] < 0.05
+    assert womens["status"] == "evidence_of_heterogeneity"
+
+
+def test_global_heterogeneity_test_abstains_when_a_predeclared_stratum_is_absent() -> None:
+    tests = _evaluate_history_heterogeneity(hillstrom_fixture(), "spend", confidence_level=0.95)
+
+    assert all(item["status"] == "not_estimable" for item in tests)
+    assert all(item["statistic"] is None for item in tests)
+    assert all(item["strata_count"] == 1 for item in tests)
+    assert all(item["minimum_cell_size"] == 0 for item in tests)
+
+
+def test_global_test_suppresses_p_values_below_the_existing_sample_gate() -> None:
+    tests = _evaluate_history_heterogeneity(
+        heterogeneity_fixture(rows_per_cell=999), "spend", confidence_level=0.95
+    )
+
+    assert all(item["status"] == "insufficient_sample" for item in tests)
+    assert all(item["minimum_cell_size"] == 999 for item in tests)
+    assert all(item["minimum_cell_size_for_interpretation"] == 1_000 for item in tests)
+    assert all(not item["interpretation_allowed"] for item in tests)
+    assert all(item["familywise_adjusted_p_value"] is None for item in tests)
+
+
+def test_global_test_scans_all_strata_before_reporting_incomplete_cell_metadata() -> None:
+    frame = heterogeneity_fixture()
+    frame = frame.loc[
+        ~(
+            frame["history_segment"].eq(hillstrom_module.HISTORY_SEGMENTS[2])
+            & frame["segment"].eq("Mens E-Mail")
+        )
+    ]
+
+    result = _evaluate_history_heterogeneity(frame, "spend", confidence_level=0.95)[0]
+
+    assert result["status"] == "not_estimable"
+    assert result["strata_count"] == 6
+    assert result["minimum_cell_size"] == 0
+    assert result["reason_code"] == "predeclared_stratum_or_arm_missing"
+
+
+def test_global_test_reports_non_estimable_variance_without_losing_full_sample_metadata() -> None:
+    frame = heterogeneity_fixture()
+    affected = frame["history_segment"].eq(hillstrom_module.HISTORY_SEGMENTS[0])
+    frame.loc[affected, "spend"] = 0.0
+
+    result = _evaluate_history_heterogeneity(frame, "spend", confidence_level=0.95)[0]
+
+    assert result["status"] == "not_estimable"
+    assert result["strata_count"] == 7
+    assert result["estimable_strata_count"] == 6
+    assert result["minimum_cell_size"] == 1_000
+    assert result["reason_code"] == "stratum_variance_not_estimable"
+
+
+def test_global_test_is_invariant_to_tiny_unit_scale_and_row_order() -> None:
+    frame = heterogeneity_fixture()
+    baseline = _evaluate_history_heterogeneity(frame, "spend", confidence_level=0.95)
+    scaled = frame.copy()
+    scaled["spend"] *= 1e-160
+    tiny_units = _evaluate_history_heterogeneity(scaled, "spend", confidence_level=0.95)
+    reordered = _evaluate_history_heterogeneity(
+        frame.sample(frac=1, random_state=77), "spend", confidence_level=0.95
+    )
+
+    for expected, actual, shuffled in zip(baseline, tiny_units, reordered, strict=True):
+        assert actual["status"] == expected["status"]
+        assert actual["statistic"] == pytest.approx(expected["statistic"], rel=1e-8, abs=1e-10)
+        assert actual["p_value"] == pytest.approx(expected["p_value"], rel=1e-8, abs=1e-10)
+        assert shuffled["statistic"] == pytest.approx(expected["statistic"], rel=1e-10, abs=1e-12)
+
+
+@pytest.mark.parametrize(
+    ("statistic", "expected"),
+    [(0.0, 1.0), (13.092157707838204, 0.04159559596527485), (1e200, 0.0)],
+)
+def test_chi_square_survival_is_stable_for_large_finite_statistics(
+    statistic: float, expected: float
+) -> None:
+    assert _chi_square_6_survival(statistic) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("statistic", [-1.0, math.nan, math.inf])
+def test_chi_square_survival_rejects_values_outside_its_domain(statistic: float) -> None:
+    assert _chi_square_6_survival(statistic) is None

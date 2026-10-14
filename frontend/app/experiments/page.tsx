@@ -59,6 +59,22 @@ type SubgroupContrast = {
   status: string;
   interpretation_allowed: boolean;
 };
+type HeterogeneityTest = {
+  treatment_arm: string;
+  control_arm: string;
+  method: string;
+  strata_count: number;
+  degrees_of_freedom: number;
+  minimum_cell_size: number | null;
+  minimum_cell_size_for_interpretation: number;
+  interpretation_allowed: boolean;
+  statistic: number | null;
+  p_value: number | null;
+  familywise_adjusted_p_value: number | null;
+  familywise_test_count: number;
+  status: string;
+  reason_code: string | null;
+};
 type ExperimentSummary = {
   benchmark: string;
   source: { dataset_page: string; filename: string; sha256: string; license_status: string };
@@ -88,6 +104,7 @@ type ExperimentSummary = {
     multiplicity_method: string;
     minimum_arm_size_for_interpretation: number;
     contrasts: SubgroupContrast[];
+    heterogeneity_tests?: HeterogeneityTest[];
     limitations: string[];
   };
   interpretation: string[];
@@ -105,6 +122,7 @@ type ReportJob = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
 const number = new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 2 });
+const pValue = new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 4 });
 const money = (value: number) => `$${number.format(value)}`;
 
 async function apiJson(path: string, options?: RequestInit) {
@@ -140,6 +158,37 @@ function subgroupStatusText(status: string, allowed: boolean) {
   if (status === "positive_evidence_vs_zero") return "بازه بالاتر از صفر";
   if (status === "negative_evidence_vs_zero") return "بازه پایین‌تر از صفر";
   return "بازه شامل صفر است";
+}
+
+function heterogeneityStatusText(status: string) {
+  if (status === "evidence_of_heterogeneity") return "نشانهٔ آماری تفاوت اثر بین دسته‌ها";
+  if (status === "no_clear_heterogeneity_evidence") return "شواهد روشنی از تفاوت اثر پیدا نشد";
+  if (status === "insufficient_sample") return "نمونه برای تفسیر این آزمون کافی نیست";
+  if (status === "numerical_error") return "محاسبهٔ عددی پایدار نبود؛ نتیجه تفسیر نمی‌شود";
+  return "آزمون قابل محاسبه نیست";
+}
+
+function isHeterogeneityTest(value: unknown): value is HeterogeneityTest {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<HeterogeneityTest>;
+  const statuses = new Set([
+    "evidence_of_heterogeneity", "no_clear_heterogeneity_evidence", "insufficient_sample",
+    "not_estimable", "numerical_error",
+  ]);
+  return typeof item.treatment_arm === "string"
+    && ["Mens E-Mail", "Womens E-Mail"].includes(item.treatment_arm)
+    && typeof item.control_arm === "string"
+    && item.control_arm === "No E-Mail"
+    && typeof item.status === "string"
+    && statuses.has(item.status)
+    && typeof item.interpretation_allowed === "boolean"
+    && item.minimum_cell_size_for_interpretation === 1_000
+    && (item.minimum_cell_size === null || (typeof item.minimum_cell_size === "number" && Number.isInteger(item.minimum_cell_size) && item.minimum_cell_size >= 0))
+    && (item.familywise_adjusted_p_value === null || (typeof item.familywise_adjusted_p_value === "number" && Number.isFinite(item.familywise_adjusted_p_value) && item.familywise_adjusted_p_value >= 0 && item.familywise_adjusted_p_value <= 1));
+}
+
+function treatmentLabel(arm: string) {
+  return arm === "Mens E-Mail" ? "ایمیل مردانه" : "ایمیل زنانه";
 }
 
 function statusText(comparison: Comparison, configuredGoal: boolean, outcome: Outcome) {
@@ -285,6 +334,12 @@ export default function ExperimentsPage() {
   }, []);
 
   const summary = job?.result ?? null;
+  const rawHeterogeneityTests: unknown = summary?.subgroup_analysis?.heterogeneity_tests;
+  const heterogeneityTests = Array.isArray(rawHeterogeneityTests)
+    ? rawHeterogeneityTests.filter(isHeterogeneityTest)
+    : [];
+  const malformedHeterogeneityTests = rawHeterogeneityTests !== undefined
+    && (!Array.isArray(rawHeterogeneityTests) || rawHeterogeneityTests.length !== 2 || heterogeneityTests.length !== rawHeterogeneityTests.length);
   const primary = summary?.comparisons.filter((item) => item.contrast_type === "treatment_vs_control") ?? [];
   const spends = [
     { label: "بدون ایمیل", value: summary?.comparisons[0]?.control_mean_per_person ?? 0 },
@@ -432,7 +487,14 @@ export default function ExperimentsPage() {
               </tr>)}</tbody>
             </table></div>
             <p className="subgroup-method-note">بازه‌ها با Welch و تصحیح Bonferroni روی همهٔ ۱۴ مقایسه ساخته شده‌اند. حداقل {number.format(summary.subgroup_analysis.minimum_arm_size_for_interpretation)} نفر در هر بازو برای تفسیر آماری لازم است؛ دسته‌های کوچک فقط با وضعیت «بدون تفسیر» نمایش داده می‌شوند.</p>
-            <div className="notice subgroup-caveat"><span className="notice-icon">!</span><div><strong>این جدول برای انتخاب خودکار مشتری یا هدف‌گیری کمپین نیست</strong><p>تفاوت معنادار در یک دسته و نامعنادار بودن دستهٔ دیگر، به‌تنهایی ثابت نمی‌کند اثر این دو دسته با هم فرق دارد. آزمون تعامل انجام نشده و همهٔ نتایج به همین دادهٔ عمومی وابسته‌اند.</p></div></div>
+            <div className="heterogeneity-grid">{heterogeneityTests.map((item) => <article className="heterogeneity-card" key={item.treatment_arm}>
+              <span>{treatmentLabel(item.treatment_arm)} در برابر کنترل · آزمون کلی ۷ دسته</span>
+              <strong>{heterogeneityStatusText(item.status)}</strong>
+              <small>{item.interpretation_allowed && item.familywise_adjusted_p_value !== null ? `مقدار p پس از تعدیل دو آزمون: ${pValue.format(item.familywise_adjusted_p_value)}` : `برای نمایش مقدار p، در هر بازو و دسته دست‌کم ${number.format(item.minimum_cell_size_for_interpretation)} نفر لازم است`}</small>
+              <small>{item.minimum_cell_size === null ? "تعداد یک یا چند دسته/بازو برای محاسبه موجود نیست" : `کمترین تعداد در یک بازو و دسته: ${number.format(item.minimum_cell_size)} نفر`}</small>
+            </article>)}</div>
+            {heterogeneityTests.length === 0 && <p className="subgroup-method-note">{malformedHeterogeneityTests ? "این گزارش با قالب تازهٔ آزمون سازگار نیست؛ برای بازسازی گزارش، تحلیل را دوباره اجرا کنید." : "این گزارش پیش از اضافه‌شدن آزمون کلی ساخته شده است؛ برای دیدن آن، تحلیل را دوباره اجرا کنید."}</p>}
+            <div className="notice subgroup-caveat"><span className="notice-icon">!</span><div><strong>{heterogeneityTests.length ? "آزمون کلی با جدول مقایسه‌های هر دسته فرق دارد" : "آزمون کلی در این گزارش در دسترس نیست"}</strong><p>{heterogeneityTests.length ? "آزمون Cochran Q به‌صورت تقریبی بررسی می‌کند آیا اثر میانگین در دسته‌ها با هم فرق دارد. فقط در صورت کفایت نمونه مقدار p نمایش داده می‌شود. مقدار تعدیل‌شده زیر ۰٫۰۵ نشانهٔ اکتشافی ناهمگنی است؛ مقدار بالاتر، برابر بودن اثرها را ثابت نمی‌کند. این آزمون مشتری یا دستهٔ برنده انتخاب نمی‌کند و مجوز هدف‌گیری یا اجرای کمپین نیست." : "برای گزارش قدیمی یا ناسازگار، تحلیل را دوباره اجرا کنید. جدول موجود همچنان مقایسه‌های درون هر دسته را نشان می‌دهد و برای هدف‌گیری مشتری مناسب نیست."}</p></div></div>
           </section>}
 
           <section className="notice experiment-caveat"><span className="notice-icon">!</span><div><strong>{summary.primary_outcome.business_goal_configured ? "هدف بررسی شد؛ تفسیر اقتصادی را با هزینه‌های واقعی کامل کن" : "هنوز هدف تجاری وارد نشده"}</strong><p>{summary.primary_outcome.business_goal_note} {summary.uncertainty.method}; تصحیح چندمقایسه‌ای برای {number.format(summary.uncertainty.contrast_count)} مقایسه اعمال شده است.</p></div></section>

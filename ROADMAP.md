@@ -1,6 +1,6 @@
 # PromoGuard active development roadmap
 
-Last updated: 2026-10-13
+Last updated: 2026-10-14
 Roadmap owner: Reza  
 Execution rule: exactly one phase or release gate is `ACTIVE`.
 
@@ -880,6 +880,39 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Learning guide: `learning/08-15-predeclared-subgroup-analysis/README.fa.md`.
 - Phase 8 remains ACTIVE. A subgroup result does not unblock partner-data validation, manager review,
   or the optimization gate.
+
+### Phase 8.3.7 — Global purchase-history effect-heterogeneity diagnostic (2026-10-14)
+
+- Model: GPT-6 current execution runtime; no reasoning-level setting was exposed. This implementation
+  follows the current phase's narrow, deterministic-analysis scope; no independent second-model
+  statistical review is claimed.
+  - Added one inverse-variance Cochran Q omnibus test for each of the two predeclared email-versus-
+    holdout comparisons across all seven disjoint purchase-history strata. The tests use the fixed
+    chi-square(6) reference and Bonferroni adjustment across the two omnibus tests. Inferential
+    values are suppressed unless every cell has at least 1,000 assigned rows; missing strata,
+    unestimable variance, and numerical failure have separate fail-closed statuses.
+- These tests answer only whether the observed average assignment contrasts show evidence of global
+  heterogeneity across the defined strata. They do not identify a winning segment, estimate
+  individual treatment effects, establish equal effects when non-significant, or authorize targeting.
+  - The prior run displayed Q=5.2553 / adjusted p=1.0000 and Q=13.0922 / adjusted p=0.0832 for
+    the public Hillstrom file, whose smallest stratum cell has 416 assignments. Under the stricter
+    interpretation gate these are now diagnostic-only values and are suppressed: both comparisons
+    report `insufficient_sample`. No real-data heterogeneity conclusion is made from this release.
+    This remains a public email benchmark, not retail-profit or Iranian-market evidence.
+  - Numerical survival, scale handling, full-stratum metadata, cache shape/finiteness validation,
+    older-report PDF wording, corrupted historical UI payloads, and CSS token use were corrected.
+    Result schema bumped to `1.7.0`, PDF schema to `9`; malformed or stale cache entries are
+    recomputed. Existing saved reports remain viewable with an explicit unavailable/rebuild message.
+  - Validation: full Python suite **297 passed** (one existing Starlette/httpx deprecation warning);
+    Ruff, Python compile, and `git diff --check` passed. Frontend lint and typecheck passed, Node
+    suite **13 passed**, production build passed, and serial Playwright passed **7 tests** including
+    corrupted historical payload and stylesheet-token checks. The real 64,000-row CSV passed the
+    result contract; both tests report `insufficient_sample`, minimum cell 416, and null p-values.
+    In-memory PDF generation passed the same result contract and produced a valid 3-page, 43,924-byte
+    PDF. No external business-impact claim follows from this benchmark.
+- Learning guide: `learning/08-16-global-heterogeneity-test/README.fa.md`.
+- Phase 8 remains ACTIVE. The next business-critical gate remains permitted partner data and manager
+  review, not a stronger claim from public email data.
 
 ## Phase 9 — PENDING — Production and verified AI layer
 

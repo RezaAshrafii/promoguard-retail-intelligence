@@ -20,7 +20,12 @@
 - Phase 8.1 validates real promotion-economics inputs and screens constraints only. `eligible` does
   not mean profitable, causal, optimal, or approved; scenario ranking and portfolio optimization
   remain unimplemented, and the public demo has no partner economics data.
-- Hillstrom's new purchase-history breakdown is an exploratory randomized email assignment analysis
-  with 14 Bonferroni-adjusted contrasts. It does not test effect heterogeneity, provide individual
-  treatment effects, identify a profitable audience, or validate targeting. Its 1,000-per-arm
-  display threshold is a conservative UI gate, not a statistical power guarantee.
+- Hillstrom's purchase-history breakdown is an exploratory randomized email assignment analysis
+  with 14 Bonferroni-adjusted within-stratum contrasts and two Bonferroni-adjusted global
+  Cochran-Q heterogeneity tests. The tests use an asymptotic chi-square reference and do not identify
+  which stratum differs, provide individual treatment effects, identify a profitable audience, or
+  validate targeting. A non-significant test does not establish equal effects. Inferential global
+  Q/p-values are hidden unless every treatment/control cell has at least 1,000 assigned rows; this
+  reuses the individual-stratum display gate as a conservative product policy, not as a power or
+  calibration guarantee. Missing/unstable calculations abstain with explicit statuses instead of
+  reporting a no-evidence p-value.
