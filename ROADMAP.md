@@ -937,6 +937,15 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Phase 8 remains ACTIVE. A permitted company dataset and manager review are still required for
   business validation; the PDF capability does not create a profit or customer-impact claim.
 
+### Phase 8.2.9 — Multi-scenario PDF pagination regression (2026-10-15)
+
+- Added an API integration regression with eight distinct scenarios and their own evidence references.
+  It verifies that the generated PDF spans pages while retaining every scenario identity and its
+  evidence reference. The API's no-selection behavior remains covered by the existing JSON contract test.
+- This is output-integrity coverage only: the fixtures do not represent a retailer and do not validate
+  the economic assumptions or the business usefulness of the report.
+- Phase 8 remains ACTIVE; permitted company data and manager review remain the next business gate.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.

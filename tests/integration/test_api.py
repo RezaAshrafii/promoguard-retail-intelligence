@@ -661,6 +661,38 @@ def test_manager_scenario_pdf_is_downloadable_and_preserves_limits(client: TestC
     assert any("\ufb50" <= char <= "\ufdff" for char in text)
 
 
+def test_manager_scenario_pdf_paginates_multiple_scenarios_and_keeps_each_id(
+    client: TestClient,
+) -> None:
+    import copy
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    request_body = manager_scenario_request_body()
+    template = request_body["optimization"]["scenarios"][0]
+    scenarios = []
+    for index in range(1, 9):
+        scenario = copy.deepcopy(template)
+        scenario["scenario_id"] = f"case-{index}"
+        scenario["store_id"] = f"store-{index}"
+        scenario["sku_id"] = f"sku-{index}"
+        for evidence in scenario["evidence"]:
+            evidence["reference"] = f"case-{index}:{evidence['field_name']}"
+        scenarios.append(scenario)
+    request_body["optimization"]["scenarios"] = scenarios
+
+    response = client.post("/v1/optimization/comparisons/pdf", json=request_body)
+
+    assert response.status_code == 200
+    reader = PdfReader(BytesIO(response.content))
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    assert len(reader.pages) > 2
+    for index in range(1, 9):
+        assert f"case-{index}" in text
+        assert f"case-{index}:projected_demand_units" in text
+
+
 def test_manager_scenario_pdf_rejects_currency_mismatch_without_returning_file(
     client: TestClient,
 ) -> None:
