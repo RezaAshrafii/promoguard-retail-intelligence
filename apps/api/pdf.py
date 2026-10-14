@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
 from html import escape
 from io import BytesIO
 from pathlib import Path
@@ -18,6 +19,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     KeepTogether,
+    LongTable,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -184,6 +186,190 @@ def build_promotion_report_pdf(report: dict[str, Any]) -> bytes:
         canvas.setFont("PromoGuardVazir", 7)
         canvas.setFillColor(MUTED)
         canvas.drawRightString(A4[0] - 18 * mm, 8 * mm, _rtl(f"شناسه گزارش: {report.get('report_id', '—')}"))
+        canvas.restoreState()
+
+    document.build(story, onFirstPage=footer, onLaterPages=footer)
+    return buffer.getvalue()
+
+
+def build_scenario_comparison_pdf(request: dict[str, Any], result: dict[str, Any]) -> bytes:
+    """Build a Persian review copy from the exact submitted inputs and typed API result."""
+    _register_fonts()
+    optimization = request.get("optimization") or {}
+    scenarios = optimization.get("scenarios") or []
+    assessments = result.get("assessments") or []
+    policy = result.get("policy") or {}
+    buffer = BytesIO()
+    document = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=18 * mm,
+        leftMargin=18 * mm,
+        topMargin=17 * mm,
+        bottomMargin=18 * mm,
+        title="PromoGuard | گزارش مقایسهٔ سناریوهای پروموشن",
+        author="PromoGuard",
+    )
+    base = getSampleStyleSheet()
+    title = ParagraphStyle(
+        "PGScenarioTitle", parent=base["Title"], fontName="PromoGuardVazir-Bold",
+        fontSize=18, leading=27, textColor=INK, alignment=TA_RIGHT, spaceAfter=5,
+    )
+    heading = ParagraphStyle(
+        "PGScenarioHeading", parent=base["Heading2"], fontName="PromoGuardVazir-Bold",
+        fontSize=11, leading=18, textColor=INK, alignment=TA_RIGHT, spaceBefore=8, spaceAfter=6,
+    )
+    body = ParagraphStyle(
+        "PGScenarioBody", parent=base["BodyText"], fontName="PromoGuardVazir",
+        fontSize=8, leading=13, textColor=INK, alignment=TA_RIGHT, spaceAfter=3,
+    )
+    small = ParagraphStyle("PGScenarioSmall", parent=body, fontSize=7, leading=11, textColor=MUTED)
+    header = ParagraphStyle(
+        "PGScenarioHeader", parent=body, fontName="PromoGuardVazir-Bold",
+        fontSize=7, leading=10, textColor=colors.white,
+    )
+    cell = ParagraphStyle("PGScenarioCell", parent=body, fontSize=7, leading=10)
+
+    def para(value: object, style: ParagraphStyle = body) -> Paragraph:
+        return Paragraph(escape(_rtl(value)), style)
+
+    def amount(value: object, digits: int = 2) -> str:
+        try:
+            number = Decimal(str(value))
+            if not number.is_finite():
+                return "نامشخص"
+            return f"{number:,.{digits}f}"
+        except (InvalidOperation, TypeError, ValueError):
+            return "نامشخص"
+
+    decision_labels = {
+        "blocked_by_constraints": "دارای مانع در محدودیت‌ها",
+        "candidate_for_human_review": "نامزد بررسی انسانی؛ نه تأیید اجرا",
+        "below_manager_hurdle": "زیر حداقل هدف ثبت‌شده",
+        "hurdle_not_resolved": "با این بازه، نتیجه روشن نیست",
+    }
+    evidence_labels = {
+        "regular_unit_price": "قیمت عادی",
+        "promotion_unit_price": "قیمت کمپین",
+        "unit_cost": "بهای واحد",
+        "supplier_funding_per_unit": "حمایت تأمین‌کننده برای هر واحد",
+        "fixed_trade_spend": "هزینهٔ ثابت کمپین",
+        "variable_trade_spend_per_unit": "هزینهٔ متغیر هر واحد",
+        "available_inventory_units": "موجودی قابل دسترس",
+        "baseline_demand_units": "تقاضای حالت عادی",
+        "projected_demand_units": "بازهٔ تقاضای کمپین",
+    }
+    kind_labels = {
+        "partner_export": "خروجی شریک",
+        "approved_contract": "قرارداد تأییدشده",
+        "model_output": "خروجی مدل",
+        "approved_assumption": "فرض تأییدشده",
+    }
+
+    story: list[Any] = [
+        para("PromoGuard", ParagraphStyle("PGScenarioBrand", parent=title, textColor=TEAL, fontSize=11, leading=17)),
+        para("گزارش مقایسهٔ سناریوهای پروموشن", title),
+        para("نسخهٔ قابل بازبینی از ورودی و خروجی محاسبه‌شده؛ این فایل نتیجه را به‌عنوان سود واقعی یا اثر علّی معرفی نمی‌کند.", small),
+        Spacer(1, 4 * mm),
+    ]
+    identity = [
+        [para("شناسهٔ درخواست", cell), para(result.get("request_id", "—"), cell)],
+        [para("حداقل سود هدف مدیر", cell), para(f"{amount(policy.get('minimum_incremental_profit'))} {policy.get('currency', '—')}", cell)],
+        [para("مرجع و نام ثبت‌شدهٔ تأییدکننده", cell), para(f"{policy.get('reference', '—')} · {policy.get('approved_by', '—')}", cell)],
+        [para("تاریخ ثبت سیاست", cell), para(policy.get("as_of_date", "—"), cell)],
+        [para("وضعیت انتخاب", cell), para("هیچ سناریویی انتخاب یا رتبه‌بندی نشده؛ بازبینی انسانی لازم است", cell)],
+    ]
+    story.append(Table(identity, colWidths=[53 * mm, 117 * mm], style=TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.4, LINE), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ])))
+    story.append(para("خلاصهٔ سناریوها", heading))
+    summary_rows = [[para(label, header) for label in ("سناریو", "وضعیت بررسی", "حد پایین", "میانی", "حد بالا")]]
+    scenario_by_id = {item.get("scenario_id"): item for item in scenarios}
+    for assessment in assessments:
+        currency = assessment.get("currency", policy.get("currency", ""))
+        summary_rows.append([
+            para(assessment.get("scenario_id", "—"), cell),
+            para(decision_labels.get(assessment.get("decision"), "نیازمند بررسی"), cell),
+            para(f"{amount(assessment.get('incremental_profit_lower'))} {currency}", cell),
+            para(f"{amount(assessment.get('incremental_profit_point'))} {currency}", cell),
+            para(f"{amount(assessment.get('incremental_profit_upper'))} {currency}", cell),
+        ])
+    story.append(LongTable(summary_rows, colWidths=[29 * mm, 48 * mm, 31 * mm, 31 * mm, 31 * mm], repeatRows=1, style=TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), INK), ("GRID", (0, 0), (-1, -1), 0.4, LINE),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5), ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ])))
+
+    for assessment in assessments:
+        scenario = scenario_by_id.get(assessment.get("scenario_id"), {})
+        scenario_id = assessment.get("scenario_id", "—")
+        story.append(para(f"جزئیات سناریو: {scenario_id}", heading))
+        story.append(para(
+            f"فروشگاه {scenario.get('store_id', '—')} · کالا {scenario.get('sku_id', '—')} · "
+            f"از {scenario.get('start_date', '—')} تا {scenario.get('end_date', '—')}", small,
+        ))
+        result_rows = [[para(label, header) for label in ("شاخص", "مقدار")]]
+        result_pairs = [
+            ("سود در حالت عادی", f"{amount((assessment.get('conditional_economics') or {}).get('baseline_profit'))} {assessment.get('currency', '')}"),
+            ("سود کمپین در بازهٔ واردشده", f"{amount(((assessment.get('conditional_economics') or {}).get('promoted_profit') or {}).get('lower'))} تا {amount(((assessment.get('conditional_economics') or {}).get('promoted_profit') or {}).get('upper'))} {assessment.get('currency', '')}"),
+            ("سهم محاسباتی هر واحد", f"{amount(assessment.get('projected_unit_contribution'))} {assessment.get('currency', '')}"),
+            ("هزینهٔ تجاری بر مبنای حد بالای تقاضا", f"{amount(assessment.get('projected_trade_spend'))} {assessment.get('currency', '')}"),
+            ("موجودی پس از ذخیره", f"{amount(assessment.get('sellable_inventory_units'), 0)} واحد"),
+            ("نتیجه نسبت به حد مدیر", decision_labels.get(assessment.get("decision"), "نیازمند بررسی")),
+        ]
+        result_rows.extend([[para(label, cell), para(value, cell)] for label, value in result_pairs])
+        story.append(Table(result_rows, colWidths=[72 * mm, 98 * mm], style=TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), INK), ("GRID", (0, 0), (-1, -1), 0.4, LINE),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ])))
+        story.append(para(assessment.get("explanation", ""), body))
+        blockers = assessment.get("blocking_reasons") or []
+        if blockers:
+            story.append(para(f"موانع ثبت‌شده: {', '.join(str(reason) for reason in blockers)}", body))
+
+        scenario_evidence = scenario.get("evidence") or []
+        evidence_rows = [[para(label, header) for label in ("ورودی", "نوع منبع", "مرجع", "تاریخ", "تأییدکنندهٔ ثبت‌شده")]]
+        for evidence in scenario_evidence:
+            field_name = evidence.get("field_name", "")
+            evidence_rows.append([
+                para(evidence_labels.get(field_name, field_name), cell),
+                para(kind_labels.get(evidence.get("kind"), evidence.get("kind", "—")), cell),
+                para(evidence.get("reference", "—"), cell),
+                para(evidence.get("as_of_date", "—"), cell),
+                para(evidence.get("approved_by", "—"), cell),
+            ])
+        story.append(para("ردیابی منابع ورودی (بررسی اصالت انجام نشده)", heading))
+        story.append(LongTable(evidence_rows, colWidths=[34 * mm, 28 * mm, 48 * mm, 25 * mm, 35 * mm], repeatRows=1, style=TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), INK), ("GRID", (0, 0), (-1, -1), 0.4, LINE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ])))
+
+    story.extend([
+        Spacer(1, 3 * mm),
+        para("محدودیت و کاربرد مجاز", heading),
+        para(result.get("limitation", "") or "", body),
+        para("اعداد این گزارش از ورودی و بازهٔ تقاضای ثبت‌شده محاسبه شده‌اند. بازهٔ تقاضا فاصلهٔ اطمینان آماری یا اثر علّی نیست؛ مراجع و نام تأییدکننده را سامانه مستقلاً راستی‌آزمایی نکرده است. بودجه بین گزینه‌ها تخصیص نیافته و هیچ کمپینی انتخاب، تأیید یا اجرا نشده است. این فایل فقط برای بازبینی انسانی است.", small),
+        para("چک‌لیست بازبینی مدیر", heading),
+        para("۱. مرجع هر قیمت، هزینه، موجودی و تقاضا را با منبع اصلی تطبیق دهید.", body),
+        para("۲. تعریف فروشگاه، کالا، تاریخ و واحد پول را پیش از مقایسه تأیید کنید.", body),
+        para("۳. روش و دورهٔ ساخت بازهٔ تقاضا را بررسی کنید؛ محدودیت موجودی یا تغییر هم‌زمان دیگر لحاظ شده است؟", body),
+        para("۴. پس از تأیید ورودی‌ها دربارهٔ آزمون کنترل‌شده یا دادهٔ بیشتر تصمیم بگیرید؛ این گزارش دستور اجرای کمپین نیست.", body),
+    ])
+
+    def footer(canvas: Any, _doc: Any) -> None:
+        canvas.saveState()
+        canvas.setStrokeColor(LINE)
+        canvas.line(18 * mm, 13 * mm, A4[0] - 18 * mm, 13 * mm)
+        canvas.setFont("PromoGuardVazir", 7)
+        canvas.setFillColor(MUTED)
+        canvas.drawRightString(A4[0] - 18 * mm, 8 * mm, _rtl(f"درخواست: {result.get('request_id', '—')} · PromoGuard · بازبینی انسانی لازم است"))
         canvas.restoreState()
 
     document.build(story, onFirstPage=footer, onLaterPages=footer)

@@ -20,6 +20,9 @@
 - Phase 8.1 validates real promotion-economics inputs and screens constraints only. `eligible` does
   not mean profitable, causal, optimal, or approved; scenario ranking and portfolio optimization
   remain unimplemented, and the public demo has no partner economics data.
+- Manager-scenario PDF export repeats the deterministic comparison from the submitted request and
+  includes user-entered source references, but the export is not persisted, has no stable share link
+  or report ID, and does not verify source documents or approver identity.
 - Hillstrom's purchase-history breakdown is an exploratory randomized email assignment analysis
   with 14 Bonferroni-adjusted within-stratum contrasts and two Bonferroni-adjusted global
   Cochran-Q heterogeneity tests. The tests use an asymptotic chi-square reference and do not identify

@@ -16,7 +16,7 @@ from uuid import uuid4
 import pandas as pd
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from apps.api.contracts import (
     AuditRequest,
@@ -671,6 +671,38 @@ def compare_promotion_scenarios(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(error),
         ) from error
+
+
+@app.post(
+    "/v1/optimization/comparisons/pdf",
+    tags=["promotion-economics"],
+    responses={200: {"content": {"application/pdf": {}}}},
+)
+def download_scenario_comparison_pdf(request: ManagerScenarioComparisonRequest) -> Response:
+    """Return a downloadable review copy without storing the submitted scenario."""
+    comparison = compare_scenarios(request.optimization)
+    try:
+        result = evaluate_manager_policy(comparison, request.policy)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(error),
+        ) from error
+
+    from apps.api.pdf import build_scenario_comparison_pdf
+
+    pdf_bytes = build_scenario_comparison_pdf(
+        request.model_dump(mode="json"), result.model_dump(mode="json")
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'attachment; filename="promoguard-scenario-comparison.pdf"',
+            "Cache-Control": "no-store, private",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 def _run_report(

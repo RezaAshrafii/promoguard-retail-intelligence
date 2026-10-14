@@ -76,8 +76,11 @@ export default function OptimizationPage() {
   const [requestText, setRequestText] = useState("");
   const [fileName, setFileName] = useState("");
   const [result, setResult] = useState<Comparison | null>(null);
+  const [resultRequestText, setResultRequestText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
   const [error, setError] = useState("");
+  const [pdfError, setPdfError] = useState("");
   const [inputMode, setInputMode] = useState<"guided" | "json">("guided");
   const requestVersion = useRef(0);
   const operationVersion = useRef(0);
@@ -89,6 +92,7 @@ export default function OptimizationPage() {
     const submittedVersion = ++requestVersion.current;
     setError("");
     setResult(null);
+    setResultRequestText("");
     setBusy(true);
     try {
       const text = await file.text();
@@ -111,6 +115,7 @@ export default function OptimizationPage() {
     const submittedText = requestText;
     setError("");
     setResult(null);
+    setResultRequestText("");
     let body: unknown;
     try {
       body = JSON.parse(submittedText);
@@ -139,13 +144,52 @@ export default function OptimizationPage() {
             : "ساختار یا مقادیر درخواست با قرارداد تحلیل سازگار نیست.";
         throw new Error(message);
       }
-      if (requestVersion.current === submittedVersion) setResult(payload as Comparison);
+      if (requestVersion.current === submittedVersion) {
+        setResult(payload as Comparison);
+        setResultRequestText(submittedText);
+      }
     } catch (caught) {
       if (requestVersion.current === submittedVersion) {
         setError(caught instanceof Error ? caught.message : "ارتباط با سرویس تحلیل برقرار نشد.");
       }
     } finally {
       if (operationVersion.current === operation) setBusy(false);
+    }
+  }
+
+  async function downloadPdf() {
+    const submittedText = resultRequestText;
+    if (!submittedText) return;
+    setPdfError("");
+    setPdfBusy(true);
+    try {
+      const response = await fetch(`${API_BASE}/v1/optimization/comparisons/pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: submittedText,
+      });
+      if (!response.ok) {
+        let message = "ساخت فایل گزارش انجام نشد؛ سرویس محلی را بررسی کن.";
+        try {
+          const payload = await response.json();
+          if (typeof payload.detail === "string") message = payload.detail;
+        } catch { /* The server may return a non-JSON error page. */ }
+        throw new Error(message);
+      }
+      const blob = await response.blob();
+      if (blob.type !== "application/pdf") throw new Error("پاسخ سرویس فایل PDF معتبر نبود.");
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "promoguard-scenario-comparison.pdf";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (caught) {
+      setPdfError(caught instanceof Error ? caught.message : "ساخت فایل گزارش انجام نشد.");
+    } finally {
+      setPdfBusy(false);
     }
   }
 
@@ -189,6 +233,7 @@ export default function OptimizationPage() {
               setRequestText(json);
               setFileName("");
               setResult(null);
+              setResultRequestText("");
               setError("");
               setInputMode("json");
             }} /></div>
@@ -199,7 +244,7 @@ export default function OptimizationPage() {
               <span className={styles.fileButton}>انتخاب فایل</span>
             </label>
             <label className={styles.editorLabel} htmlFor="scenario-request">متن درخواست</label>
-            <textarea id="scenario-request" className={styles.editor} dir="ltr" spellCheck={false} disabled={busy} value={requestText} onChange={(event) => { requestVersion.current += 1; setRequestText(event.target.value); setFileName(""); setResult(null); setError(""); }} placeholder={'درخواست JSON را اینجا جای‌گذاری کن…\n\nفیلدهای سناریو، محدودیت‌ها، آستانهٔ مدیر و منبع هر عدد لازم است.'} aria-describedby="contract-help" />
+            <textarea id="scenario-request" className={styles.editor} dir="ltr" spellCheck={false} disabled={busy || pdfBusy} value={requestText} onChange={(event) => { requestVersion.current += 1; setRequestText(event.target.value); setFileName(""); setResult(null); setResultRequestText(""); setError(""); }} placeholder={'درخواست JSON را اینجا جای‌گذاری کن…\n\nفیلدهای سناریو، محدودیت‌ها، آستانهٔ مدیر و منبع هر عدد لازم است.'} aria-describedby="contract-help" />
             <div className={styles.contractHelp} id="contract-help">
               <strong>قبل از ارسال، این داده‌ها باید آماده باشند</strong>
               <p>برای هر سناریو: قیمت عادی و کمپین، بهای واحد، حمایت تأمین‌کننده، هزینه‌های ثابت و متغیر، موجودی، تقاضای مبنا و بازهٔ تقاضای برآوردی. برای هر ۹ مورد، نوع و مرجع مدرک، تاریخ و نام تأییدکننده ثبت شود. همچنین سقف بودجه، ذخیرهٔ موجودی، سقف تخفیف و حداقل سود هدف لازم است.</p>
@@ -259,6 +304,13 @@ export default function OptimizationPage() {
 
           <div className={styles.resultLimit}><strong>مرز تفسیر</strong><p>{result.limitation}</p><p>عبور از آستانه فقط «نامزد بررسی انسانی» می‌سازد؛ دادهٔ تقاضا، مبنا و هزینه‌ها باید پیش از هر تصمیم بازبینی شوند.</p></div>
           <div className={styles.resultFooter}><span>وضعیت: بررسی دستی لازم است</span><span>بودجه: غربال جداگانه برای هر سناریو؛ تخصیص سبد انجام نشده</span><span>گزینهٔ منتخب: ندارد</span></div>
+          <div className={styles.resultActions}>
+            <button className={styles.secondaryAction} type="button" disabled={pdfBusy} onClick={() => void downloadPdf()}>
+              {pdfBusy ? "در حال آماده‌سازی PDF…" : "دانلود گزارش PDF برای بازبینی"}
+            </button>
+            <span>فایل با همان ورودی دوباره ساخته می‌شود؛ سرور آن را ذخیره نمی‌کند.</span>
+          </div>
+          {pdfError && <p className={styles.pdfError} role="alert">{pdfError}</p>}
         </section>}
       </section>
     </main>

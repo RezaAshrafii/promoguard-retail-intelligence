@@ -914,6 +914,29 @@ Phase 8.1.1 team execution overlay (2026-09-16):
 - Phase 8 remains ACTIVE. The next business-critical gate remains permitted partner data and manager
   review, not a stronger claim from public email data.
 
+### Phase 8.2.8 — Manager scenario PDF review export (2026-10-14)
+
+- Added `POST /v1/optimization/comparisons/pdf`, which validates the same typed request as the JSON
+  comparison route, recalculates the policy result on the server, and streams a Persian PDF response.
+  It does not persist request/result data or create a stable report ID.
+- Connected the `/optimization` page's download control to the exact request text that produced the
+  visible result. The PDF contains scenario economics, registered provenance references, policy
+  context, decision limitations, and a manager review checklist. No scenario is ranked or selected;
+  the input's evidence references and approver names remain unverified text.
+- Added integration and browser tests for PDF MIME/metadata, exact request reuse, visible economic
+  values, source-reference escaping, and the download name. A test fixture PDF rendered to two pages
+  and was visually checked; fixtures are software tests, not business evidence.
+- Validation: focused Python scenario API tests **3 passed**; full Python suite **299 passed**
+  (one existing Starlette/httpx deprecation warning); changed-file Ruff and `compileall` passed.
+  Frontend ESLint passed, Node tests **13 passed**, TypeScript and production build passed, and the
+  full serial Playwright suite **8 passed**. The test-client deprecation warning remains.
+- Model/reasoning: current Codex execution runtime; no separate model/reasoning selector was exposed.
+  This was an adapter/presentation implementation; no statistical method, economic formula, or
+  decision threshold changed. No independent second-model review is claimed.
+- Learning guide: `learning/08-17-manager-scenario-pdf/README.fa.md`.
+- Phase 8 remains ACTIVE. A permitted company dataset and manager review are still required for
+  business validation; the PDF capability does not create a profit or customer-impact claim.
+
 ## Phase 9 — PENDING — Production and verified AI layer
 
 Plain-language goal: demonstrate the production skills employers ask for without turning the repository into infrastructure theater.

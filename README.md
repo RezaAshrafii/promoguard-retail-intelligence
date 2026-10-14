@@ -32,6 +32,8 @@ readiness from public observational data.
 - validates evidenced promotion-economics candidates with decimal money, consistent currency,
   bounded demand projections, and explicit price/budget/inventory constraint failures; it does not
   yet rank scenarios or claim profit;
+- exports the manager-scenario comparison as a Persian review PDF with submitted source references;
+  export is on-demand and is not stored or link-shareable;
 - serves typed local FastAPI endpoints, the Persian Next.js product UI, and a legacy Streamlit
   review flow;
 - preserves an explicit abstention result when the evidence is insufficient.
@@ -56,11 +58,11 @@ Hillstrom is an email experiment, not retail pricing data. Its revenue outcome i
 | Criteo selected uplift learner | Qini coefficient 6,553.73; 95% CI [5,953.79, 7,153.86] | nonlinear S-Learner selected on validation; fixed-ranking test uncertainty only |
 | Criteo 20% benchmark policy view | cumulative Qini 14,135.19; Qini/population 0.03370; treated-control rate difference 0.03932; IPW 0.04720 | three explicitly different benchmark summaries; none is profit, ROI, or a spend recommendation |
 
-Release Gate 5.1 passed 67 tests; the current Demo Mode release passes **73 tests**. Later causal,
-cross-SKU, uncertainty, overlap, security, dashboard-rendering, and metric-correctness checks bring the current suite to **116 tests**. Command evidence
-and the one known dependency deprecation warning are recorded in the
-[correctness report](reports/foundation-correctness/release-quality-report.json) and
-[Demo Mode report](reports/phase-05/demo-mode-quality-report.json).
+Historical release gates passed 67 tests (Foundation) and 73 tests (Demo Mode); the 116-test count
+was a later historical review snapshot, not the current suite size. On 2026-10-14, validation passed
+**299 Python tests**, **13 Node tests**, and **8 serial Playwright browser tests**, plus Python Ruff,
+compile checks, frontend lint, TypeScript, and production build. The existing Starlette/httpx
+test-client deprecation warning is disclosed in [ROADMAP.md](ROADMAP.md).
 
 ## Architecture
 
